@@ -1,0 +1,41 @@
+name: Import Hermes-Jev v0.1.5.5 release
+on:
+  push:
+    branches:
+      - release/v0.1.5.5-community
+    paths:
+      - staging/READY
+
+permissions:
+  contents: write
+
+jobs:
+  import-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Reconstruct tested release
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat staging/part-* > /tmp/hermes-jev-release.b64
+          base64 -d /tmp/hermes-jev-release.b64 > /tmp/hermes-jev-release.zip
+          echo "6505a38027793b20d56609fb1260ba4296baba60bfcf3f31a3958c756369bd15  /tmp/hermes-jev-release.zip" | sha256sum -c -
+          rm -rf /tmp/hermes-jev-unpack
+          mkdir -p /tmp/hermes-jev-unpack
+          unzip -q /tmp/hermes-jev-release.zip -d /tmp/hermes-jev-unpack
+          rsync -a --delete \
+            --exclude '.git/' \
+            --exclude '.github/workflows/release-import.yml' \
+            /tmp/hermes-jev-unpack/hermes-jev-v0.1.5.5/ ./
+          rm -rf staging
+          rm -f .github/workflows/release-import.yml
+          python3 -m unittest discover -s tests -v
+          python3 -m compileall -q .
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Release Hermes-Jev v0.1.5.5"
+          git push origin HEAD
