@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Protocol
 
 from .client import JevClient
 from .privacy import redact
 from .receipts import write_receipt
+from .provenance import execution_provenance
 
 
 class DecisionProvider(Protocol):
@@ -22,6 +23,10 @@ class DecisionResult:
     model: str
     latency_ms: float
     contract: str
+    usage: dict[str, Any] = field(default_factory=dict)
+    request_id: str = ""
+    provider: str = ""
+    transport: str = "openrouter-decisions"
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -31,12 +36,78 @@ class DecisionResult:
             "model": self.model,
             "latency_ms": round(self.latency_ms, 3),
             "contract": self.contract,
+            "usage": self.usage,
+            "request_id": self.request_id,
+            "provider": self.provider,
+            "execution": execution_provenance(live_provider_call=True, transport=self.transport),
         }
 
 
 class DecisionEngine:
     def __init__(self, provider: DecisionProvider | None = None) -> None:
         self.provider = provider or JevClient()
+
+    @staticmethod
+    def _validate_questions(questions: dict[str, Any]) -> dict[str, dict[str, Any]]:
+        if not isinstance(questions, dict) or not questions:
+            raise ValueError("questions must be a non-empty object")
+        if len(questions) > 16:
+            raise ValueError("questions may contain at most 16 typed questions per request")
+
+        normalized: dict[str, dict[str, Any]] = {}
+        for raw_name, raw_question in questions.items():
+            name = str(raw_name).strip()
+            if not name:
+                raise ValueError("question names must be non-empty")
+            if not isinstance(raw_question, dict):
+                raise ValueError(f"question {name!r} must be an object")
+            q = dict(raw_question)
+            qtype = str(q.get("type") or "").strip().lower()
+            if qtype not in {"noul", "choice", "score"}:
+                raise ValueError(f"question {name!r} has unsupported type {qtype!r}")
+            q["type"] = qtype
+
+            if "instructions" in q and q["instructions"] is not None and not isinstance(q["instructions"], (str, dict, list, tuple)):
+                raise ValueError(f"question {name!r} instructions must be JSON-compatible text/context")
+
+            criteria = q.get("criteria")
+            if qtype == "choice":
+                if not isinstance(criteria, dict) or len(criteria) < 2:
+                    raise ValueError(f"choice question {name!r} requires at least two criteria labels")
+            elif qtype == "score":
+                if not isinstance(criteria, (list, tuple)) or len(criteria) < 2:
+                    raise ValueError(f"score question {name!r} requires an ordered criteria list with at least two entries")
+            elif criteria is not None and not isinstance(criteria, dict):
+                raise ValueError(f"noul question {name!r} criteria must be an object when provided")
+            normalized[name] = q
+        return normalized
+
+    def assess(
+        self,
+        *,
+        state: Any,
+        questions: dict[str, Any],
+        contract: str = "assess/v1",
+    ) -> dict[str, Any]:
+        """Ask one or more native Jev typed questions in a single request."""
+        safe_state = redact(state)
+        safe_questions = redact(self._validate_questions(questions))
+        response = self.provider.system_one(state=safe_state, questions=safe_questions)
+        missing = [name for name in safe_questions if name not in response.answers]
+        if missing:
+            raise ValueError(f"provider response is missing answers for: {', '.join(missing)}")
+        result = {
+            "answers": response.answers,
+            "model": response.model,
+            "latency_ms": round(response.latency_ms, 3),
+            "contract": contract,
+            "usage": response.usage,
+            "request_id": response.request_id,
+            "provider": response.provider,
+            "execution": execution_provenance(live_provider_call=True, transport=response.transport),
+        }
+        write_receipt(contract=contract, state=safe_state, result=result, model=response.model, latency_ms=response.latency_ms)
+        return result
 
     def decide(
         self,
@@ -62,7 +133,18 @@ class DecisionEngine:
         if value not in mapped:
             raise ValueError(f"provider returned out-of-contract choice: {value!r}")
         confidence = float(answer.get("confidence", probabilities.get(value, 0.0)))
-        result = DecisionResult(value, confidence, probabilities, response.model, response.latency_ms, contract)
+        result = DecisionResult(
+            value,
+            confidence,
+            probabilities,
+            response.model,
+            response.latency_ms,
+            contract,
+            usage=response.usage,
+            request_id=response.request_id,
+            provider=response.provider,
+            transport=response.transport,
+        )
         write_receipt(contract=contract, state=safe_state, result=result.as_dict(), model=response.model, latency_ms=response.latency_ms)
         return result
 
