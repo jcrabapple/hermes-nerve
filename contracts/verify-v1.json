@@ -1,0 +1,5 @@
+{
+  "name": "verify/v1",
+  "type": "choice",
+  "choices": ["PASS", "RETRY", "REPLAN", "ESCALATE"]
+}

@@ -1,0 +1,5 @@
+{
+  "name": "rank/v1",
+  "type": "choice",
+  "output": "winner plus all choice probabilities sorted descending"
+}

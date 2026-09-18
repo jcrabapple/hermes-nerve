@@ -1,0 +1,10 @@
+{
+  "name": "hermes/pre-tool-gate/v1",
+  "type": "choice",
+  "choices": ["ALLOW", "APPROVAL", "BLOCK"],
+  "policy": {
+    "low_confidence": "APPROVAL",
+    "provider_failure": "APPROVAL when enforce mode is enabled",
+    "advisory_mode": "record only"
+  }
+}

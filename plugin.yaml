@@ -1,0 +1,22 @@
+name: hermes-jev
+version: "0.1.3"
+description: "System One decision runtime for Hermes Agent: typed Jev decisions, ranking, verification, receipts, and an opt-in pre-tool control gate."
+author: "KeelTrace community"
+license: MIT
+homepage: https://github.com/keeltrace/hermes-jev
+tags: [jev, typesafe, system-one, decisions, routing, verification, safety, automation]
+provides_tools:
+  - jev_decide
+  - jev_rank
+  - jev_verify
+provides_hooks:
+  - pre_tool_call
+requires_env:
+  - name: TYPESAFE_API_KEY
+    description: "TypeSafe API key used to call Jev"
+    url: "https://console.typesafe.ai/settings/keys"
+    secret: true
+config_schema:
+  gate_mode: {type: str, default: "off", description: "Automatic pre-tool gate: off, advisory, or enforce"}
+  min_confidence: {type: float, default: 0.80, description: "Minimum confidence before an automatic allow/block verdict is trusted"}
+  receipt_detail: {type: str, default: "hash", description: "Receipt state detail: hash or sanitized"}

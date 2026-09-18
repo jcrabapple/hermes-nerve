@@ -1,0 +1,16 @@
+[project]
+name = "hermes-jev"
+version = "0.1.3"
+description = "System One decision runtime for Hermes Agent"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{name = "KeelTrace community"}]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/keeltrace/hermes-jev"
+Issues = "https://github.com/keeltrace/hermes-jev/issues"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
