@@ -6,8 +6,8 @@ import json
 
 from .context import curate_context
 from .engine import DecisionEngine
-from . import gate, ledger, lifecycle, receipts
-from .provenance import execution_provenance
+from . import gate, ledger, lifecycle, receipts, nervous
+from .provenance import execution_provenance, result_provenance
 
 _engine_factory = DecisionEngine
 
@@ -18,15 +18,45 @@ def _engine() -> DecisionEngine:
 
 def _ok(payload: dict) -> str:
     body = {"ok": True, **payload}
-    body.setdefault("execution", execution_provenance(live_provider_call=bool(body.get("request_id") or body.get("requests"))))
+    inferred_live = bool(body.get("request_id") or body.get("requests"))
+    body.setdefault("execution", execution_provenance(
+        live_provider_call=inferred_live,
+        request_id=str(body.get("request_id") or ""),
+        receipt_id=str(body.get("receipt_id") or ""),
+    ))
+    execution = body.get("execution") if isinstance(body.get("execution"), dict) else {}
+    live = bool(execution.get("live_provider_call"))
+    body.setdefault("provenance_status", execution.get("provenance_status") or ("VERIFIED" if live and (body.get("request_id") or body.get("receipt_id")) else "LOCAL_ONLY" if not live else "UNVERIFIED"))
+    body.setdefault("provenance", result_provenance(
+        live_provider_call=live,
+        request_id=str(body.get("request_id") or ""),
+        receipt_id=str(body.get("receipt_id") or ""),
+        provider=str(body.get("provider") or ""),
+        transport=str(execution.get("transport") or ""),
+        model=str(body.get("model") or ""),
+        contract=str(body.get("contract") or ""),
+        stale=bool(body.get("stale")),
+    ))
+    if bool(body.get("stale")):
+        body["provenance_status"] = "UNVERIFIED"
+        provenance = dict(body.get("provenance") or {})
+        provenance["provenance_status"] = "UNVERIFIED"
+        provenance["stale"] = True
+        body["provenance"] = provenance
+        execution = dict(body.get("execution") or {})
+        execution["provenance_status"] = "UNVERIFIED"
+        body["execution"] = execution
     return json.dumps(body, sort_keys=True)
 
 
 def _error(exc: Exception) -> str:
+    execution = execution_provenance(live_provider_call=False, error=True)
     return json.dumps({
         "ok": False,
         "error": str(exc),
-        "execution": execution_provenance(live_provider_call=False),
+        "provenance_status": "ERROR",
+        "provenance": result_provenance(live_provider_call=False, error=True),
+        "execution": execution,
     }, sort_keys=True)
 
 
@@ -122,19 +152,145 @@ def jev_context_rehydrate(args: dict, **kwargs) -> str:
         return _error(exc)
 
 
-def jev_stats(args: dict, **kwargs) -> str:
+
+def jev_nervous_event(args: dict, **kwargs) -> str:
     try:
-        recent_limit = args.get("recent_limit", 8)
-        try:
-            recent_limit = max(0, min(50, int(recent_limit)))
-        except (TypeError, ValueError):
-            recent_limit = 8
+        event = dict(args or {})
+        for key in ("turn_id", "session_id"):
+            if not event.get(key) and kwargs.get(key):
+                event[key] = kwargs.get(key)
+        result = nervous.emit_event(event)
         return _ok({
-            "contract": "stats/v1",
-            "receipts": receipts.report(recent_limit=recent_limit),
-            "gate": gate.report(recent_limit=recent_limit),
-            "context": ledger.report(),
-            "execution": execution_provenance(live_provider_call=False, transport="local-telemetry"),
+            "contract": "hermes/jev-nervous-event/v1",
+            "event": result,
+            "nervous": nervous.status(str(event.get("turn_id") or ""), str(event.get("session_id") or "")),
+            "execution": execution_provenance(live_provider_call=False, transport="local-nervous-router"),
         })
+    except Exception as exc:
+        return _error(exc)
+
+def _compact_receipts(report: dict) -> dict:
+    return {key: report.get(key) for key in (
+        "receipt_count", "provider_calls", "by_contract", "by_model", "total_cost",
+        "input_tokens", "output_tokens", "average_latency_ms",
+    )}
+
+
+def _compact_gate(report: dict) -> dict:
+    return {key: report.get(key) for key in (
+        "metric_scope", "gate_mode", "scope", "event_count", "hook_observations",
+        "disabled", "bypassed", "evaluated", "provider_errors", "provider_calls",
+        "average_provider_latency_ms", "estimated_provider_calls_avoided", "by_action", "by_reason",
+    )}
+
+
+def _compact_context(report: dict) -> dict:
+    return {key: report.get(key) for key in (
+        "enabled", "detail", "evidence_events", "shadow_plans", "rehydrations",
+        "unique_evidence", "compacted_unique_evidence", "rehydrated_compacted_evidence",
+        "recovery_demand_rate", "shadow_action_counts", "shadow_proposed_saved_chars",
+    )}
+
+
+def _compact_nervous(report: dict) -> dict:
+    quality = report.get("quality_metrics") if isinstance(report.get("quality_metrics"), dict) else {}
+    return {
+        "scope": report.get("scope"),
+        "enabled": report.get("enabled"),
+        "mode": report.get("mode"),
+        "admission_enabled": report.get("admission_enabled"),
+        "active_turns": report.get("active_turns"),
+        "admissions": report.get("admissions"),
+        "quality_metrics": quality,
+    }
+
+
+def jev_stats(args: dict, **kwargs) -> str:
+    """Bounded local telemetry. Default is deliberately compact (v0.2.1)."""
+    try:
+        section = str(args.get("section") or "summary").strip().lower()
+        allowed = {"summary", "receipts", "gate", "context", "nervous", "quality", "outcomes", "all"}
+        if section not in allowed:
+            raise ValueError(f"section must be one of: {', '.join(sorted(allowed))}")
+        try:
+            recent_limit = max(0, min(20, int(args.get("recent_limit", 3))))
+        except (TypeError, ValueError):
+            recent_limit = 3
+        include_recent = bool(args.get("include_recent", False))
+
+        receipt_report = receipts.report(recent_limit=recent_limit if include_recent else 0)
+        gate_report = gate.report(recent_limit=recent_limit if include_recent else 0)
+        context_report = ledger.report()
+        nervous_report = nervous.report(
+            recent_limit=recent_limit, include_recent=include_recent,
+            include_outcomes=section in {"outcomes", "all"},
+        )
+
+        base = {
+            "contract": "stats/v2",
+            "section": section,
+            "scope_labels": {
+                "receipts": "profile-lifetime receipt ledger",
+                "gate": "profile-lifetime gate-event ledger",
+                "context": "profile-lifetime context ledger",
+                "nervous_runtime": "current process",
+                "nervous_outcomes": "profile-lifetime outcome ledger",
+                "recent": "rolling current-process or ledger tail, only when include_recent=true",
+            },
+            "execution": execution_provenance(live_provider_call=False, transport="local-telemetry"),
+        }
+        if section == "summary":
+            base.update({
+                "receipts": _compact_receipts(receipt_report),
+                "gate": _compact_gate(gate_report),
+                "context": _compact_context(context_report),
+                "nervous": _compact_nervous(nervous_report),
+                "note": "Compact by default to avoid tool-result context bloat. Use section=... and include_recent=true for targeted detail.",
+            })
+        elif section == "receipts":
+            base["receipts"] = receipt_report
+        elif section == "gate":
+            base["gate"] = gate_report
+        elif section == "context":
+            base["context"] = context_report
+        elif section == "nervous":
+            base["nervous"] = nervous_report
+        elif section == "quality":
+            base["quality"] = nervous_report.get("quality_metrics", {})
+        elif section == "outcomes":
+            base["outcomes"] = nervous_report.get("outcomes", {})
+        else:  # all
+            base.update({
+                "receipts": receipt_report,
+                "gate": gate_report,
+                "context": context_report,
+                "nervous": nervous_report,
+            })
+
+        encoded = _ok(base)
+        # Default/targeted calls are bounded defensively. A caller can still ask
+        # for all + recent, but one accidental stats call cannot inject ~30 KB.
+        hard_cap = 16000
+        if len(encoded) > hard_cap and section in {"summary", "quality", "gate", "receipts", "context", "nervous", "outcomes"}:
+            trimmed = {
+                "contract": "stats/v2", "section": section, "truncated": True,
+                "original_chars": len(encoded),
+                "note": "Telemetry exceeded the 16k bounded tool-result cap; request a narrower section.",
+                "scope_labels": base["scope_labels"],
+                "execution": base["execution"],
+            }
+            if section == "summary":
+                trimmed.update({
+                    "receipts": _compact_receipts(receipt_report),
+                    "gate": _compact_gate(gate_report),
+                    "context": _compact_context(context_report),
+                    "nervous": {
+                        "enabled": nervous_report.get("enabled"),
+                        "mode": nervous_report.get("mode"),
+                        "admissions": nervous_report.get("admissions"),
+                    },
+                })
+            encoded = _ok(trimmed)
+        return encoded
     except Exception as exc:
         return _error(exc)

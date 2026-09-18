@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Live synthetic regression suite for Hermes-Jev through the selected provider.
+"""Live synthetic regression suite for Hermes-Jev through the selected Jev provider.
 
-Set HERMES_JEV_PROVIDER=openrouter (default) with OPENROUTER_API_KEY, or HERMES_JEV_PROVIDER=typesafe with TYPESAFE_API_KEY. No local project data is sent. The script exercises
+Requires the credential for HERMES_JEV_PROVIDER (openrouter or typesafe). No local project data is sent. The script exercises
 all public decision modes plus the advisory-gate classifier and prints a compact
 cost/latency summary.
 """
@@ -32,10 +32,13 @@ def _cost(result: dict) -> float:
 
 
 def main() -> int:
-    provider = os.getenv("HERMES_JEV_PROVIDER", "openrouter").strip().lower()
-    key_name = "TYPESAFE_API_KEY" if provider in {"typesafe", "direct", "typesafe-direct"} else "OPENROUTER_API_KEY"
-    if not os.getenv(key_name, "").strip():
-        print(f"{key_name} is not set for HERMES_JEV_PROVIDER={provider}; live test skipped.", file=sys.stderr)
+    provider = os.getenv("HERMES_JEV_PROVIDER", "openrouter").strip().lower() or "openrouter"
+    required = "TYPESAFE_API_KEY" if provider == "typesafe" else "OPENROUTER_API_KEY"
+    if provider not in {"openrouter", "typesafe"}:
+        print("HERMES_JEV_PROVIDER must be openrouter or typesafe.", file=sys.stderr)
+        return 2
+    if not os.getenv(required, "").strip():
+        print(f"{required} is not set; live suite skipped.", file=sys.stderr)
         return 2
 
     with tempfile.TemporaryDirectory() as td:

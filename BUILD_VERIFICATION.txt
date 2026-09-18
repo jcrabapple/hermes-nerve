@@ -1,0 +1,32 @@
+Hermes-Jev v0.2.1.1 release verification
+Date: 2026-09-18
+
+Inputs:
+- hermes-jev-v0.2.1(1).zip SHA-256 4dfc4c45b215d97144e9e1919a1eeb86876116935f300ce525575f4d705a3221
+- hermes-jev-v0.2.2-bug-reports(1).zip SHA-256 f813f8bf617e0c42f5c8325578b18317733a796998cea66b17b3f048773c47ba
+
+Offline verification:
+- python3 -m unittest discover -s tests -v: PASS (74 tests)
+- python3 -m compileall -q .: PASS
+- python3 scripts/verify_release.py: PASS
+  tools=8 hook_names=7 hook_callbacks=8 requirements=1119
+
+Focused 0.2.1.1 bug regressions:
+- deferred jev_assess schema exposes choice minProperties=2: PASS
+- deferred jev_assess schema exposes score minItems=2: PASS
+- valid choice assessment -> exactly one direct provider call: PASS
+- invalid choice assessment -> zero additional provider calls: PASS
+- jev_* failed post-tool observation -> nervous provider calls zero: PASS
+- jev_* successful post-tool observation -> no self-amplification: PASS
+- decide/rank/assess/verify -> persisted receipt_id + VERIFIED provenance: PASS
+- no provider request id -> content-bound local receipt remains auditable: PASS
+- local/error results cannot be marked VERIFIED: PASS
+
+Preserved v0.2.1 release invariants:
+- loop breaker/control-lease regressions: PASS
+- bounded/sectioned jev_stats regressions: PASS
+- 8 tools / 7 hook names / 8 callbacks: PASS
+- 1,119 sequential traced requirements with unique verification IDs: PASS
+
+Live external provider / Hermes 0.21.2 deferred-tool replay: NOT RUN in the isolated packaging environment.
+A post-install Muna test remains external confirmation for live provider-call counts and tool_describe/tool_call interoperability.

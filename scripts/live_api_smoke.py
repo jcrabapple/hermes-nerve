@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Opt-in live Jev smoke test through the selected provider.
+"""Opt-in live Jev smoke test through the selected Jev provider.
 
-Set HERMES_JEV_PROVIDER=openrouter (default) with OPENROUTER_API_KEY, or HERMES_JEV_PROVIDER=typesafe with TYPESAFE_API_KEY. It sends only synthetic test state and prints the
+Requires the credential for HERMES_JEV_PROVIDER (openrouter or typesafe). It sends only synthetic test state and prints the
 returned decision metadata; it never reads local Hermes state or receipts.
 """
 
@@ -20,10 +20,13 @@ from hermes_jev.engine import DecisionEngine
 
 
 def main() -> int:
-    provider = os.getenv("HERMES_JEV_PROVIDER", "openrouter").strip().lower()
-    key_name = "TYPESAFE_API_KEY" if provider in {"typesafe", "direct", "typesafe-direct"} else "OPENROUTER_API_KEY"
-    if not os.getenv(key_name, "").strip():
-        print(f"{key_name} is not set for HERMES_JEV_PROVIDER={provider}; live test skipped.", file=sys.stderr)
+    provider = os.getenv("HERMES_JEV_PROVIDER", "openrouter").strip().lower() or "openrouter"
+    required = "TYPESAFE_API_KEY" if provider == "typesafe" else "OPENROUTER_API_KEY"
+    if provider not in {"openrouter", "typesafe"}:
+        print("HERMES_JEV_PROVIDER must be openrouter or typesafe.", file=sys.stderr)
+        return 2
+    if not os.getenv(required, "").strip():
+        print(f"{required} is not set; live API smoke skipped.", file=sys.stderr)
         return 2
 
     result = DecisionEngine().decide(

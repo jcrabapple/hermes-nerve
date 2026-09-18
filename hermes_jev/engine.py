@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any, Protocol
 
 from .client import JevClient
 from .privacy import redact
 from .receipts import write_receipt
-from .provenance import execution_provenance
+from .provenance import execution_provenance, result_provenance
 
 
 class DecisionProvider(Protocol):
@@ -27,8 +27,21 @@ class DecisionResult:
     request_id: str = ""
     provider: str = ""
     transport: str = "openrouter-decisions"
+    receipt_id: str = ""
+    provenance_status: str = "UNVERIFIED"
+    provenance: dict[str, Any] = field(default_factory=dict)
 
     def as_dict(self) -> dict[str, Any]:
+        provenance = self.provenance or result_provenance(
+            live_provider_call=True,
+            request_id=self.request_id,
+            receipt_id=self.receipt_id,
+            provider=self.provider,
+            transport=self.transport,
+            model=self.model,
+            contract=self.contract,
+        )
+        status = provenance.get("provenance_status") or self.provenance_status
         return {
             "value": self.value,
             "confidence": self.confidence,
@@ -38,8 +51,16 @@ class DecisionResult:
             "contract": self.contract,
             "usage": self.usage,
             "request_id": self.request_id,
+            "receipt_id": self.receipt_id,
             "provider": self.provider,
-            "execution": execution_provenance(live_provider_call=True, transport=self.transport),
+            "provenance_status": status,
+            "provenance": provenance,
+            "execution": execution_provenance(
+                live_provider_call=True,
+                transport=self.transport,
+                request_id=self.request_id,
+                receipt_id=self.receipt_id,
+            ),
         }
 
 
@@ -96,6 +117,7 @@ class DecisionEngine:
         missing = [name for name in safe_questions if name not in response.answers]
         if missing:
             raise ValueError(f"provider response is missing answers for: {', '.join(missing)}")
+        transport = getattr(response, "transport", "openrouter-decisions")
         result = {
             "answers": response.answers,
             "model": response.model,
@@ -104,10 +126,14 @@ class DecisionEngine:
             "usage": response.usage,
             "request_id": response.request_id,
             "provider": response.provider,
-            "execution": execution_provenance(live_provider_call=True, transport=response.transport),
+            "execution": execution_provenance(
+                live_provider_call=True,
+                transport=transport,
+                request_id=response.request_id,
+            ),
         }
-        write_receipt(contract=contract, state=safe_state, result=result, model=response.model, latency_ms=response.latency_ms)
-        return result
+        receipt = write_receipt(contract=contract, state=safe_state, result=result, model=response.model, latency_ms=response.latency_ms)
+        return dict(receipt["result"])
 
     def decide(
         self,
@@ -143,10 +169,16 @@ class DecisionEngine:
             usage=response.usage,
             request_id=response.request_id,
             provider=response.provider,
-            transport=response.transport,
+            transport=getattr(response, "transport", "openrouter-decisions"),
         )
-        write_receipt(contract=contract, state=safe_state, result=result.as_dict(), model=response.model, latency_ms=response.latency_ms)
-        return result
+        receipt = write_receipt(contract=contract, state=safe_state, result=result.as_dict(), model=response.model, latency_ms=response.latency_ms)
+        stored = receipt["result"]
+        return replace(
+            result,
+            receipt_id=str(receipt.get("receipt_id") or stored.get("receipt_id") or ""),
+            provenance_status=str(stored.get("provenance_status") or "UNVERIFIED"),
+            provenance=dict(stored.get("provenance") or {}),
+        )
 
     def rank(self, *, state: Any, instructions: str, items: dict[str, Any], contract: str = "rank/v1") -> dict[str, Any]:
         result = self.decide(

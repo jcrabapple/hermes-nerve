@@ -496,7 +496,6 @@ def curate_context(
 
     provider = next((req.get("provider") for req in request_meta if req.get("provider")), "")
     model = next((req.get("model") for req in request_meta if req.get("model")), "")
-    transport = next((req.get("execution", {}).get("transport") for req in request_meta if isinstance(req.get("execution"), dict) and req.get("execution", {}).get("transport")), "openrouter-decisions")
     return {
         "contract": contract,
         "goal": goal,
@@ -509,5 +508,5 @@ def curate_context(
         "requests": request_meta,
         "provider": provider,
         "model": model,
-        "execution": execution_provenance(live_provider_call=bool(request_meta), transport=transport),
+        "execution": execution_provenance(live_provider_call=bool(request_meta)),
     }

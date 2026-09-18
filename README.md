@@ -1,12 +1,42 @@
 # Hermes-Jev
 
-**Give Hermes a bounded System One decision layer and a context-value governor.**
+**An asynchronous Jev decision nervous system for Hermes Agent.**
 
-Hermes-Jev connects Hermes Agent to TypeSafe Jev either through **OpenRouter's Decisions API** (default) or the **TypeSafe System One API directly**. It is built for narrow, typed judgments that should not require the main generative model to improvise an answer: routing, ranking, verification, multi-question assessment, tool gating, and context-value decisions.
+Hermes remains the reasoning and execution engine. Jev supervises accountable decisions in parallel: turn admission, adaptive local relevance routing, bounded decision comparison, completion/recovery control, and high-confidence challenge delivery. The design is explicitly optimized around the observed ~500 ms-class remote decision latency: ordinary Hermes execution does not wait for Jev.
 
 > Community project. Not affiliated with or endorsed by TypeSafe AI or Nous Research.
 
-## v0.1.5.5
+## v0.2.1.1
+
+Patch release for three live Muna integration defects found against 0.2.1:
+
+- `jev_assess` now advertises the same typed choice/score requirements enforced by runtime validation, so deferred-tool models can construct valid calls from schema alone.
+- `jev_*` tool outcomes are an explicit nervous-system self-observation boundary: they are logged locally but cannot recursively create background Jev assessments.
+- explicit remote decision tools now return receipt-backed provenance (`receipt_id`, `provenance_status`, provider/model/transport, subject hash, and result hash) so a user-visible Jev claim can be audited one-to-one.
+
+See [`docs/BUGFIX_0.2.1.1.md`](docs/BUGFIX_0.2.1.1.md) for the bug-to-fix matrix and verification boundary.
+
+## v0.2.1
+
+Public tools: the seven v0.1.5.5 tools plus `jev_nervous_event`. Public hook names: `pre_tool_call`, `post_tool_call`, `pre_llm_call`, `transform_tool_result`, `pre_verify`, `post_llm_call`, and `on_session_end`.
+
+The recommended path is the nervous system, not synchronous evaluate-every-tool gating. At turn ingress a background Jev admission call classifies the turn as `OFF`, `WATCH`, or `ON`; Hermes starts immediately. During supervised turns a local adaptive router consumes structured events, suppresses routine/redundant state, batches in-flight bursts, and sends only decision-significant state to Jev. Agreement and low-confidence disagreement remain silent telemetry. High-confidence disagreement is delivered only while the challenged state is current.
+
+v0.2.1 hardens the recovery/control path discovered during Muna testing: identical failure episodes are fingerprinted locally, repeated equivalent failures stop generating provider calls, and a third identical failure creates a provider-independent `REPLAN` lease. In `correct_next`/`precommit`, the composed pre-tool control seam prevents the exact failed action from executing again unless Jev explicitly chose `RETRY`. Decision IDs now connect the decision, delivery, next action, disposition, and outcome telemetry. `jev_stats` is compact by default to avoid feeding tens of kilobytes of telemetry back into the main model context.
+
+See:
+
+- [`docs/NERVOUS_SYSTEM.md`](docs/NERVOUS_SYSTEM.md)
+- [`docs/GUIDE.md`](docs/GUIDE.md)
+- [`docs/SETUP.md`](docs/SETUP.md)
+- [`docs/PROVIDER_SETUP.md`](docs/PROVIDER_SETUP.md)
+- [`VERIFICATION.md`](VERIFICATION.md)
+
+Both OpenRouter Decisions and direct TypeSafe System One are supported. Only the selected provider credential is required.
+
+## Historical v0.1.5.5 documentation
+
+### v0.1.5.5
 
 The release moves context management from "save tokens" to **preserve the smallest sufficient working set for correct continuation**.
 
@@ -30,29 +60,6 @@ Optional context engine:
 - `context.engine: jev` — Jev-first context management using Hermes' public `ContextEngine` interface.
 - Never auto-activated. The built-in Hermes compressor remains the default until explicitly selected.
 - If Jev cannot safely reclaim eligible tool evidence, the engine can fall back to Hermes' built-in `ContextCompressor` rather than stall on text-heavy sessions.
-
-## Quick start
-
-Install and validate:
-
-```bash
-hermes plugins install hermes-jev
-hermes plugins doctor hermes-jev --ci
-```
-
-Choose a provider:
-
-```bash
-# OpenRouter (default; live-tested)
-export OPENROUTER_API_KEY='...'
-hermes config set plugins.entries.hermes-jev.settings.jev_provider openrouter --force
-
-# OR TypeSafe direct
-export TYPESAFE_API_KEY='...'
-hermes config set plugins.entries.hermes-jev.settings.jev_provider typesafe --force
-```
-
-See the full [community guide](docs/GUIDE.md) and [provider setup](docs/PROVIDER_SETUP.md).
 
 ## The context governor
 
@@ -112,32 +119,12 @@ Every live Jev result carries an explicit execution block so a main chat model c
 
 `jev_context_rehydrate` instead reports `transport: local-evidence-ledger` and `live_provider_call: false`. `jev_stats` reports `transport: local-telemetry`.
 
-## Setup and provider selection
+## Configuration
 
-See [`docs/SETUP.md`](docs/SETUP.md) for a complete install guide. v0.1.5.5 supports two transports:
-
-| Provider | Setting | Credential | Default model | Endpoint |
-| --- | --- | --- | --- | --- |
-| OpenRouter (default) | `jev_provider=openrouter` | `OPENROUTER_API_KEY` | `typesafe/jev-1.13` | `/api/alpha/decisions` |
-| TypeSafe direct | `jev_provider=typesafe` | `TYPESAFE_API_KEY` | `jev-latest` | `/v1/systemone` |
-
-OpenRouter:
+The canonical model setting is `jev_model`. `model_id` remains accepted as a migration alias for the hand-fixed 0.1.5.1 tree.
 
 ```bash
-hermes config set plugins.entries.hermes-jev.settings.jev_provider openrouter --force
 hermes config set plugins.entries.hermes-jev.settings.jev_model typesafe/jev-1.13 --force
-```
-
-Direct TypeSafe:
-
-```bash
-hermes config set plugins.entries.hermes-jev.settings.jev_provider typesafe --force
-hermes config set plugins.entries.hermes-jev.settings.typesafe_model jev-latest --force
-```
-
-Only the key for the selected provider is required. `model_id` remains accepted as a migration alias for the hand-fixed 0.1.5.1 OpenRouter tree.
-
-```bash
 hermes config set plugins.entries.hermes-jev.settings.timeout_seconds 15 --force
 ```
 
@@ -239,7 +226,7 @@ set +a
 python3 scripts/live_api_suite.py
 ```
 
-The **OpenRouter** path has been validated live through Hermes -> hermes-jev -> OpenRouter Decisions -> TypeSafe Jev using free primary Hermes models. The harvested session later reached 121 receipts / 111 provider calls, and the selective-gate fix was verified to bypass read-only calls with zero new provider calls. The **direct TypeSafe** transport is covered by offline wire-contract tests against the current official SDK contract; it is not presented as live-validated by this project yet. See [`docs/LIVE_TEST_NOTES_2026-09-17.md`](docs/LIVE_TEST_NOTES_2026-09-17.md) and [`docs/SETUP.md`](docs/SETUP.md).
+The live path has been validated through Hermes -> hermes-jev -> OpenRouter Decisions -> TypeSafe Jev using a free primary Hermes model. Four verified live calls consumed 2,264 input + 281 output tokens, cost $0.000095088 total, and averaged 419.276 ms provider latency. See [`docs/LIVE_TEST_NOTES_2026-09-17.md`](docs/LIVE_TEST_NOTES_2026-09-17.md). The context-governor policy remains shadow-first before automatic apply mode.
 
 ## Benchmarking objective
 
@@ -250,3 +237,24 @@ See [`docs/BENCHMARKING.md`](docs/BENCHMARKING.md).
 ## License
 
 MIT
+
+### v0.2.1 repeated-failure loop breaker
+
+The local fallback threshold is configurable:
+
+```bash
+hermes config set plugins.entries.hermes-jev.settings.nervous_repeated_failure_local_replan_at 3 --force
+```
+
+The default `3` means the first equivalent failure may be assessed by Jev, later
+identical failures are provider-deduplicated, and the third identical failure
+activates a local `REPLAN` control even if remote supervision is late. In
+`correct_next`/`precommit`, the next exact same failed action is blocked; an explicit
+Jev `RETRY` permits one retry.
+
+For debugging, `jev_stats` now defaults to a compact summary. Request a narrow section
+instead of injecting the whole telemetry ledger into model context, for example:
+
+```text
+jev_stats {"section":"nervous","include_recent":true,"recent_limit":3}
+```

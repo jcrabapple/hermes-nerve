@@ -1,4 +1,4 @@
-"""v0.1.5.5 context-governor example. Requires the credential for the selected HERMES_JEV_PROVIDER."""
+"""v0.1.5.5 context-governor example. Requires OPENROUTER_API_KEY."""
 
 from hermes_jev.context import curate_context
 

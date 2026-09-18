@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from .privacy import canonical_hash
-from .provenance import execution_provenance
+from .provenance import execution_provenance, result_provenance
 from .paths import hermes_home
 
 _configured_detail: str | None = None
@@ -37,15 +37,64 @@ def receipt_path() -> Path:
 
 
 def write_receipt(*, contract: str, state: Any, result: dict[str, Any], model: str, latency_ms: float) -> dict[str, Any]:
-    record: dict[str, Any] = {
-        "schema": "hermes-jev-receipt/v2",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+    """Persist an immutable, content-bound local receipt and return the stored record.
+
+    ``receipt_id`` binds the contract, sanitized subject hash, result hash, model,
+    provider request id, and creation timestamp. The outward engine result reuses
+    this exact stored provenance block so a model-facing Jev claim can be audited
+    one-to-one against the receipt ledger.
+    """
+    created_at = datetime.now(timezone.utc).isoformat()
+    state_sha256 = canonical_hash(state)
+    raw_result = dict(result or {})
+    result_sha256 = canonical_hash(raw_result)
+    execution = raw_result.get("execution") if isinstance(raw_result.get("execution"), dict) else execution_provenance(live_provider_call=True)
+    identity = {
+        "schema": "hermes-jev-receipt/v3",
+        "created_at": created_at,
         "contract": contract,
-        "state_sha256": canonical_hash(state),
+        "state_sha256": state_sha256,
+        "result_sha256": result_sha256,
+        "model": model,
+        "request_id": str(raw_result.get("request_id") or ""),
+    }
+    receipt_id = "jevrec-" + canonical_hash(identity)[:32]
+    transport = str(execution.get("transport") or "openrouter-decisions")
+    live = bool(execution.get("live_provider_call"))
+    provenance = result_provenance(
+        live_provider_call=live,
+        request_id=str(raw_result.get("request_id") or ""),
+        receipt_id=receipt_id,
+        provider=str(raw_result.get("provider") or ""),
+        transport=transport,
+        model=str(raw_result.get("model") or model or ""),
+        contract=contract,
+        created_at=created_at,
+        subject_sha256=state_sha256,
+        result_sha256=result_sha256,
+    )
+    stored_result = dict(raw_result)
+    stored_result["receipt_id"] = receipt_id
+    stored_result["provenance_status"] = provenance["provenance_status"]
+    stored_result["provenance"] = provenance
+    stored_result["execution"] = execution_provenance(
+        live_provider_call=live,
+        transport=transport,
+        request_id=str(raw_result.get("request_id") or ""),
+        receipt_id=receipt_id,
+    )
+    record: dict[str, Any] = {
+        "schema": "hermes-jev-receipt/v3",
+        "receipt_id": receipt_id,
+        "timestamp": created_at,
+        "contract": contract,
+        "state_sha256": state_sha256,
+        "result_sha256": result_sha256,
         "model": model,
         "latency_ms": round(latency_ms, 3),
-        "result": result,
-        "execution": result.get("execution") if isinstance(result, dict) and result.get("execution") else execution_provenance(live_provider_call=True),
+        "result": stored_result,
+        "provenance": provenance,
+        "execution": stored_result["execution"],
     }
     if receipt_detail() == "sanitized":
         record["state"] = state
@@ -122,6 +171,8 @@ def report(path: Path | None = None, *, recent_limit: int = 8) -> dict[str, Any]
             "model": row.get("model"),
             "latency_ms": row.get("latency_ms"),
             "request_id": result.get("request_id"),
+            "receipt_id": row.get("receipt_id") or result.get("receipt_id"),
+            "provenance_status": result.get("provenance_status"),
             "value": result.get("value"),
             "cost": usage.get("cost"),
             "input_tokens": usage.get("input_tokens"),

@@ -1,69 +1,57 @@
+# Architecture — Hermes-Jev v0.2.1.1
 
+## Public seam
 
-## Provider transports
-
-The `DecisionEngine` contract is transport-independent. `JevClient` selects one of two dependency-free HTTP transports:
-
-- `openrouter` -> OpenRouter Decisions, `OPENROUTER_API_KEY`, model setting `jev_model`.
-- `typesafe` -> direct TypeSafe System One, `TYPESAFE_API_KEY`, model setting `typesafe_model`.
-
-Both normalize into the same `JevResponse` shape. Execution provenance records `openrouter-decisions` or `typesafe-system-one`, so receipts remain attributable after switching providers.
-
-# Architecture — Hermes-Jev v0.1.5.5
+The v0.2 decision architecture is deliberately deep: `NervousSystem` is the main orchestration seam. It owns turn admission, structured event intake, local relevance routing, remote assessment dispatch, challenge lifecycle, batching, staleness checks, and telemetry. `router.py` is local-only significance logic; `outcomes.py` owns decision/outcome learning data; `client.py` owns provider transport.
 
 ```text
-Hermes / main model
+user prompt
+   |\
+   | +--> async Jev turn admission --> OFF / WATCH / ON
    |
-   +-- explicit Jev tools ------------------------+
-   |                                              |
-   +-- pre_tool_call gate                         |
-   |                                              v
-   +-- post_tool_call evidence observer       DecisionEngine
-   |                                              |
-   +-- optional ContextEngine ----------------> JevClient
-                                                  |
-                                          OpenRouter Decisions
-                                                  |
-                                             TypeSafe Jev
+   +----> Hermes work loop -------------------------------+
+                         |                                |
+                         +--> structured events           |
+                                  |                       |
+                                  v                       |
+                         local adaptive router             |
+                           | no        | yes               |
+                           v           v                   |
+                       accumulate   async Jev              |
+                                      |                    |
+                         agree/low confidence              |
+                              |       high-conflict        |
+                              v            |               |
+                             log           v               |
+                                      challenge queue      |
+                                           |               |
+                              transform_tool_result <------+
 ```
 
-## Decision layer
+Hermes remains the reasoning and execution engine. Jev is not placed in front of ordinary tool calls. The old pre-tool gate remains an opt-in compatibility/safety surface and defaults off.
 
-`DecisionEngine` validates typed contracts, redacts state, calls the provider, validates returned labels, records receipts, and attaches execution provenance.
+## Hook mapping
 
-`jev_assess` is the preferred primitive for shared-state policies because up to 16 independent typed questions can share one provider request.
+- `pre_llm_call`: start/reuse turn; enqueue admission; returns immediately.
+- `post_tool_call`: observe tool outcome and update the local event stream.
+- `transform_tool_result`: attach a still-current high-confidence challenge to the next model-bound result.
+- `pre_verify`: completion boundary; may consume an already-arrived challenge in precommit mode, never waits for one.
+- `post_llm_call` / `on_session_end`: close turn-scoped supervision.
+- `pre_tool_call`: legacy selective gate only.
 
+## Provider seam
 
-## Pre-tool gate
+Both transports implement the same System One contract:
 
-The automatic gate is intentionally split into two stages:
+- OpenRouter Decisions -> `openrouter-decisions`
+- TypeSafe System One direct -> `typesafe-system-one`
 
-1. a deterministic local prefilter handles only conservative, known read-only calls,
-2. Jev evaluates everything else when `gate_mode` is enabled.
+Provider selection does not change Hermes-visible tools or nervous-system schemas.
 
-`gate_scope=selective` is the default because live telemetry showed the old evaluate-every-call path spending most provider requests on routine `ALLOW` decisions. `gate_scope=all` disables the prefilter for compatibility/testing. Jev's own `jev_*` tools always bypass the gate to prevent recursion. Local `gate-events.jsonl` telemetry records bypass/evaluation counts and observed Jev latency without storing raw tool arguments.
+## State and challenge safety
 
-## Context-value layer
+Every event can carry state and decision versions. The challenge queue validates freshness before delivery. Late Jev answers are telemetry, not retroactive commands. Already-committed irreversible actions are never blindly rewound.
 
-`context.py` separates uncertain semantics from deterministic policy:
+## Context governor
 
-- Jev: needed again / exact required / superseded / conflict.
-- Local code: recoverability, leases, thresholds, KEEP/PIN/ANCHOR/DROP.
-
-`ledger.py` provides redacted local evidence persistence, shadow telemetry, and rehydration.
-
-`lifecycle.py` shares the most recent verification state with context policy.
-
-## ContextEngine
-
-`JevContextEngine` implements Hermes' public context engine interface. It governs eligible old tool-result evidence while protecting system/head/tail messages. It does not mutate persistent history through `select_context`; selection remains no-op for cache stability.
-
-At an apply boundary:
-
-1. collect eligible old tool results and pair them with their originating tool call,
-2. classify recoverability deterministically,
-3. run semantic curation,
-4. replace ANCHOR/DROP candidates with anchors while preserving tool protocol,
-5. if no safe progress is possible, optionally delegate to built-in `ContextCompressor`.
-
-The engine is registered but never selected automatically; global `context.engine` must be set to `jev`.
+The v0.1.x context-value governor remains a separate, optional deep seam. The nervous system can coexist with shadow/apply context curation; neither requires the other.

@@ -57,3 +57,4 @@ After the longer Muna run, `jev_stats` reported:
 The financial cost was negligible, but the synchronous gate dominated call volume and added avoidable latency. This directly changed the same `0.1.5.5` release candidate: `gate_scope=selective` is now the default and known read-only introspection is bypassed locally. Unknown/mutating actions still receive Jev classification. `gate_scope=all` preserves the previous behavior for users who explicitly want every non-Jev tool call evaluated.
 
 The context ledger itself was healthy (106/106 unique evidence events). Automatic shadow plans remained zero because the tested sessions did not reach the configured context-pressure trigger, so pressure-driven anchoring/rehydration remains not yet exercised by this dataset.
+

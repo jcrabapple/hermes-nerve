@@ -1,10 +1,45 @@
 # Changelog
 
+## 0.2.1.1 — deferred schema, self-observation, and provenance patch
+
+- Fix **BUG-001**: make the deferred `jev_assess` schema mechanically constructible from `tool_describe`, including explicit `choice.criteria` map/`minProperties: 2`, `score.criteria` array/`minItems: 2`, and noul semantics.
+- Fix **BUG-002**: make every `jev_*` post-tool result/failure an internal nervous-system boundary. Internal Jev observations are logged/counted locally and cannot recursively trigger a remote Jev nervous assessment.
+- Add origin telemetry for nervous provider calls and decisions so provider traffic can be attributed to the originating tool/event.
+- Fix **BUG-003**: remote `jev_decide`, `jev_rank`, `jev_assess`, and `jev_verify` results now carry a persisted content-bound `receipt_id`, normalized provenance block, and reporting-safe `provenance_status`.
+- Mark local-only results as `LOCAL_ONLY` and handler failures as `ERROR`; results without remote/receipt evidence cannot be represented structurally as `VERIFIED`.
+- Expand the offline suite from 66 to 74 tests with focused regressions for the three supplied P1 reports.
+- Preserve the 0.2.1 loop breaker, control leases, bounded stats, 8 tools / 7 hook names / 8 callbacks, and 1,119-requirement trace.
+
+## 0.2.1 — recovery/control hardening
+
+- Fix **JEV-001**: repeated identical failures now have an enforceable pre-tool control path. A confident remote `REPLAN`/`GATHER_EVIDENCE`/`ESCALATE` can prevent the exact failed action from running again, while `RETRY` explicitly permits one retry.
+- Add a provider-independent third-strike local `REPLAN` loop breaker so late/quiet Jev responses cannot allow an unbounded identical failure loop.
+- Fix **JEV-002**: add stable decision IDs and control lifecycle receipts covering decision creation, delivery, next-action attribution, enforcement/following, expiry, and outcomes. Define the decision-correction denominator explicitly.
+- Fix **JEV-003** telemetry ambiguity: the legacy pre-tool gate records correlated hook observations even when `gate_mode=off`, including turn/session/tool-call IDs.
+- Fix **JEV-004**: `jev_stats` is compact and sectioned by default, recent arrays are opt-in, and bounded tool-result protection prevents accidental ~30 KB telemetry injections.
+- Clarify **JEV-005**: rehydration is explicit/demand-driven; add a regression proving anchored evidence can be rehydrated and counted as recovery demand.
+- Fix **JEV-006**: stable repeated-failure fingerprints deduplicate equivalent failure assessments after the first provider evaluation; later exact repeats stay local until state/evidence changes.
+- Fix **JEV-007**: semantic decision-lease fingerprints no longer include monotonic state/decision counters, enabling real lease reuse and reasoned invalidation.
+- Improve **JEV-008** plugin-side startup diagnostics by logging the loaded version and source path. Hermes pre-discovery `unknown toolset`/context-engine warnings, if present, remain host-level behavior.
+- Compose local nervous control and the optional legacy gate into one `pre_tool_call` callback so a locally blocked retry does not unnecessarily fall through to a synchronous Jev gate call.
+- Add `nervous_repeated_failure_local_replan_at` (default `3`, range 2–20).
+- Expand the offline suite with repeated-failure dedup, local loop-breaking, remote REPLAN enforcement, RETRY allowance, control attribution, gate-off observation, bounded stats, fingerprint normalization, and rehydration-demand regressions.
+
+## 0.2.0
+
+- Added asynchronous OFF/WATCH/ON turn admission so Hermes begins work without waiting for Jev.
+- Added structured Jev nervous-system events and `jev_nervous_event`.
+- Added adaptive local semantic routing, hysteresis, decision leases, and in-flight event batching.
+- Added confidence-gated decision challenges delivered through `transform_tool_result`.
+- Added state-version staleness protection and SHADOW/CORRECT_NEXT/PRECOMMIT authority modes.
+- Added local outcome store and optional historical relevance calibration.
+- Expanded `jev_stats` with nervous-system decision-quality and provider-avoidance telemetry.
+- Added direct TypeSafe System One transport alongside OpenRouter.
+- Preserved the existing seven tools, selective legacy gate, evidence ledger, rehydration, and ContextEngine.
+- Added adversarial offline tests for async non-blocking admission, batching, WATCH promotion, stale challenges, confidence gating, provider budget, and direct TypeSafe wire behavior.
+
 ## 0.1.5.5 — profile-aware telemetry + shadow-safe community defaults
 
-- Add dual Jev transport selection: OpenRouter Decisions (`OPENROUTER_API_KEY`, `typesafe/jev-1.13`) or direct TypeSafe System One (`TYPESAFE_API_KEY`, `jev-latest`).
-- Add direct TypeSafe `/v1/systemone` wire support and `x-typesafe-request-id` capture while preserving the dependency-free client.
-- Add `docs/SETUP.md` with community install, OpenRouter setup, direct TypeSafe setup, smoke tests, and recommended shadow-first configuration.
 - Fix pre-tool gate latency discovered in live telemetry: 106/106 sampled `hermes/pre-tool-gate/v1` calls returned `ALLOW`, so `gate_scope=selective` now bypasses conservative read-only calls locally instead of paying a Jev network round trip for every introspection.
 - Add `gate_scope=all` compatibility mode to restore evaluate-every-call behavior.
 - Add local gate event telemetry (`bypassed`, `evaluated`, provider failures, provider latency, and avoided provider-call count) to `jev_stats`.
@@ -72,12 +107,3 @@
 - Privacy redaction and hash-only decision receipts by default.
 - Dependency-free decision HTTP client with bounded output-contract validation.
 - Scanner-safe offline test fixtures.
-
-### 0.1.5.5 release-candidate hardening (same version)
-
-- Added `jev_provider=openrouter|typesafe` transport selection without changing public tool contracts.
-- OpenRouter remains the default and recorded live-test path (`OPENROUTER_API_KEY`, `typesafe/jev-1.13`).
-- Added dependency-free direct TypeSafe System One transport (`TYPESAFE_API_KEY`, `POST /v1/systemone`, `jev-latest`, `x-typesafe-request-id`).
-- Provider credentials are alternative optional manifest secrets rather than incorrectly requiring both.
-- Added `docs/GUIDE.md` and `docs/PROVIDER_SETUP.md` with community usage, OpenRouter setup, direct TypeSafe setup, shadow-mode adoption, and telemetry guidance.
-- Direct TypeSafe support is wire-tested against the current public SDK contract; published real-account telemetry remains OpenRouter-backed until a direct-key live report is recorded.

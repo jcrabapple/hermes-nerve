@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from hermes_jev import ledger, receipts
+from hermes_jev import ledger, receipts, nervous
 from hermes_jev.paths import default_hermes_root, report_home
 
 
@@ -26,6 +26,7 @@ def main() -> int:
         "resolved_hermes_home": str(home),
         "receipts": receipts.report(home / "jev" / "receipts.jsonl", recent_limit=args.recent),
         "context": ledger.report(home / "jev" / "context-ledger.jsonl"),
+        "nervous": nervous.report(),
     }
     print(json.dumps(payload, indent=2, sort_keys=True))
     return 0

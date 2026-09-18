@@ -46,7 +46,7 @@ _SIMPLE_READ_ONLY_COMMANDS = frozenset({
 _SAFE_GIT_SUBCOMMANDS = frozenset({
     "status", "diff", "log", "show", "rev-parse", "ls-files", "ls-tree", "describe", "grep", "blame",
 })
-_SHELL_META_RE = re.compile(r"(?:&&|\|\||[;|><`]|$\()")
+_SHELL_META_RE = re.compile(r"(?:&&|\|\||[;|><`]|\$\()")
 
 _configured_mode: str | None = None
 _configured_min_confidence: float | None = None
@@ -97,7 +97,19 @@ def gate_event_path() -> Path:
     return Path(explicit).expanduser() if explicit else hermes_home() / "jev" / "gate-events.jsonl"
 
 
-def _record_gate_event(*, tool_name: str, action: str, reason: str, provider_call: bool, value: str | None = None, confidence: float | None = None, latency_ms: float | None = None) -> None:
+def _record_gate_event(
+    *,
+    tool_name: str,
+    action: str,
+    reason: str,
+    provider_call: bool,
+    value: str | None = None,
+    confidence: float | None = None,
+    latency_ms: float | None = None,
+    turn_id: str = "",
+    session_id: str = "",
+    tool_call_id: str = "",
+) -> None:
     record = {
         "schema": "hermes-jev-gate-event/v1",
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -107,6 +119,9 @@ def _record_gate_event(*, tool_name: str, action: str, reason: str, provider_cal
         "action": action,
         "reason": reason,
         "provider_call": bool(provider_call),
+        "turn_id": str(turn_id or ""),
+        "session_id": str(session_id or ""),
+        "tool_call_id": str(tool_call_id or ""),
     }
     if value is not None:
         record["value"] = str(value)
@@ -206,18 +221,31 @@ def evaluate_tool_call(
 
 def pre_tool_call(tool_name: str, args: dict, task_id: str | None = None, **kwargs):
     mode = gate_mode()
+    correlation = {
+        "turn_id": str(kwargs.get("turn_id") or ""),
+        "session_id": str(kwargs.get("session_id") or ""),
+        "tool_call_id": str(kwargs.get("tool_call_id") or ""),
+    }
     if mode == "off":
+        # v0.2.1 records hook observation even while the synchronous gate is
+        # disabled. This makes gate telemetry advance during nervous-only runs
+        # and distinguishes "hook did not fire" from "gate intentionally off".
+        if not str(tool_name).startswith(_SKIP_PREFIXES):
+            _record_gate_event(
+                tool_name=tool_name, action="disabled", reason="gate-mode-off",
+                provider_call=False, **correlation,
+            )
         return None
 
     reason = bypass_reason(tool_name, args)
     if reason is not None:
-        _record_gate_event(tool_name=tool_name, action="bypass", reason=reason, provider_call=False)
+        _record_gate_event(tool_name=tool_name, action="bypass", reason=reason, provider_call=False, **correlation)
         return None
 
     try:
         result = evaluate_tool_call(tool_name=tool_name, args=args, task_id=task_id)
     except Exception:
-        _record_gate_event(tool_name=tool_name, action="provider-error", reason="provider-unavailable", provider_call=True)
+        _record_gate_event(tool_name=tool_name, action="provider-error", reason="provider-unavailable", provider_call=True, **correlation)
         # A remote classifier must never silently become a single point of failure.
         # Advisory fails open; enforce fails toward HUMAN approval, not execution or hard block.
         if mode == "enforce":
@@ -238,6 +266,7 @@ def pre_tool_call(tool_name: str, args: dict, task_id: str | None = None, **kwar
         value=result.value,
         confidence=result.confidence,
         latency_ms=result.latency_ms,
+        **correlation,
     )
     if mode == "advisory":
         return None
@@ -298,10 +327,15 @@ def report(path: Path | None = None, *, recent_limit: int = 8) -> dict[str, Any]
     limit = max(0, min(50, int(recent_limit or 0)))
     bypassed = by_action.get("bypass", 0)
     evaluated = by_action.get("evaluated", 0)
+    disabled = by_action.get("disabled", 0)
     return {
         "path": str(selected),
+        "metric_scope": "profile-lifetime gate-event ledger",
+        "gate_mode": gate_mode(),
         "event_count": len(rows),
         "scope": gate_scope(),
+        "hook_observations": len(rows),
+        "disabled": disabled,
         "bypassed": bypassed,
         "evaluated": evaluated,
         "provider_errors": by_action.get("provider-error", 0),
@@ -310,6 +344,7 @@ def report(path: Path | None = None, *, recent_limit: int = 8) -> dict[str, Any]
         "average_provider_latency_ms": round(provider_latency_ms / evaluated, 3) if evaluated else 0.0,
         "estimated_provider_calls_avoided": bypassed,
         "bypass_rate": round(bypassed / len(rows), 6) if rows else 0.0,
+        "note": "event_count is gate-hook observations in this profile ledger; decision receipts use a separate profile-lifetime receipt ledger.",
         "by_action": dict(sorted(by_action.items())),
         "by_reason": dict(sorted(by_reason.items())),
         "by_tool": dict(sorted(by_tool.items())),

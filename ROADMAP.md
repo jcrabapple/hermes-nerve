@@ -1,29 +1,31 @@
 # Roadmap
 
-## v0.1.5.5 — telemetry hardening + shadow-safe community release (current)
+## v0.2.1 — nervous-system control hardening (current)
 
-Delivered:
+Implemented:
 
-- seven public tools: six Jev decision/context tools plus local `jev_stats` telemetry
-- explicit execution provenance on provider results
-- decomposed semantic context assessment
-- deterministic KEEP_EXACT/PIN/ANCHOR/DROP policy
-- contradiction/supersession signals
-- verification-linked lifecycle leases
-- privacy-minimized evidence ledger
-- shadow-mode telemetry/reporting
-- opt-in Hermes ContextEngine registration
-- protocol-safe automatic anchoring
-- built-in compressor fallback on no safe Jev progress
-- selective local pre-tool bypass for conservative read-only calls, with gate telemetry and `gate_scope=all` compatibility
+- asynchronous OFF/WATCH/ON turn admission
+- structured event bus and explicit `jev_nervous_event`
+- local adaptive semantic router (no fixed-N polling primary trigger)
+- decision-state hysteresis / lease reuse
+- in-flight event batching
+- confidence-gated challenges and stale-state rejection
+- shadow / correct-next / precommit authority modes
+- direct TypeSafe + OpenRouter transports
+- local outcome dataset and historical relevance calibration seam
+- nervous-system decision-quality telemetry in `jev_stats`
+- existing v0.1.x tools, selective gate, evidence ledger, rehydration, and ContextEngine compatibility
+- repeated-failure fingerprints and local third-strike REPLAN loop breaker
+- enforceable decision/control leases at the composed pre-tool seam
+- stable decision-id attribution from decision -> delivery -> next action -> outcome
+- repeat-failure provider-call deduplication and semantic lease reuse
+- correlated gate-hook observations even when the legacy gate is disabled
+- bounded/sectioned `jev_stats` output with recent telemetry opt-in
 
-## Next
+External/live follow-up:
 
-- collect real shadow telemetry and tune thresholds from evidence
-- add replay corpus/version comparison across Jev model pins
-- continuation-fidelity A/B harness over real Hermes session checkpoints
-- richer lifecycle leases tied to goals/branches/artifacts, not only verification
-- per-tool recoverability adapters and rerun-cost classes
-- automatic anchor rehydration when the active goal references older evidence
-- optional context status/ledger CLI commands
-- richer user-configurable gate policies by tool patterns/consequence class beyond the conservative built-in selective scope
+- calibrate turn admission and challenge confidence on real Hermes workloads
+- collect enough labeled outcomes to assess the local historical relevance model
+- run a direct TypeSafe live-account smoke with a real credential
+- measure useful-disagreement precision and false-PASS rate over long autonomous tasks
+- pressure-test context anchoring/rehydration during real long-turn compaction

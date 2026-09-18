@@ -1,6 +1,6 @@
 name: hermes-jev
-version: "0.1.5.5"
-description: "System One decision runtime and context-value governor for Hermes Agent: typed Jev decisions, verification, evidence curation/rehydration, receipts, advisory gating, and an opt-in ContextEngine."
+version: "0.2.1.1"
+description: "Asynchronous Jev decision nervous system for Hermes Agent: turn admission, adaptive local routing, confidence-gated challenges, typed decisions, verification, and context governance."
 author: "KeelTrace community"
 license: MIT
 homepage: https://github.com/keeltrace/hermes-jev
@@ -13,40 +13,49 @@ provides_tools:
   - jev_context_curate
   - jev_context_rehydrate
   - jev_stats
+  - jev_nervous_event
 provides_hooks:
   - pre_tool_call
   - post_tool_call
+  - pre_llm_call
+  - transform_tool_result
+  - pre_verify
+  - post_llm_call
+  - on_session_end
 requires_env: []
-optional_env:
-  - name: OPENROUTER_API_KEY
-    description: "OpenRouter API key when jev_provider=openrouter"
-    url: "https://openrouter.ai/keys"
-    password: true
-  - name: TYPESAFE_API_KEY
-    description: "TypeSafe API key when jev_provider=typesafe"
-    url: "https://typesafe.ai/"
-    password: true
 config_schema:
   jev_provider: {type: str, default: "openrouter", description: "Jev transport: openrouter or typesafe"}
+  typesafe_model: {type: str, default: "jev-latest", description: "Direct TypeSafe model id"}
+  nervous_enabled: {type: bool, default: true, description: "Enable the asynchronous Jev nervous system"}
+  nervous_turn_admission: {type: bool, default: true, description: "Run one asynchronous OFF/WATCH/ON Jev admission classification per user turn"}
+  nervous_mode: {type: str, default: "correct_next", description: "Nervous authority mode: shadow, correct_next, or precommit"}
+  nervous_challenge_confidence: {type: float, default: 0.86, description: "Minimum confidence for Jev disagreement to become a Hermes challenge"}
+  nervous_call_threshold: {type: float, default: 0.58, description: "Adaptive local relevance threshold for remote Jev assessments; not an event-count poll"}
+  nervous_max_provider_calls_per_turn: {type: int, default: 96, description: "Hard safety budget per turn; adaptive routing remains the primary limiter"}
+  nervous_event_preview_chars: {type: int, default: 1200, description: "Maximum result/evidence preview retained in a nervous-system event"}
+  nervous_retain_recent_events: {type: int, default: 64, description: "Recent local event summaries retained per active turn"}
+  nervous_emit_prompt_hint: {type: bool, default: false, description: "Inject a compact hint telling Hermes when it may emit explicit jev_nervous_event decisions"}
+  nervous_local_learning: {type: bool, default: true, description: "Use labeled local outcome history to tune router sensitivity after enough samples exist"}
+  nervous_local_learning_min_samples: {type: int, default: 8, description: "Minimum labeled outcomes before local historical calibration may influence routing"}
+  nervous_repeated_failure_local_replan_at: {type: int, default: 3, description: "Identical failure count that activates the provider-independent local REPLAN loop breaker (2-20)"}
   jev_model: {type: str, default: "typesafe/jev-1.13", description: "OpenRouter Jev model id (model_id remains accepted for 0.1.5.1 compatibility)"}
-  typesafe_model: {type: str, default: "jev-latest", description: "Direct TypeSafe System One model id"}
   timeout_seconds: {type: float, default: 10.0, description: "Decision request timeout in seconds (1-120)"}
   gate_mode: {type: str, default: "off", description: "Automatic pre-tool gate: off, advisory, or enforce"}
   gate_scope: {type: str, default: "selective", description: "Gate coverage: selective bypasses conservative read-only calls locally; all evaluates every non-Jev call"}
   min_confidence: {type: float, default: 0.80, description: "Minimum confidence before an automatic allow/block verdict is trusted"}
   receipt_detail: {type: str, default: "hash", description: "Decision receipt state detail: hash or sanitized"}
-  context_ledger_enabled: {type: bool, default: true, description: "Observe post-tool evidence into the local context ledger"}
-  context_ledger_detail: {type: str, default: "sanitized", description: "Context ledger detail: sanitized enables rehydration; hash stores no recoverable content"}
-  context_preview_chars: {type: int, default: 1200, description: "Maximum characters sent to Jev per context evidence preview"}
-  context_anchor_chars: {type: int, default: 220, description: "Maximum original prefix retained in deterministic evidence anchors"}
-  context_preserve_tail: {type: int, default: 4, description: "Newest evidence units locally protected from explicit curation"}
-  context_curation_mode: {type: str, default: "shadow", description: "Explicit curation default: shadow or apply"}
-  context_drop_max_needed: {type: float, default: 0.20, description: "Maximum needed-again probability eligible for DROP"}
-  context_drop_max_exact: {type: float, default: 0.20, description: "Maximum exact-required probability eligible for DROP"}
-  context_drop_min_superseded: {type: float, default: 0.75, description: "Minimum superseded probability eligible for DROP"}
-  context_anchor_max_needed: {type: float, default: 0.55, description: "Maximum needed-again probability eligible for ANCHOR"}
-  context_anchor_max_exact: {type: float, default: 0.45, description: "Maximum exact-required probability eligible for ANCHOR"}
-  context_conflict_pin_min: {type: float, default: 0.70, description: "Minimum conflict probability that forces PIN"}
+  context_ledger_enabled: {type: bool, default: true, description: "Record privacy-minimized evidence/shadow events for curation and rehydration"}
+  context_ledger_detail: {type: str, default: "sanitized", description: "Evidence ledger detail: sanitized (rehydratable) or hash"}
+  context_preview_chars: {type: int, default: 1200, description: "Per-evidence preview chars sent to Jev during semantic curation (160-4000)"}
+  context_anchor_chars: {type: int, default: 220, description: "Original prefix chars retained in deterministic anchors (40-1200)"}
+  context_preserve_tail: {type: int, default: 4, description: "Newest explicit evidence items protected exactly (0-12)"}
+  context_curation_mode: {type: str, default: "shadow", description: "Explicit curation mode: apply or shadow"}
+  context_drop_max_needed: {type: float, default: 0.20, description: "DROP allowed only when P(needed_again) is at or below this value"}
+  context_drop_max_exact: {type: float, default: 0.20, description: "DROP allowed only when P(exact_required) is at or below this value"}
+  context_drop_min_superseded: {type: float, default: 0.75, description: "DROP requires P(superseded) at or above this value"}
+  context_anchor_max_needed: {type: float, default: 0.55, description: "ANCHOR allowed when P(needed_again) is at or below this value"}
+  context_anchor_max_exact: {type: float, default: 0.45, description: "ANCHOR allowed when P(exact_required) is at or below this value"}
+  context_conflict_pin_min: {type: float, default: 0.70, description: "PIN evidence when P(unresolved conflict) meets this threshold"}
   context_engine_register: {type: bool, default: true, description: "Register the opt-in Jev ContextEngine with Hermes when the host supports it"}
   context_engine_mode: {type: str, default: "shadow", description: "Jev ContextEngine mode: apply or shadow"}
   context_engine_threshold_percent: {type: float, default: 0.72, description: "Context usage fraction that triggers Jev engine compaction"}

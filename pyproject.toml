@@ -1,7 +1,7 @@
 [project]
 name = "hermes-jev"
-version = "0.1.5.5"
-description = "System One decision runtime and context-value governor for Hermes Agent"
+version = "0.2.1.1"
+description = "Asynchronous Jev decision nervous system and context-value governor for Hermes Agent"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}

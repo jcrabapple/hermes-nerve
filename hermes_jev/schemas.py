@@ -87,7 +87,51 @@ JEV_ASSESS = {
                     "Question name -> Jev question object. Each object uses type noul, choice, or score; "
                     "choice criteria is a label map and score criteria is an ordered array."
                 ),
-                "additionalProperties": {"type": "object"},
+                "additionalProperties": {
+                    "oneOf": [
+                        {
+                            "type": "object",
+                            "properties": {
+                                "type": {"type": "string", "enum": ["choice"], "description": "Bounded label selection."},
+                                "instructions": {"description": "Question-specific instructions/context."},
+                                "criteria": {
+                                    "type": "object",
+                                    "minProperties": 2,
+                                    "additionalProperties": {"description": "Description for this allowed choice label."},
+                                    "description": "Required choice-label map with at least two labels.",
+                                },
+                            },
+                            "required": ["type", "criteria"],
+                        },
+                        {
+                            "type": "object",
+                            "properties": {
+                                "type": {"type": "string", "enum": ["score"], "description": "Ordered rubric score."},
+                                "instructions": {"description": "Question-specific instructions/context."},
+                                "criteria": {
+                                    "type": "array",
+                                    "minItems": 2,
+                                    "items": {"description": "Ordered score/rubric label or description."},
+                                    "description": "Required ordered rubric with at least two entries.",
+                                },
+                            },
+                            "required": ["type", "criteria"],
+                        },
+                        {
+                            "type": "object",
+                            "properties": {
+                                "type": {"type": "string", "enum": ["noul"], "description": "Yes/no probability judgment."},
+                                "instructions": {"description": "Question-specific instructions/context."},
+                                "criteria": {
+                                    "type": "object",
+                                    "additionalProperties": {"description": "Optional semantic description for noul outcomes."},
+                                    "description": "Optional noul criteria object; no choice labels are required.",
+                                },
+                            },
+                            "required": ["type"],
+                        },
+                    ]
+                },
             },
             "contract": {"type": "string", "description": "Stable contract name for receipts/evals."},
         },
@@ -174,19 +218,66 @@ JEV_CONTEXT_REHYDRATE = {
 JEV_STATS = {
     "name": "jev_stats",
     "description": (
-        "Return local Hermes-Jev usage and context telemetry for the active Hermes profile: decision receipt counts, "
-        "provider calls/cost/tokens/latency, context evidence events, shadow plans, retention proposals, and rehydrations. "
-        "This is local-only and does not call Jev/OpenRouter."
+        "Return bounded local Hermes-Jev telemetry for the active profile. The default is a compact summary to avoid "
+        "injecting a very large tool result into the main model context. Use section to request receipts, gate, context, "
+        "nervous, quality, outcomes, or all; include_recent is opt-in. This tool never calls Jev/OpenRouter."
     ),
     "parameters": {
         "type": "object",
         "properties": {
+            "section": {
+                "type": "string",
+                "enum": ["summary", "receipts", "gate", "context", "nervous", "quality", "outcomes", "all"],
+                "description": "Telemetry section to return (default summary).",
+            },
             "recent_limit": {
                 "type": "integer",
                 "minimum": 0,
-                "maximum": 50,
-                "description": "Number of recent decision receipts to include (default 8).",
-            }
+                "maximum": 20,
+                "description": "Recent rows per requested section when include_recent=true (default 3).",
+            },
+            "include_recent": {
+                "type": "boolean",
+                "description": "Include bounded recent arrays. False by default to keep model context small.",
+            },
         },
+    },
+}
+
+JEV_NERVOUS_EVENT = {
+    "name": "jev_nervous_event",
+    "description": (
+        "Emit one structured material decision into the asynchronous Hermes-Jev nervous system. "
+        "Use only for an accountable decision with materially different alternatives, a recovery/completion boundary, "
+        "or a consequential action. Routine reads and ordinary tool calls are observed automatically and should not call this tool."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "type": {"type": "string", "description": "Decision/event type such as DECISION, STRATEGY, ROUTING, RECOVERY, COMPLETION_CANDIDATE, COMMIT, or PRIORITIZATION."},
+            "goal": {"type": "string", "description": "Accountable objective this decision advances."},
+            "choices": {"type": "array", "items": {"type": "string"}, "description": "Bounded material alternatives when known."},
+            "hermes_decision": {"type": "string", "description": "Hermes's proposed choice, included in the original event."},
+            "criteria": {"type": "object", "description": "Optional label descriptions for bounded choices."},
+            "state": {"description": "Compact JSON-compatible state relevant to the decision."},
+            "evidence": {"description": "Compact evidence supporting the proposed decision."},
+            "strategy": {"type": "string"},
+            "hypothesis": {"type": "string"},
+            "materiality": {"type": "number", "minimum": 0, "maximum": 1},
+            "uncertainty": {"type": "number", "minimum": 0, "maximum": 1},
+            "novelty": {"type": "number", "minimum": 0, "maximum": 1},
+            "consequence": {"type": "number", "minimum": 0, "maximum": 1},
+            "risk": {"type": "number", "minimum": 0, "maximum": 1},
+            "reversible": {"type": "boolean"},
+            "contradiction": {"type": "boolean"},
+            "strategy_changed": {"type": "boolean"},
+            "repeated_failure": {"type": "boolean"},
+            "completion_candidate": {"type": "boolean"},
+            "turn_id": {"type": "string", "description": "Optional Hermes turn correlation id; current turn is inferred when omitted."},
+            "session_id": {"type": "string", "description": "Optional Hermes session correlation id."},
+            "state_version": {"type": "string", "description": "Optional state/version identifier for stale-response protection."},
+            "decision_version": {"type": "string", "description": "Optional decision version identifier."},
+        },
+        "required": ["type", "goal"],
     },
 }
