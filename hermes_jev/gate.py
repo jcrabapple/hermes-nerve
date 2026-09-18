@@ -1,25 +1,61 @@
-"""Opt-in Hermes pre_tool_call control gate."""
+"""Opt-in Hermes pre_tool_call control gate.
+
+v0.1.5.5 uses a conservative local prefilter before Jev. Obviously read-only
+introspection is bypassed locally; unknown or potentially mutating calls still
+reach Jev. This keeps the gate useful without adding ~network-latency to every
+harmless tool call.
+"""
 
 from __future__ import annotations
 
+import json
 import os
+import re
+import shlex
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Callable
 
 from .engine import DecisionEngine, DecisionResult
+from .paths import hermes_home
 from .privacy import redact
 
 _SKIP_PREFIXES = ("jev_",)
+_DEFAULT_READ_ONLY_TOOLS = frozenset({
+    "read_file",
+    "search_files",
+    "tool_search",
+    "tool_describe",
+    "remote_worker_status",
+    "remote_worker_result",
+    "mnemosyne_recall",
+    "mnemosyne_shared_recall",
+    "mnemosyne_stats",
+    "mnemosyne_shared_stats",
+    "mnemosyne_get",
+    "mnemosyne_graph_query",
+    "mnemosyne_sync_status",
+    "spotify_search",
+})
+_SIMPLE_READ_ONLY_COMMANDS = frozenset({
+    "pwd", "ls", "cat", "head", "tail", "wc", "stat", "du", "df", "file",
+    "readlink", "basename", "dirname", "realpath", "which", "whereis", "whoami",
+    "id", "uname", "uptime", "free", "ps", "printenv",
+    "grep", "rg", "jq",
+})
+_SAFE_GIT_SUBCOMMANDS = frozenset({
+    "status", "diff", "log", "show", "rev-parse", "ls-files", "ls-tree", "describe", "grep", "blame",
+})
+_SHELL_META_RE = re.compile(r"(?:&&|\|\||[;|><`]|$\()")
+
 _configured_mode: str | None = None
 _configured_min_confidence: float | None = None
+_configured_scope: str | None = None
 
 
-def configure(*, mode: Any = None, min_confidence: Any = None) -> None:
-    """Apply Hermes plugin settings captured during ``register(ctx)``.
-
-    Environment variables remain a backwards-compatible fallback when the
-    module is used directly outside Hermes.
-    """
-    global _configured_mode, _configured_min_confidence
+def configure(*, mode: Any = None, min_confidence: Any = None, scope: Any = None) -> None:
+    """Apply Hermes plugin settings captured during ``register(ctx)``."""
+    global _configured_mode, _configured_min_confidence, _configured_scope
 
     raw_mode = str(mode if mode is not None else "off").strip().lower()
     _configured_mode = raw_mode if raw_mode in {"off", "advisory", "enforce"} else "off"
@@ -28,6 +64,8 @@ def configure(*, mode: Any = None, min_confidence: Any = None) -> None:
     except (TypeError, ValueError):
         threshold = 0.80
     _configured_min_confidence = min(1.0, max(0.0, threshold))
+    raw_scope = str(scope if scope is not None else "selective").strip().lower()
+    _configured_scope = raw_scope if raw_scope in {"selective", "all"} else "selective"
 
 
 def gate_mode() -> str:
@@ -35,6 +73,13 @@ def gate_mode() -> str:
         return _configured_mode
     mode = os.getenv("HERMES_JEV_GATE_MODE", "off").strip().lower()
     return mode if mode in {"off", "advisory", "enforce"} else "off"
+
+
+def gate_scope() -> str:
+    if _configured_scope is not None:
+        return _configured_scope
+    scope = os.getenv("HERMES_JEV_GATE_SCOPE", "selective").strip().lower()
+    return scope if scope in {"selective", "all"} else "selective"
 
 
 def minimum_confidence() -> float:
@@ -47,6 +92,89 @@ def minimum_confidence() -> float:
     return min(1.0, max(0.0, value))
 
 
+def gate_event_path() -> Path:
+    explicit = str(os.getenv("HERMES_JEV_GATE_EVENTS") or "").strip()
+    return Path(explicit).expanduser() if explicit else hermes_home() / "jev" / "gate-events.jsonl"
+
+
+def _record_gate_event(*, tool_name: str, action: str, reason: str, provider_call: bool, value: str | None = None, confidence: float | None = None, latency_ms: float | None = None) -> None:
+    record = {
+        "schema": "hermes-jev-gate-event/v1",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "tool_name": str(tool_name),
+        "mode": gate_mode(),
+        "scope": gate_scope(),
+        "action": action,
+        "reason": reason,
+        "provider_call": bool(provider_call),
+    }
+    if value is not None:
+        record["value"] = str(value)
+    if confidence is not None:
+        record["confidence"] = round(float(confidence), 6)
+    if latency_ms is not None:
+        record["latency_ms"] = round(float(latency_ms), 3)
+    path = gate_event_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(record, sort_keys=True, ensure_ascii=False) + "\n")
+
+
+def _terminal_command(args: dict[str, Any]) -> str:
+    for key in ("command", "cmd", "script"):
+        value = args.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return ""
+
+
+def _read_only_terminal(command: str) -> bool:
+    """Return True only for deliberately narrow, obvious read-only shell shapes."""
+    if not command or _SHELL_META_RE.search(command):
+        return False
+    try:
+        parts = shlex.split(command, posix=True)
+    except ValueError:
+        return False
+    if not parts:
+        return False
+
+    # Do not bypass environment-prefixed or path-qualified executables.
+    # `PATH=/tmp ls` can resolve attacker-controlled code and `LD_PRELOAD=... ls`
+    # can execute arbitrary code before the nominally read-only program starts.
+    if "=" in parts[0] or "/" in parts[0]:
+        return False
+
+    executable = parts[0]
+    if executable in _SIMPLE_READ_ONLY_COMMANDS:
+        if executable == "rg":
+            # ripgrep --pre/--pre-glob can execute an external preprocessor.
+            if any(arg == "--pre" or arg.startswith("--pre=") or arg == "--pre-glob" or arg.startswith("--pre-glob=") for arg in parts[1:]):
+                return False
+        return True
+    if executable == "git" and len(parts) >= 2:
+        if parts[1] not in _SAFE_GIT_SUBCOMMANDS:
+            return False
+        # diff/show/log/blame can be configured to invoke external helpers.
+        if any(arg in {"--ext-diff", "--textconv"} or arg.startswith("--ext-diff=") or arg.startswith("--textconv=") for arg in parts[2:]):
+            return False
+        return True
+    return False
+
+
+def bypass_reason(tool_name: str, args: dict[str, Any]) -> str | None:
+    """Return a deterministic bypass reason, or None when Jev should evaluate."""
+    if tool_name.startswith(_SKIP_PREFIXES):
+        return "jev-internal"
+    if gate_scope() == "all":
+        return None
+    if tool_name in _DEFAULT_READ_ONLY_TOOLS:
+        return "read-only-tool"
+    if tool_name in {"terminal", "shell", "bash"} and _read_only_terminal(_terminal_command(args)):
+        return "read-only-terminal"
+    return None
+
+
 def evaluate_tool_call(
     *,
     tool_name: str,
@@ -54,7 +182,9 @@ def evaluate_tool_call(
     task_id: str | None,
     engine_factory: Callable[[], DecisionEngine] = DecisionEngine,
 ) -> DecisionResult | None:
-    if gate_mode() == "off" or tool_name.startswith(_SKIP_PREFIXES):
+    if gate_mode() == "off":
+        return None
+    if bypass_reason(tool_name, args) is not None:
         return None
     state = {"tool_name": tool_name, "arguments": redact(args), "task_id": task_id or ""}
     return engine_factory().decide(
@@ -78,9 +208,16 @@ def pre_tool_call(tool_name: str, args: dict, task_id: str | None = None, **kwar
     mode = gate_mode()
     if mode == "off":
         return None
+
+    reason = bypass_reason(tool_name, args)
+    if reason is not None:
+        _record_gate_event(tool_name=tool_name, action="bypass", reason=reason, provider_call=False)
+        return None
+
     try:
         result = evaluate_tool_call(tool_name=tool_name, args=args, task_id=task_id)
     except Exception:
+        _record_gate_event(tool_name=tool_name, action="provider-error", reason="provider-unavailable", provider_call=True)
         # A remote classifier must never silently become a single point of failure.
         # Advisory fails open; enforce fails toward HUMAN approval, not execution or hard block.
         if mode == "enforce":
@@ -90,7 +227,19 @@ def pre_tool_call(tool_name: str, args: dict, task_id: str | None = None, **kwar
                 "rule_key": "jev:provider-unavailable",
             }
         return None
-    if result is None or mode == "advisory":
+    if result is None:
+        return None
+
+    _record_gate_event(
+        tool_name=tool_name,
+        action="evaluated",
+        reason="material-or-unknown",
+        provider_call=True,
+        value=result.value,
+        confidence=result.confidence,
+        latency_ms=result.latency_ms,
+    )
+    if mode == "advisory":
         return None
 
     min_conf = minimum_confidence()
@@ -112,3 +261,57 @@ def pre_tool_call(tool_name: str, args: dict, task_id: str | None = None, **kwar
             "rule_key": f"jev:{tool_name}",
         }
     return None
+
+
+def report(path: Path | None = None, *, recent_limit: int = 8) -> dict[str, Any]:
+    """Aggregate local selective-gate telemetry without making a provider call."""
+    selected = path or gate_event_path()
+    rows: list[dict[str, Any]] = []
+    if selected.exists():
+        for line in selected.read_text(encoding="utf-8", errors="replace").splitlines():
+            try:
+                value = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(value, dict):
+                rows.append(value)
+
+    by_action: dict[str, int] = {}
+    by_reason: dict[str, int] = {}
+    by_tool: dict[str, int] = {}
+    provider_calls = 0
+    provider_latency_ms = 0.0
+    for row in rows:
+        action = str(row.get("action") or "unknown")
+        reason = str(row.get("reason") or "unknown")
+        tool = str(row.get("tool_name") or "unknown")
+        by_action[action] = by_action.get(action, 0) + 1
+        by_reason[reason] = by_reason.get(reason, 0) + 1
+        by_tool[tool] = by_tool.get(tool, 0) + 1
+        if row.get("provider_call"):
+            provider_calls += 1
+            try:
+                provider_latency_ms += float(row.get("latency_ms") or 0.0)
+            except (TypeError, ValueError):
+                pass
+
+    limit = max(0, min(50, int(recent_limit or 0)))
+    bypassed = by_action.get("bypass", 0)
+    evaluated = by_action.get("evaluated", 0)
+    return {
+        "path": str(selected),
+        "event_count": len(rows),
+        "scope": gate_scope(),
+        "bypassed": bypassed,
+        "evaluated": evaluated,
+        "provider_errors": by_action.get("provider-error", 0),
+        "provider_calls": provider_calls,
+        "provider_latency_ms": round(provider_latency_ms, 3),
+        "average_provider_latency_ms": round(provider_latency_ms / evaluated, 3) if evaluated else 0.0,
+        "estimated_provider_calls_avoided": bypassed,
+        "bypass_rate": round(bypassed / len(rows), 6) if rows else 0.0,
+        "by_action": dict(sorted(by_action.items())),
+        "by_reason": dict(sorted(by_reason.items())),
+        "by_tool": dict(sorted(by_tool.items())),
+        "recent": rows[-limit:] if limit else [],
+    }
