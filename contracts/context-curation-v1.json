@@ -1,0 +1,13 @@
+{
+  "contract": "context-curation/v1",
+  "purpose": "Return a conservative retention plan and curated copy for explicit evidence units without mutating Hermes session state.",
+  "actions": ["KEEP", "STUB", "DROP"],
+  "invariants": [
+    "user_text and assistant_text are kept verbatim",
+    "pinned and recent-tail items are kept verbatim",
+    "low-confidence decisions are promoted to KEEP",
+    "unrecoverable evidence is never DROPped",
+    "STUB content is a deterministic prefix plus metadata, never a generated summary",
+    "input order is preserved among retained items"
+  ]
+}

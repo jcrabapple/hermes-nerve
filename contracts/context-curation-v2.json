@@ -1,0 +1,18 @@
+{
+  "contract": "context-curation/v2",
+  "purpose": "Estimate semantic context value with Jev and apply deterministic local retention policy without generative summarization.",
+  "jev_estimates": ["needed_again", "exact_required", "superseded", "conflict"],
+  "actions": ["KEEP_EXACT", "PIN", "ANCHOR", "DROP"],
+  "local_action": "REHYDRATE",
+  "invariants": [
+    "user_text and assistant_text are never model-rewritten",
+    "recoverability is determined by local code or caller metadata, not by Jev",
+    "unrecoverable evidence is never DROPped",
+    "nonrecoverable failure evidence is PINned until verification PASS unless an explicit lease overrides it",
+    "unresolved conflicts are PIN candidates",
+    "ANCHOR is deterministic metadata plus an original-content prefix, never a generated summary",
+    "shadow mode applies no ANCHOR or DROP operation",
+    "automatic ContextEngine mode preserves tool-call/result protocol structure",
+    "input order is preserved among retained evidence"
+  ]
+}

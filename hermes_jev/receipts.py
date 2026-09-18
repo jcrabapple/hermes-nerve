@@ -9,6 +9,8 @@ from pathlib import Path
 from typing import Any
 
 from .privacy import canonical_hash
+from .provenance import execution_provenance
+from .paths import hermes_home
 
 _configured_detail: str | None = None
 
@@ -31,19 +33,19 @@ def receipt_path() -> Path:
     explicit = os.getenv("HERMES_JEV_RECEIPTS")
     if explicit:
         return Path(explicit).expanduser()
-    home = Path(os.getenv("HERMES_HOME") or Path.home() / ".hermes")
-    return home / "jev" / "receipts.jsonl"
+    return hermes_home() / "jev" / "receipts.jsonl"
 
 
 def write_receipt(*, contract: str, state: Any, result: dict[str, Any], model: str, latency_ms: float) -> dict[str, Any]:
     record: dict[str, Any] = {
-        "schema": "hermes-jev-receipt/v1",
+        "schema": "hermes-jev-receipt/v2",
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "contract": contract,
         "state_sha256": canonical_hash(state),
         "model": model,
         "latency_ms": round(latency_ms, 3),
         "result": result,
+        "execution": result.get("execution") if isinstance(result, dict) and result.get("execution") else execution_provenance(live_provider_call=True),
     }
     if receipt_detail() == "sanitized":
         record["state"] = state
@@ -52,3 +54,89 @@ def write_receipt(*, contract: str, state: Any, result: dict[str, Any], model: s
     with path.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(record, sort_keys=True, ensure_ascii=False, default=str) + "\n")
     return record
+
+
+def _iter_receipts(path: Path | None = None) -> list[dict[str, Any]]:
+    selected = path or receipt_path()
+    if not selected.exists():
+        return []
+    rows: list[dict[str, Any]] = []
+    for line in selected.read_text(encoding="utf-8", errors="replace").splitlines():
+        try:
+            value = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(value, dict):
+            rows.append(value)
+    return rows
+
+
+def report(path: Path | None = None, *, recent_limit: int = 8) -> dict[str, Any]:
+    """Aggregate local Jev decision receipts without making a provider call."""
+    selected = path or receipt_path()
+    rows = _iter_receipts(selected)
+    by_contract: dict[str, int] = {}
+    by_model: dict[str, int] = {}
+    total_cost = 0.0
+    input_tokens = 0
+    output_tokens = 0
+    total_latency = 0.0
+    provider_calls = 0
+    recent: list[dict[str, Any]] = []
+
+    for row in rows:
+        contract = str(row.get("contract") or "unknown")
+        by_contract[contract] = by_contract.get(contract, 0) + 1
+        model = str(row.get("model") or "unknown")
+        by_model[model] = by_model.get(model, 0) + 1
+        try:
+            total_latency += float(row.get("latency_ms") or 0.0)
+        except (TypeError, ValueError):
+            pass
+        result = row.get("result") if isinstance(row.get("result"), dict) else {}
+        usage = result.get("usage") if isinstance(result.get("usage"), dict) else {}
+        try:
+            total_cost += float(usage.get("cost") or 0.0)
+        except (TypeError, ValueError):
+            pass
+        for key, target in (("input_tokens", "input"), ("output_tokens", "output")):
+            try:
+                value = int(usage.get(key) or 0)
+            except (TypeError, ValueError):
+                value = 0
+            if target == "input":
+                input_tokens += value
+            else:
+                output_tokens += value
+        execution = row.get("execution") if isinstance(row.get("execution"), dict) else {}
+        if execution.get("live_provider_call"):
+            provider_calls += 1
+
+    limit = max(0, min(50, int(recent_limit or 0)))
+    for row in rows[-limit:] if limit else []:
+        result = row.get("result") if isinstance(row.get("result"), dict) else {}
+        usage = result.get("usage") if isinstance(result.get("usage"), dict) else {}
+        recent.append({
+            "timestamp": row.get("timestamp"),
+            "contract": row.get("contract"),
+            "model": row.get("model"),
+            "latency_ms": row.get("latency_ms"),
+            "request_id": result.get("request_id"),
+            "value": result.get("value"),
+            "cost": usage.get("cost"),
+            "input_tokens": usage.get("input_tokens"),
+            "output_tokens": usage.get("output_tokens"),
+        })
+
+    return {
+        "path": str(selected),
+        "receipt_count": len(rows),
+        "provider_calls": provider_calls,
+        "by_contract": dict(sorted(by_contract.items())),
+        "by_model": dict(sorted(by_model.items())),
+        "total_cost": round(total_cost, 12),
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "average_latency_ms": round(total_latency / len(rows), 3) if rows else 0.0,
+        "recent": recent,
+    }

@@ -1,35 +1,29 @@
-# Hermes-Jev roadmap
+# Roadmap
 
-## Now — v0.1
+## v0.1.5.5 — telemetry hardening + shadow-safe community release (current)
 
-- Generic decision runtime, not a one-off approvals wrapper.
-- `jev_decide`, `jev_rank`, `jev_verify`.
-- Opt-in `pre_tool_call` gate.
-- Redaction, confidence-aware fail-to-human policy, hash receipts.
-- Offline deterministic tests.
-- Catalog-ready manifest and security docs.
+Delivered:
 
-## 0–6 months
+- seven public tools: six Jev decision/context tools plus local `jev_stats` telemetry
+- explicit execution provenance on provider results
+- decomposed semantic context assessment
+- deterministic KEEP_EXACT/PIN/ANCHOR/DROP policy
+- contradiction/supersession signals
+- verification-linked lifecycle leases
+- privacy-minimized evidence ledger
+- shadow-mode telemetry/reporting
+- opt-in Hermes ContextEngine registration
+- protocol-safe automatic anchoring
+- built-in compressor fallback on no safe Jev progress
+- selective local pre-tool bypass for conservative read-only calls, with gate telemetry and `gate_scope=all` compatibility
 
-- Contract loader + schema versioning.
-- Replay/evaluation harness over real Hermes session-derived corpora with explicit privacy controls.
-- Decision recipes: tool risk, worker/model routing, skill routing, result verification, retry/replan.
-- Compare Jev vs System One adapters under the same contracts.
-- Dashboard tab for decision volume, latency, confidence, escalations, and avoided LLM calls.
-- Stable recipe/contract contribution process.
+## Next
 
-## 6–12 months
-
-- Decision graph runtime: multiple parallel typed questions feeding deterministic policy code.
-- Per-tool and per-project policies.
-- Context/memory relevance gates.
-- Agent/subagent delegation and completion gates.
-- Provider interface supporting new Jev versions and compatible System One backends without changing contracts.
-- Public benchmark corpus + calibration reports.
-
-## 12–24 months
-
-- Hermes-wide decision fabric: routing, verification, policy, orchestration, and confidence-aware control flow.
-- Local/hosted Jev backends if TypeSafe makes them available.
-- Contract marketplace/recipe registry with reproducible eval evidence.
-- High-frequency System One decisions surrounding lower-frequency frontier-model deliberation.
+- collect real shadow telemetry and tune thresholds from evidence
+- add replay corpus/version comparison across Jev model pins
+- continuation-fidelity A/B harness over real Hermes session checkpoints
+- richer lifecycle leases tied to goals/branches/artifacts, not only verification
+- per-tool recoverability adapters and rerun-cost classes
+- automatic anchor rehydration when the active goal references older evidence
+- optional context status/ledger CLI commands
+- richer user-configurable gate policies by tool patterns/consequence class beyond the conservative built-in selective scope

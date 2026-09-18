@@ -1,21 +1,44 @@
 # Security
 
-Hermes-Jev executes in the Hermes process and is **not a sandbox**.
+Hermes-Jev sends decision state to the selected external Jev provider — OpenRouter or TypeSafe direct — only when a Jev tool, gate, or active Jev ContextEngine semantic pass is invoked.
 
-## Threat model
+## Provider egress
 
-The highest-risk boundary is automatic evaluation of tool arguments by a third-party API. Tool arguments can contain credentials, private paths, customer data, or commands with embedded secrets.
+Before provider calls, state is recursively redacted for common secret-bearing keys and token/bearer patterns. The selected transport uses a fixed provider path (`/api/alpha/decisions` for OpenRouter or `/v1/systemone` for TypeSafe direct) rather than exposing an arbitrary bearer-token destination.
 
-Mitigations in v0.1:
+## Receipts
 
-1. Automatic gating is off by default.
-2. Common secret-bearing keys and token patterns are redacted before sending state.
-3. Receipts store only a state hash by default.
-4. Low-confidence enforce-mode decisions route to human approval.
-5. Provider/network failure in enforce mode routes to human approval.
-6. Jev tool calls are not automatically gated by the Jev gate.
-7. Model output is checked against the caller-declared choice set before use.
+Decision receipts default to hash-only state at:
 
-Redaction is defense in depth, not a guarantee. Do not enable automatic external evaluation in environments where sending sanitized tool context to TypeSafe is prohibited.
+```text
+$HERMES_HOME/jev/receipts.jsonl
+```
 
-Report security issues privately to the repository maintainer once the standalone repository is published.
+`receipt_detail=sanitized` persists redacted state and should be enabled only when needed for evaluation/replay.
+
+## Evidence ledger
+
+Context rehydration requires a separate evidence ledger:
+
+```text
+$HERMES_HOME/jev/context-ledger.jsonl
+```
+
+Modes:
+
+- `sanitized` (default): force-redacted content/metadata are stored and can be rehydrated.
+- `hash`: only hashes/provenance are retained; `jev_context_rehydrate` will refuse to invent missing content.
+
+The ledger is not intended as a second verbatim transcript. Operators handling highly sensitive tool outputs should choose hash mode or disable the ledger.
+
+## Automatic context engine
+
+The Jev context engine is opt-in. It preserves valid tool-call/result structure and fails open. When Jev cannot safely make progress it may use Hermes' built-in compressor if `context_engine_fallback_builtin=true`.
+
+## Gate
+
+`gate_scope=selective` uses a deliberately narrow deterministic bypass only for known read-only tools/commands. It is not a general shell safety classifier. Shell composition (`|`, `>`, `&&`, command substitution), unknown commands, and commands with names that can mutate state (`date`, `nvidia-smi`, `env`, etc.) are not bypassed and still reach Jev when the gate is enabled. `gate_scope=all` disables the read-only bypass.
+
+`enforce` mode routes low-confidence or provider-failure cases toward human approval rather than silently treating them as safe execution.
+
+Do not treat a Jev probability as proof of correctness.
