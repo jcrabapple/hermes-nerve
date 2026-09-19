@@ -1,6 +1,6 @@
-# Jev Nervous System (v0.2.1.1)
+# Jev Nervous System (v0.2.1.2)
 
-Hermes-Jev v0.2.1.1 keeps Jev off Hermes' normal critical path. Hermes remains the reasoning and execution engine; Jev is an asynchronous decision supervisor.
+Hermes-Jev v0.2.1.2 keeps Jev off Hermes' normal critical path. Hermes remains the reasoning and execution engine; Jev is an asynchronous decision supervisor.
 
 ## Turn lifecycle
 

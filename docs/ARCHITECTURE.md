@@ -1,4 +1,4 @@
-# Architecture — Hermes-Jev v0.2.1.1
+# Architecture — Hermes-Jev v0.2.1.2
 
 ## Public seam
 

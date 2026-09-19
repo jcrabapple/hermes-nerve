@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.1.2 — bounded context-engine and fail-open stabilization
+
+- Fix issue #2: automatic apply-mode curation no longer passes more than 48 evidence items into the bounded `jev_context_curate` contract.
+- Select recoverable raw tool-result evidence oldest-first, defer excess candidates unchanged, and exclude existing Jev anchors from future semantic curation.
+- Make the full compression boundary fail-open: Jev curation failures try the configured Hermes built-in compressor, and fallback-compressor failures return the original message list instead of escaping into the turn loop.
+- Make shadow curation failures and selection pressure observable through ContextEngine status.
+- Fix shadow telemetry so proposed ANCHOR/DROP actions do not count as applied compaction or inflate recovery-demand metrics.
+- Avoid automatic remote semantic assessments for deterministically unrecoverable evidence, and preserve safety-rejected tool evidence exactly instead of sending it through the generic fallback.
+- Add 0.2.1.2 regressions for 48/49/60/851-item boundaries, double-failure fail-open behavior, anchor idempotence, shadow telemetry, unrecoverable evidence, and the 12-request maximum semantic fan-out for 48 items.
+- Record the independent successful v0.2.1.1 direct-TypeSafe smoke from issue #1 without overstating it as a v0.2.1.2 credentialed validation.
+
 ## 0.2.1.1 — deferred schema, self-observation, and provenance patch
 
 - Fix **BUG-001**: make the deferred `jev_assess` schema mechanically constructible from `tool_describe`, including explicit `choice.criteria` map/`minProperties: 2`, `score.criteria` array/`minItems: 2`, and noul semantics.

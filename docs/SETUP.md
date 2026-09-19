@@ -1,4 +1,4 @@
-# Hermes-Jev v0.2.1.1 setup
+# Hermes-Jev v0.2.1.2 setup
 
 ## Install
 
@@ -20,7 +20,7 @@ hermes config set plugins.entries.hermes-jev.settings.jev_provider openrouter --
 hermes config set plugins.entries.hermes-jev.settings.jev_model typesafe/jev-1.13 --force
 ```
 
-Direct TypeSafe (wire-tested in v0.2.1.1):
+Direct TypeSafe (wire-tested in v0.2.1.2; independently live-smoked on v0.2.1.1):
 
 ```bash
 export TYPESAFE_API_KEY='...'

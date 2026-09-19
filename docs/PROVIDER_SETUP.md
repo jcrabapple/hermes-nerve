@@ -1,6 +1,6 @@
 # Provider setup
 
-Hermes-Jev v0.2.1.1 supports two System One transports behind one decision contract.
+Hermes-Jev v0.2.1.2 supports two System One transports behind one decision contract.
 
 ## OpenRouter
 
@@ -27,4 +27,4 @@ export TYPESAFE_API_KEY='...'
 hermes config set plugins.entries.hermes-jev.settings.jev_provider typesafe --force
 ```
 
-The v0.2.1.1 release suite verifies the direct wire contract offline. A real direct-account smoke requires an external TypeSafe credential and is not claimed by the packaged verification receipt unless explicitly run.
+The v0.2.1.2 release suite verifies the direct wire contract offline. Separately, issue #1 contains an independent successful live direct-TypeSafe smoke against v0.2.1.1 (typesafe-system-one, model jev-1.13.0, verified request/receipt provenance, about 299 ms). That is interoperability evidence for the v0.2.1.1 transport path, not a benchmark and not a credentialed live validation of the v0.2.1.2 candidate.
