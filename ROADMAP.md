@@ -1,6 +1,6 @@
 # Roadmap
 
-## v0.2.1 — nervous-system control hardening (current)
+## v0.2.1.x — nervous-system control hardening
 
 Implemented:
 
@@ -26,6 +26,7 @@ External/live follow-up:
 
 - calibrate turn admission and challenge confidence on real Hermes workloads
 - collect enough labeled outcomes to assess the local historical relevance model
-- run a direct TypeSafe live-account smoke with a real credential
+- continue collecting independent direct TypeSafe live-account interoperability reports across current releases
 - measure useful-disagreement precision and false-PASS rate over long autonomous tasks
 - pressure-test context anchoring/rehydration during real long-turn compaction
+- collect long-session data for the v0.2.1.2 bounded-selection and fail-open context-engine path
