@@ -14,3 +14,6 @@ Issues = "https://github.com/keeltrace/hermes-jev/issues"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[project.optional-dependencies]
+dev = ["PyYAML>=6,<7"]
