@@ -16,4 +16,4 @@ Issues = "https://github.com/keeltrace/hermes-jev/issues"
 testpaths = ["tests"]
 
 [project.optional-dependencies]
-dev = ["PyYAML>=6,<7"]
+dev = ["PyYAML>=6,<7", "tomli>=2,<3; python_version < '3.11'"]
