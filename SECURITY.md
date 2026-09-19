@@ -1,5 +1,13 @@
 # Security
 
+## Reporting security issues
+
+Do not post API keys, bearer tokens, private prompts, credential-bearing logs, or other secrets in a public issue.
+
+For a potentially sensitive vulnerability, use GitHub's private security-reporting surface for this repository when available. If private reporting is unavailable, open only a minimal public issue asking the maintainer for a private reporting path; do not include exploit details or secrets there.
+
+For non-sensitive security hardening or ordinary bugs, a normal issue is appropriate.
+
 Hermes-Jev sends decision state to OpenRouter/TypeSafe only when a Jev tool, gate, or active Jev ContextEngine semantic pass is invoked.
 
 ## Provider egress
