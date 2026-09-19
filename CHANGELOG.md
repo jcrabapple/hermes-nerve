@@ -7,7 +7,7 @@
 - Make the full compression boundary fail-open: Jev curation failures try the configured Hermes built-in compressor, and fallback-compressor failures return the original message list instead of escaping into the turn loop.
 - Make shadow curation failures and selection pressure observable through ContextEngine status.
 - Fix shadow telemetry so proposed ANCHOR/DROP actions do not count as applied compaction or inflate recovery-demand metrics.
-- Avoid automatic remote semantic assessments for deterministically unrecoverable evidence.
+- Avoid automatic remote semantic assessments for deterministically unrecoverable evidence, and preserve safety-rejected tool evidence exactly instead of sending it through the generic fallback.
 - Add 0.2.1.2 regressions for 48/49/60/851-item boundaries, double-failure fail-open behavior, anchor idempotence, shadow telemetry, unrecoverable evidence, and the 12-request maximum semantic fan-out for 48 items.
 - Record the independent successful v0.2.1.1 direct-TypeSafe smoke from issue #1 without overstating it as a v0.2.1.2 credentialed validation.
 

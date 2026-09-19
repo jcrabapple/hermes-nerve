@@ -192,7 +192,7 @@ class JevContextEngine(ContextEngine):
                 protect_last_n=max(self.protect_last_n, 6),
                 quiet_mode=True,
                 base_url=self._route.get("base_url", ""),
-                [REDACTED]("api_key", ""),
+                api_key=self._route.get("api_key", ""),
                 config_context_length=self.context_length or None,
                 provider=self._route.get("provider", ""),
                 api_mode=self._route.get("api_mode", ""),
@@ -202,7 +202,7 @@ class JevContextEngine(ContextEngine):
                     self._fallback.update_model(
                         self._model, self.context_length,
                         base_url=self._route.get("base_url", ""),
-                        [REDACTED]("api_key", ""),
+                        api_key=self._route.get("api_key", ""),
                         provider=self._route.get("provider", ""),
                         api_mode=self._route.get("api_mode", ""),
                     )
@@ -369,6 +369,17 @@ class JevContextEngine(ContextEngine):
         selected, selection = self._select_candidates(items)
         self._last_selection = selection
         if not selected:
+            # If tool evidence exists but every item is already anchored or
+            # deterministically unrecoverable, preserve it exactly. Delegating
+            # that case to a generic summarizer could erase the very evidence
+            # this engine's safety policy refused to compact. Text-only sessions
+            # still use Hermes' built-in fallback as before.
+            if items:
+                self._last_plan = {
+                    "contract": "context-engine/no-safe-candidates/v1",
+                    "stats": {"engine_selection": dict(selection)},
+                }
+                return messages
             return self._fallback_compress(
                 messages, current_tokens, focus_topic, force, memory_context, jev_candidates=0
             )

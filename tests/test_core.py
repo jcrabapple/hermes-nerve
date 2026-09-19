@@ -48,7 +48,7 @@ class EngineTests(unittest.TestCase):
         client._configured_timeout = None
 
     def test_redacts_secrets_and_hashes_stably(self):
-        value = {"api_key": "abc", "nested": {"token": "secret"}, "text": "[REDACTED]"}
+        value = {"api_key": "abc", "nested": {"token": "secret"}, "text": "Bearer abcdefghijklmnop"}
         safe = privacy.redact(value)
         self.assertEqual(safe["api_key"], "[REDACTED]")
         self.assertEqual(safe["nested"]["token"], "[REDACTED]")
@@ -364,7 +364,7 @@ class ToolTests(unittest.TestCase):
     def test_rehydrate_is_local_and_uses_ledger(self):
         with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {"HERMES_JEV_CONTEXT_LEDGER": str(Path(td) / "ledger.jsonl")}, clear=False):
             ledger.configure(enabled=True, detail="sanitized")
-            ledger.record_evidence(evidence_id="e1", content="[REDACTED] useful", kind="tool_result", recoverable=True)
+            ledger.record_evidence(evidence_id="e1", content="Bearer abcdefghijklmnop useful", kind="tool_result", recoverable=True)
             payload = json.loads(tools.jev_context_rehydrate({"evidence_id": "e1"}))
             self.assertTrue(payload["ok"])
             self.assertIn("[REDACTED]", payload["rehydrated"]["content"])
@@ -622,7 +622,7 @@ class ProvenanceAndLedgerTests(unittest.TestCase):
             ledger.observe_tool_call(
                 tool_name="terminal",
                 args={"command": "git status --short"},
-                result="[REDACTED]\n M file.py",
+                result="Bearer abcdefghijklmnop\n M file.py",
                 task_id="t1",
                 duration_ms=12,
             )

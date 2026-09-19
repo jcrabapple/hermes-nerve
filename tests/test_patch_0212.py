@@ -156,7 +156,12 @@ class Patch0212Tests(unittest.TestCase):
         self.assertTrue(all(value.count("JEV_CONTEXT_ANCHOR") == 1 for value in anchors))
 
     def test_unrecoverable_evidence_consumes_no_jev_candidate_capacity(self):
-        e = JevContextEngine(mode="apply", protect_first_n=0, protect_last_n=1, fallback_builtin=False)
+        class ForbiddenFallback:
+            def compress(self, *args, **kwargs):
+                raise AssertionError("unrecoverable evidence must not reach generic fallback")
+
+        e = JevContextEngine(mode="apply", protect_first_n=0, protect_last_n=1, fallback_builtin=True)
+        e._fallback = ForbiddenFallback()
         messages = [
             {"role": "assistant", "content": "", "tool_calls": [{
                 "id": "c1", "type": "function",
