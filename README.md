@@ -223,6 +223,12 @@ $HERMES_HOME/jev/context-ledger.jsonl
 
 See [`SECURITY.md`](SECURITY.md).
 
+## Maintainer / release status
+
+The source of truth for a release is the versioned commit plus its GitHub Actions result. GitHub Releases may lag source history; do not infer the current plugin version from the releases page alone.
+
+Maintainers can publish a verified release from the current default-branch version using the manual **release** GitHub Actions workflow. The workflow refuses a requested version that does not match `pyproject.toml`, reruns unit/compile/release verification, creates source archives, writes SHA-256 checksums, and creates the GitHub Release without overwriting an existing tag.
+
 ## Testing
 
 Offline:
