@@ -7,7 +7,7 @@ Hermes-Jev is contract-first. Changes should preserve bounded provider work, det
 Hermes-Jev has no required runtime Python dependencies beyond the standard library. Release verification additionally uses PyYAML:
 
 ```bash
-python -m pip install "PyYAML>=6,<7"
+python -m pip install "PyYAML>=6,<7" "tomli>=2,<3; python_version < '3.11'"
 ```
 
 Before opening a PR, run:
