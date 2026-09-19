@@ -1,0 +1,73 @@
+name: release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to release, without the leading v (for example 0.2.1.2)
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.13"
+
+      - name: Install verification dependency
+        run: python -m pip install "PyYAML>=6,<7" "tomli>=2,<3; python_version < '3.11'"
+
+      - name: Verify requested version
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          python - <<'PY'
+          import os, tomllib
+          from pathlib import Path
+          version = os.environ["VERSION"].strip()
+          pyproject = tomllib.loads(Path("pyproject.toml").read_text())
+          actual = pyproject["project"]["version"]
+          if actual != version:
+              raise SystemExit(f"requested version {version!r} does not match pyproject version {actual!r}")
+          PY
+
+      - name: Verify candidate
+        run: |
+          python -m unittest discover -s tests -v
+          python -m compileall -q .
+          python scripts/verify_release.py
+
+      - name: Build source archives
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          mkdir -p dist
+          git archive --format=zip --prefix="hermes-jev-v${VERSION}/" -o "dist/hermes-jev-v${VERSION}.zip" HEAD
+          git archive --format=tar.gz --prefix="hermes-jev-v${VERSION}/" -o "dist/hermes-jev-v${VERSION}.tar.gz" HEAD
+          (cd dist && sha256sum hermes-jev-v${VERSION}.zip hermes-jev-v${VERSION}.tar.gz > SHA256SUMS.txt)
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          if gh release view "v${VERSION}" >/dev/null 2>&1; then
+            echo "Release v${VERSION} already exists; refusing to overwrite it."
+            exit 1
+          fi
+          gh release create "v${VERSION}"             dist/hermes-jev-v${VERSION}.zip             dist/hermes-jev-v${VERSION}.tar.gz             dist/SHA256SUMS.txt             --target "${GITHUB_SHA}"             --title "Hermes-Jev v${VERSION}"             --generate-notes
