@@ -1,4 +1,4 @@
-# Hermes-Jev v0.2.1.1 guide
+# Hermes-Jev v0.2.1.2 guide
 
 ## What changed
 

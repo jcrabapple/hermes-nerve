@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Offline release checks for Hermes-Jev v0.2.1.1."""
+"""Offline release checks for Hermes-Jev v0.2.1.2."""
 from __future__ import annotations
 
 import csv
@@ -11,7 +11,7 @@ from pathlib import Path
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-EXPECTED_VERSION = "0.2.1.1"
+EXPECTED_VERSION = "0.2.1.2"
 
 
 class FakeCtx:

@@ -6,6 +6,21 @@ Hermes remains the reasoning and execution engine. Jev supervises accountable de
 
 > Community project. Not affiliated with or endorsed by TypeSafe AI or Nous Research.
 
+## v0.2.1.2
+
+Stabilization patch for the automatic Jev ContextEngine:
+
+- bound automatic semantic curation to at most 48 recoverable raw evidence items per boundary, oldest first;
+- keep deferred evidence untouched and skip existing `JEV_CONTEXT_ANCHOR` results so compaction progresses instead of nesting anchors;
+- make Jev curation and Hermes built-in fallback failures fully fail-open to the original message list;
+- make shadow curation failures and selection pressure observable in ContextEngine status;
+- count shadow ANCHOR/DROP actions as proposals only, not completed compaction;
+- avoid remote semantic calls for deterministically unrecoverable evidence in the automatic engine path.
+
+The direct TypeSafe System One transport now also has independent live-account interoperability evidence from v0.2.1.1 issue #1. That validates the released v0.2.1.1 transport path; this v0.2.1.2 package does not claim a new credentialed live run unless one is performed against the candidate.
+
+See [`docs/BUGFIX_0.2.1.2.md`](docs/BUGFIX_0.2.1.2.md).
+
 ## v0.2.1.1
 
 Patch release for three live Muna integration defects found against 0.2.1:

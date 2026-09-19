@@ -29,7 +29,8 @@ _ALLOWED_KINDS = {
 _TEXT_KINDS = {"user_text", "assistant_text"}
 _ACTIONS = {"KEEP_EXACT", "PIN", "ANCHOR", "DROP"}
 _BATCH_SIZE = 4  # 4 noul questions per candidate = Jev's 16-question ceiling.
-_MAX_ITEMS = 48
+MAX_ITEMS = 48
+_MAX_ITEMS = MAX_ITEMS  # Backward-compatible private alias; engine code uses MAX_ITEMS.
 
 _configured_preview_chars = 1200
 _configured_anchor_chars = 220
@@ -442,15 +443,18 @@ def curate_context(
             proposed_content = ""
         proposed_output_chars += len(proposed_content)
 
-        if decision.proposed_action in {"ANCHOR", "DROP"}:
+        # Shadow mode records proposals in the shadow-plan ledger only.
+        # Counting hypothetical ANCHOR/DROP actions as real compaction corrupts
+        # recovery-demand telemetry and conflates observation with apply mode.
+        if selected_mode == "apply" and decision.action in {"ANCHOR", "DROP"}:
             ledger.record_evidence(
                 evidence_id=item.id,
                 content=item.content,
                 kind=item.kind,
                 recoverable=item.recoverable,
                 metadata={**item.metadata, "lease": decision.lease},
-                action=decision.proposed_action,
-                source=f"curation:{selected_mode}",
+                action=decision.action,
+                source="curation:apply",
             )
 
         if decision.action == "DROP":

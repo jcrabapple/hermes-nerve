@@ -119,6 +119,11 @@ def _goal(messages: list[dict[str, Any]], focus_topic: str | None = None) -> str
     return "\n\n".join(recent)[:6000] or "Preserve the evidence needed to continue the current Hermes task correctly."
 
 
+def _is_jev_anchor(content: Any) -> bool:
+    """Return True for anchors already emitted by this context engine."""
+    return _content_text(content).lstrip().startswith("[JEV_CONTEXT_ANCHOR ")
+
+
 class JevContextEngine(ContextEngine):
     """Conservative Jev context engine focused on tool-result evidence."""
 
@@ -154,6 +159,14 @@ class JevContextEngine(ContextEngine):
         self._session_id = ""
         self._last_shadow_signature = ""
         self._last_plan: dict[str, Any] = {}
+        self._last_selection: dict[str, int] = {}
+        self._curation_attempts = 0
+        self._curation_fail_open_count = 0
+        self._fallback_fail_open_count = 0
+        self._shadow_curation_attempts = 0
+        self._shadow_curation_failures = 0
+        self._last_failure_stage = ""
+        self._last_failure_type = ""
 
     @property
     def name(self) -> str:
@@ -179,7 +192,7 @@ class JevContextEngine(ContextEngine):
                 protect_last_n=max(self.protect_last_n, 6),
                 quiet_mode=True,
                 base_url=self._route.get("base_url", ""),
-                api_key=self._route.get("api_key", ""),
+                [REDACTED]("api_key", ""),
                 config_context_length=self.context_length or None,
                 provider=self._route.get("provider", ""),
                 api_mode=self._route.get("api_mode", ""),
@@ -189,7 +202,7 @@ class JevContextEngine(ContextEngine):
                     self._fallback.update_model(
                         self._model, self.context_length,
                         base_url=self._route.get("base_url", ""),
-                        api_key=self._route.get("api_key", ""),
+                        [REDACTED]("api_key", ""),
                         provider=self._route.get("provider", ""),
                         api_mode=self._route.get("api_mode", ""),
                     )
@@ -204,19 +217,34 @@ class JevContextEngine(ContextEngine):
         self, messages: list[dict[str, Any]], current_tokens: int | None,
         focus_topic: str | None, force: bool, memory_context: str, jev_candidates: int = 0,
     ) -> list[dict[str, Any]]:
+        """Delegate to Hermes' built-in compressor without ever breaking the turn."""
         fallback = self._fallback
         if fallback is None:
             return messages
         try:
-            out = fallback.compress(
-                messages, current_tokens=current_tokens, focus_topic=focus_topic,
-                force=force, memory_context=memory_context,
-            )
-        except TypeError:
             try:
-                out = fallback.compress(messages, current_tokens=current_tokens, focus_topic=focus_topic)
+                out = fallback.compress(
+                    messages, current_tokens=current_tokens, focus_topic=focus_topic,
+                    force=force, memory_context=memory_context,
+                )
             except TypeError:
-                out = fallback.compress(messages, current_tokens=current_tokens)
+                try:
+                    out = fallback.compress(messages, current_tokens=current_tokens, focus_topic=focus_topic)
+                except TypeError:
+                    out = fallback.compress(messages, current_tokens=current_tokens)
+        except Exception as exc:
+            self._fallback_fail_open_count += 1
+            self._last_failure_stage = "fallback"
+            self._last_failure_type = type(exc).__name__
+            self._last_plan = {
+                "contract": "context-engine/fail-open/v1",
+                "stats": {
+                    "fallback_failed": True,
+                    "jev_candidates": int(jev_candidates),
+                    "failure_type": self._last_failure_type,
+                },
+            }
+            return messages
         if isinstance(out, list) and out is not messages and out != messages:
             self.compression_count += 1
             self.last_prompt_tokens = -1
@@ -300,6 +328,30 @@ class JevContextEngine(ContextEngine):
             index_by_id[evidence_id] = index
         return items, index_by_id
 
+    def _select_candidates(self, items: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], dict[str, int]]:
+        """Select one bounded, progressive batch for automatic semantic curation."""
+        eligible: list[dict[str, Any]] = []
+        skipped_anchors = 0
+        skipped_unrecoverable = 0
+        for item in items:
+            if _is_jev_anchor(item.get("content")):
+                skipped_anchors += 1
+                continue
+            if not bool(item.get("recoverable")):
+                skipped_unrecoverable += 1
+                continue
+            eligible.append(item)
+        selected = eligible[: context.MAX_ITEMS]
+        stats = {
+            "input_items": len(items),
+            "eligible_items": len(eligible),
+            "selected_items": len(selected),
+            "deferred_items": max(0, len(eligible) - len(selected)),
+            "skipped_anchor_items": skipped_anchors,
+            "skipped_unrecoverable_items": skipped_unrecoverable,
+        }
+        return selected, stats
+
     def compress(
         self,
         messages: list[dict[str, Any]],
@@ -312,49 +364,92 @@ class JevContextEngine(ContextEngine):
             return self._fallback_compress(messages, current_tokens, focus_topic, force, memory_context)
         if not isinstance(messages, list) or not messages:
             return messages
+
         items, index_by_id = self._items(messages)
-        if not items:
-            return self._fallback_compress(messages, current_tokens, focus_topic, force, memory_context)
-        plan = context.curate_context(
-            goal=_goal(messages, focus_topic),
-            items=items,
-            preserve_tail=0,
-            mode="apply",
-            contract="context-engine/v1",
+        selected, selection = self._select_candidates(items)
+        self._last_selection = selection
+        if not selected:
+            return self._fallback_compress(
+                messages, current_tokens, focus_topic, force, memory_context, jev_candidates=0
+            )
+
+        self._curation_attempts += 1
+        try:
+            plan = context.curate_context(
+                goal=_goal(messages, focus_topic),
+                items=selected,
+                preserve_tail=0,
+                mode="apply",
+                contract="context-engine/v1",
+            )
+            if not isinstance(plan, dict):
+                raise ValueError("context curation returned a non-object plan")
+            plan = dict(plan)
+            plan_stats = dict(plan.get("stats") or {}) if isinstance(plan.get("stats"), dict) else {}
+            plan_stats["engine_selection"] = dict(selection)
+            plan["stats"] = plan_stats
+            self._last_plan = plan
+
+            curated_by_id = {
+                item["id"]: item for item in plan.get("curated_items", [])
+                if isinstance(item, dict) and item.get("id")
+            }
+            decisions = {
+                item["id"]: item for item in plan.get("decisions", [])
+                if isinstance(item, dict) and item.get("id")
+            }
+            selected_by_id = {item["id"]: item for item in selected}
+            out = [dict(msg) if isinstance(msg, dict) else msg for msg in messages]
+            changed = False
+            for evidence_id, original in selected_by_id.items():
+                index = index_by_id.get(evidence_id)
+                if index is None:
+                    continue
+                decision = decisions.get(evidence_id) or {}
+                action = decision.get("action")
+                if action in {"KEEP_EXACT", "PIN", None}:
+                    continue
+                curated = curated_by_id.get(evidence_id)
+                if action == "ANCHOR" and curated:
+                    replacement_content = curated.get("content")
+                    if isinstance(replacement_content, str) and replacement_content != out[index].get("content"):
+                        out[index]["content"] = replacement_content
+                        changed = True
+                elif action == "DROP":
+                    anchor = context._anchor(
+                        context.EvidenceItem(
+                            id=original["id"], kind=original["kind"], content=original["content"],
+                            recoverable=original["recoverable"], pinned=False, metadata=original["metadata"],
+                        ),
+                        120,
+                    )
+                    if anchor != out[index].get("content"):
+                        out[index]["content"] = anchor
+                        changed = True
+
+            if changed:
+                self.compression_count += 1
+                self.last_prompt_tokens = -1
+                return out
+        except Exception as exc:
+            self._curation_fail_open_count += 1
+            self._last_failure_stage = "jev-curation"
+            self._last_failure_type = type(exc).__name__
+            self._last_plan = {
+                "contract": "context-engine/fail-open/v1",
+                "stats": {
+                    "jev_curation_failed": True,
+                    "failure_type": self._last_failure_type,
+                    "engine_selection": dict(selection),
+                },
+            }
+            return self._fallback_compress(
+                messages, current_tokens, focus_topic, force, memory_context, len(selected)
+            )
+
+        return self._fallback_compress(
+            messages, current_tokens, focus_topic, force, memory_context, len(selected)
         )
-        self._last_plan = plan
-        curated_by_id = {item["id"]: item for item in plan.get("curated_items", []) if isinstance(item, dict)}
-        decisions = {item["id"]: item for item in plan.get("decisions", []) if isinstance(item, dict)}
-        out = [dict(msg) if isinstance(msg, dict) else msg for msg in messages]
-        changed = False
-        for evidence_id, index in index_by_id.items():
-            decision = decisions.get(evidence_id) or {}
-            action = decision.get("action")
-            if action in {"KEEP_EXACT", "PIN", None}:
-                continue
-            curated = curated_by_id.get(evidence_id)
-            if action == "ANCHOR" and curated:
-                out[index]["content"] = curated.get("content", out[index].get("content"))
-                changed = True
-            elif action == "DROP":
-                # Never remove a tool result from the message sequence; that can orphan
-                # the corresponding assistant tool call. Replace it with a tiny anchor.
-                original = next((item for item in items if item["id"] == evidence_id), None)
-                if original:
-                    anchor = context._anchor(context.EvidenceItem(
-                        id=original["id"], kind=original["kind"], content=original["content"],
-                        recoverable=original["recoverable"], pinned=False, metadata=original["metadata"],
-                    ), 120)
-                    out[index]["content"] = anchor
-                    changed = True
-        if changed:
-            self.compression_count += 1
-            self.last_prompt_tokens = -1
-            return out
-        # Jev found candidates but could not safely reclaim any of them. Do not
-        # enter a compression loop while text-heavy context keeps growing: fall
-        # back to Hermes' mature compressor for this boundary.
-        return self._fallback_compress(messages, current_tokens, focus_topic, force, memory_context, len(items))
 
     def prune_tool_results_only(self, messages: list[dict[str, Any]], current_tokens: int | None = None):
         return messages, 0
@@ -375,20 +470,40 @@ class JevContextEngine(ContextEngine):
                 pass
         if prompt < int(self.context_length * self.shadow_trigger_percent):
             return None
+
         items, _ = self._items(messages)
-        if not items:
+        selected, selection = self._select_candidates(items)
+        self._last_selection = selection
+        if not selected:
             return None
-        signature = canonical_hash([(item["id"], item["content"][:120]) for item in items])
+        signature = canonical_hash([(item["id"], item["content"][:120]) for item in selected])
         if signature == self._last_shadow_signature:
             return None
         self._last_shadow_signature = signature
+        self._shadow_curation_attempts += 1
         try:
-            self._last_plan = context.curate_context(
-                goal=_goal(messages), items=items, preserve_tail=0, mode="shadow", contract="context-engine-shadow/v1"
+            plan = context.curate_context(
+                goal=_goal(messages), items=selected, preserve_tail=0,
+                mode="shadow", contract="context-engine-shadow/v1",
             )
-        except Exception:
-            # Host contract is fail-open; shadow analysis can never break a turn.
-            return None
+            if isinstance(plan, dict):
+                plan = dict(plan)
+                plan_stats = dict(plan.get("stats") or {}) if isinstance(plan.get("stats"), dict) else {}
+                plan_stats["engine_selection"] = dict(selection)
+                plan["stats"] = plan_stats
+                self._last_plan = plan
+        except Exception as exc:
+            self._shadow_curation_failures += 1
+            self._last_failure_stage = "shadow-curation"
+            self._last_failure_type = type(exc).__name__
+            self._last_plan = {
+                "contract": "context-engine-shadow/fail-open/v1",
+                "stats": {
+                    "shadow_curation_failed": True,
+                    "failure_type": self._last_failure_type,
+                    "engine_selection": dict(selection),
+                },
+            }
         return None
 
     def on_session_start(self, session_id: str, **kwargs: Any) -> None:
@@ -424,6 +539,9 @@ class JevContextEngine(ContextEngine):
         lifecycle.reset()
         self._last_shadow_signature = ""
         self._last_plan = {}
+        self._last_selection = {}
+        self._last_failure_stage = ""
+        self._last_failure_type = ""
 
     def get_status(self) -> dict[str, Any]:
         try:
@@ -443,6 +561,18 @@ class JevContextEngine(ContextEngine):
                 "fallback_builtin": self.fallback_builtin,
                 "fallback_available": self._fallback is not None,
                 "ledger": ledger.stats(),
+                "context_selection": dict(self._last_selection),
+                "fail_open": {
+                    "curation_attempts": self._curation_attempts,
+                    "curation_fail_open_count": self._curation_fail_open_count,
+                    "fallback_fail_open_count": self._fallback_fail_open_count,
+                    "last_failure_stage": self._last_failure_stage,
+                    "last_failure_type": self._last_failure_type,
+                },
+                "shadow": {
+                    "curation_attempts": self._shadow_curation_attempts,
+                    "curation_failures": self._shadow_curation_failures,
+                },
                 "last_plan_stats": (self._last_plan.get("stats") if isinstance(self._last_plan, dict) else None),
             }
         )

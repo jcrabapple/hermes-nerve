@@ -1,32 +1,38 @@
-Hermes-Jev v0.2.1.1 release verification
-Date: 2026-09-18
+Hermes-Jev v0.2.1.2 release verification
+Date: 2026-09-19
+Baseline: 4feea5ef45aeb301622f18175ed4cf2e068b99bd (v0.2.1.1)
 
-Inputs:
-- hermes-jev-v0.2.1(1).zip SHA-256 4dfc4c45b215d97144e9e1919a1eeb86876116935f300ce525575f4d705a3221
-- hermes-jev-v0.2.2-bug-reports(1).zip SHA-256 f813f8bf617e0c42f5c8325578b18317733a796998cea66b17b3f048773c47ba
-
-Offline verification:
-- python3 -m unittest discover -s tests -v: PASS (74 tests)
+Local exact-candidate verification:
+- python3 -m unittest discover -s tests -v: PASS (83 tests)
 - python3 -m compileall -q .: PASS
-- python3 scripts/verify_release.py: PASS
-  tools=8 hook_names=7 hook_callbacks=8 requirements=1119
+- release-equivalent assertions: PASS
+  version=0.2.1.2 tools=8 hook_names=7 hook_callbacks=8 requirements=1119
+- scripts/verify_release.py: not directly runnable in the minimal MegaMCP audit runner because PyYAML is absent; its version/registration/schema/trace assertions were executed independently without changing the verifier.
 
-Focused 0.2.1.1 bug regressions:
-- deferred jev_assess schema exposes choice minProperties=2: PASS
-- deferred jev_assess schema exposes score minItems=2: PASS
-- valid choice assessment -> exactly one direct provider call: PASS
-- invalid choice assessment -> zero additional provider calls: PASS
-- jev_* failed post-tool observation -> nervous provider calls zero: PASS
-- jev_* successful post-tool observation -> no self-amplification: PASS
-- decide/rank/assess/verify -> persisted receipt_id + VERIFIED provenance: PASS
-- no provider request id -> content-bound local receipt remains auditable: PASS
-- local/error results cannot be marked VERIFIED: PASS
+Focused 0.2.1.2 regressions:
+- 48 candidates stay within the public context contract: PASS
+- 49 / 60 / 851 candidates select only 48 per boundary: PASS
+- excess candidates remain deferred: PASS
+- curation exception -> built-in fallback: PASS
+- curation exception + fallback exception -> original messages, no host-turn exception: PASS
+- existing Jev anchors are not re-curated or nested: PASS
+- automatic engine skips unrecoverable evidence for remote semantic assessment: PASS
+- shadow proposal does not count as applied compaction: PASS
+- shadow failure is observable while remaining fail-open: PASS
+- 48-item semantic fan-out <= 12 provider assessments: PASS
 
-Preserved v0.2.1 release invariants:
-- loop breaker/control-lease regressions: PASS
-- bounded/sectioned jev_stats regressions: PASS
+Preserved 0.2.1 / 0.2.1.1 invariants:
+- loop breaker and control-lease behavior: PASS in full unit suite
+- bounded/sectioned jev_stats: PASS in full unit suite
+- deferred jev_assess schema: PASS in full unit suite
+- Jev self-observation suppression: PASS in full unit suite
+- receipt-backed provenance: PASS in full unit suite
+- direct TypeSafe wire-contract tests: PASS in full unit suite
 - 8 tools / 7 hook names / 8 callbacks: PASS
-- 1,119 sequential traced requirements with unique verification IDs: PASS
+- 1,119 traced requirements: PASS
 
-Live external provider / Hermes 0.21.2 deferred-tool replay: NOT RUN in the isolated packaging environment.
-A post-install Muna test remains external confirmation for live provider-call counts and tool_describe/tool_call interoperability.
+External provider evidence:
+- issue #1 independently live-smoked direct TypeSafe on v0.2.1.1 successfully
+- v0.2.1.2 does not claim a new credentialed direct-account run unless separately executed
+
+GitHub Actions Python 3.10 / 3.11 / 3.12 / 3.13 remain the publication-side exact-branch gate.
