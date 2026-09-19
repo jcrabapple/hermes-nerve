@@ -1,0 +1,61 @@
+name: Bug report
+description: Report a reproducible Hermes-Jev defect
+title: "[Bug] "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a problem. Do not include API keys, bearer tokens, private prompts, or unsanitized logs.
+  - type: input
+    id: version
+    attributes:
+      label: Hermes-Jev version / commit
+      placeholder: "0.2.1.2 / full 40-character SHA"
+    validations:
+      required: true
+  - type: input
+    id: hermes
+    attributes:
+      label: Hermes Agent version
+  - type: input
+    id: environment
+    attributes:
+      label: Python / OS
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproduction
+      description: Prefer synthetic state and the smallest deterministic reproducer possible.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Sanitized logs / traceback
+      description: Remove credentials, private content, and unrelated identifiers.
+  - type: dropdown
+    id: provider
+    attributes:
+      label: Provider path
+      options:
+        - Not provider-related
+        - OpenRouter -> TypeSafe
+        - Direct TypeSafe System One
+        - Other / unknown
+  - type: checkboxes
+    id: disclosure
+    attributes:
+      label: Report hygiene
+      options:
+        - label: I verified this report contains no API keys or secrets.
+          required: true
+        - label: I disclosed AI-generated portions of this report where materially relevant.
+          required: false
