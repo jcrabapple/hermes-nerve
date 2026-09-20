@@ -1,5 +1,17 @@
 # Hermes-Jev 0.2.2 development line
 
+## v0.2.2.dev4
+
+Repository-wide maintenance and telemetry follow-through:
+
+- provider-cost completeness is scoped only to provider-backed decisions, so local loop-breaker decisions cannot make an otherwise complete provider cost total look unknown;
+- the gate event ledger now uses the same serialized JSONL persistence path as receipts, outcomes, nervous events, and context evidence;
+- GitHub Actions are updated to checkout v7.0.1 and setup-python v7.0.0, with CI extended through Python 3.14;
+- Dependabot GitHub Actions updates are grouped to reduce duplicate maintenance PRs;
+- the stable release workflow refuses `.dev` versions and non-default-branch dispatches;
+- historical bug handoffs and public issues are annotated with their current resolution state;
+- direct TypeSafe live-testing documentation incorporates the second independent end-to-end report.
+
 ## v0.2.2.dev3
 
 Runtime/reliability hardening on top of the paid-only OpenCode provider work:

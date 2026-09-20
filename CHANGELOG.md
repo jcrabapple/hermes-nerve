@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.2.dev4 — repository-wide maintenance follow-through
+
+- Scope provider-cost completeness to provider-backed decisions so local loop-breaker decisions do not turn a complete provider cost total into an unknown total.
+- Move gate-event persistence onto the shared serialized JSONL helper and add parallel-write regression coverage.
+- Update GitHub Actions to checkout v7.0.1 and setup-python v7.0.0; extend CI through Python 3.14.
+- Group Dependabot GitHub Actions updates to reduce duplicate maintenance PRs.
+- Harden the stable release workflow: reject `.dev` versions and non-default-branch dispatches.
+- Refresh direct TypeSafe live-testing documentation with the second independent smoke/suite/Hermes integration report and explicit missing-cost semantics.
+- Annotate historical bug handoffs and public issues so old discovery-state labels are not mistaken for current defects.
+- Keep OpenRouter as default, OpenCode paid-only `jev-1.13`, and the Hermes catalog template unchanged at v0.2.1.2.
+
 ## 0.2.2.dev3 — runtime and telemetry hardening
 
 - Evict completed nervous-system turn state and session mappings so long-lived Hermes processes do not retain every finished turn.

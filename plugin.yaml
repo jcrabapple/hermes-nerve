@@ -1,5 +1,5 @@
 name: hermes-jev
-version: "0.2.2.dev3"
+version: "0.2.2.dev4"
 description: "Asynchronous Jev decision nervous system for Hermes Agent: turn admission, adaptive local routing, confidence-gated challenges, typed decisions, verification, and context governance."
 author: "KeelTrace community"
 license: MIT

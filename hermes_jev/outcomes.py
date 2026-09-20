@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import math
 import os
 from collections import Counter, defaultdict
@@ -75,15 +74,17 @@ class OutcomeStore:
             except (TypeError, ValueError):
                 pass
             usage = row.get("usage") if isinstance(row.get("usage"), dict) else {}
-            raw_cost = usage.get("cost")
-            if raw_cost is None or raw_cost == "":
-                cost_missing_decisions += 1
-            else:
-                try:
-                    reported_cost += float(raw_cost)
-                    cost_reported_decisions += 1
-                except (TypeError, ValueError):
+            provider_backed = "usage" in row or bool(row.get("request_id"))
+            if provider_backed:
+                raw_cost = usage.get("cost")
+                if raw_cost is None or raw_cost == "":
                     cost_missing_decisions += 1
+                else:
+                    try:
+                        reported_cost += float(raw_cost)
+                        cost_reported_decisions += 1
+                    except (TypeError, ValueError):
+                        cost_missing_decisions += 1
             try:
                 tokens += int(usage.get("input_tokens") or 0) + int(usage.get("output_tokens") or 0)
             except (TypeError, ValueError):

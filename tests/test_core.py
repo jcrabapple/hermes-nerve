@@ -397,6 +397,24 @@ class GateTests(unittest.TestCase):
         gate._configured_min_confidence = None
         gate._configured_scope = None
 
+    def test_gate_observations_remain_complete_under_parallel_writes(self):
+        from concurrent.futures import ThreadPoolExecutor
+        with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {
+            "HERMES_JEV_GATE_MODE": "off",
+            "HERMES_JEV_GATE_EVENTS": str(Path(td) / "gate.jsonl"),
+        }, clear=False):
+            with ThreadPoolExecutor(max_workers=8) as pool:
+                list(pool.map(
+                    lambda idx: gate.pre_tool_call(
+                        "terminal", {"command": "echo hi"}, f"task-{idx}",
+                        turn_id=f"turn-{idx}", session_id="session", tool_call_id=f"call-{idx}",
+                    ),
+                    range(200),
+                ))
+            report = gate.report(Path(td) / "gate.jsonl", recent_limit=0)
+            self.assertEqual(report["hook_observations"], 200)
+            self.assertEqual(report["disabled"], 200)
+
     def test_gate_off_never_calls_provider(self):
         with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {
             "HERMES_JEV_GATE_MODE": "off",
@@ -632,7 +650,7 @@ class ProvenanceAndLedgerTests(unittest.TestCase):
                 state={}, instructions="choose", choices=["A", "B"]
             ).as_dict()
         self.assertEqual(result["execution"]["engine"], "hermes-jev")
-        self.assertEqual(result["execution"]["version"], "0.2.2.dev3")
+        self.assertEqual(result["execution"]["version"], "0.2.2.dev4")
         self.assertEqual(result["execution"]["transport"], "openrouter-decisions")
         self.assertTrue(result["execution"]["live_provider_call"])
 

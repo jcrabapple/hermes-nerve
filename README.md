@@ -6,13 +6,13 @@ Hermes remains the reasoning and execution engine. Jev supervises accountable de
 
 > Community project. Not affiliated with or endorsed by TypeSafe AI or Nous Research.
 
-## Development: v0.2.2.dev3
+## Development: v0.2.2.dev4
 
-The current development line adds OpenCode Zen as a third first-class Jev transport and hardens runtime lifecycle, telemetry, JSONL durability, and secret redaction. OpenCode uses the native System One endpoint and paid `jev-1.13` only. The `jev-1.13-free` tier is not supported because it does not work with Hermes. OpenRouter remains the default provider.
+The current development line adds OpenCode Zen as a third first-class Jev transport and includes runtime/repository hardening: bounded turn lifecycle, accurate missing-cost telemetry, serialized JSONL persistence, expanded secret redaction, current GitHub Actions pins, and Python 3.14 CI coverage. OpenCode uses the native System One endpoint and paid `jev-1.13` only. The `jev-1.13-free` tier is not supported because it does not work with Hermes. OpenRouter remains the default provider.
 
 This is a non-catalog development build. The Hermes catalog template remains on v0.2.1.2 until a later reviewed stable release.
 
-See [`docs/PROVIDER_SETUP.md`](docs/PROVIDER_SETUP.md) and [`docs/DEV_0.2.2.md`](docs/DEV_0.2.2.md).
+See [`docs/PROVIDER_SETUP.md`](docs/PROVIDER_SETUP.md), [`docs/DEV_0.2.2.md`](docs/DEV_0.2.2.md), and [`docs/HISTORICAL_BUG_STATUS.md`](docs/HISTORICAL_BUG_STATUS.md) for the current disposition of archived bug handoffs.
 
 ## v0.2.1.2
 

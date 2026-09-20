@@ -401,6 +401,36 @@ class OutcomeLearningTests(unittest.TestCase):
             self.assertEqual(report["metrics"]["decision_correction_success"], 1)
             self.assertGreater(report["average_latency_ms"], 0)
 
+    def test_local_decisions_do_not_make_provider_cost_unknown(self):
+        from hermes_jev.outcomes import OutcomeStore
+        with tempfile.TemporaryDirectory() as td:
+            store = OutcomeStore(Path(td) / "outcomes.jsonl")
+            store.append({
+                "record_type": "decision", "event_id": "local", "source": "local-loop-breaker",
+                "decision_type": "REPEATED_FAILURE", "jev_decision": "REPLAN",
+            })
+            store.append({
+                "record_type": "decision", "event_id": "remote", "decision_type": "RECOVERY",
+                "request_id": "req-1", "usage": {"input_tokens": 10, "output_tokens": 2, "cost": 0.00001},
+            })
+            report = store.report()
+            self.assertAlmostEqual(report["provider_cost"], 0.00001)
+            self.assertEqual(report["provider_cost_reported_decisions"], 1)
+            self.assertEqual(report["provider_cost_missing_decisions"], 0)
+
+    def test_missing_remote_cost_is_unknown_even_with_local_decisions(self):
+        from hermes_jev.outcomes import OutcomeStore
+        with tempfile.TemporaryDirectory() as td:
+            store = OutcomeStore(Path(td) / "outcomes.jsonl")
+            store.append({"record_type": "decision", "event_id": "local", "source": "local-loop-breaker"})
+            store.append({
+                "record_type": "decision", "event_id": "remote", "request_id": "req-2",
+                "usage": {"input_tokens": 10, "output_tokens": 2},
+            })
+            report = store.report()
+            self.assertIsNone(report["provider_cost"])
+            self.assertEqual(report["provider_cost_missing_decisions"], 1)
+
     def test_historical_model_requires_labeled_sample_floor(self):
         from hermes_jev.outcomes import HistoricalOutcomeModel, OutcomeStore
         with tempfile.TemporaryDirectory() as td:

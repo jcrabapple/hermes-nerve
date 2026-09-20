@@ -1,6 +1,6 @@
 # Provider setup
 
-Hermes-Jev v0.2.2.dev3 supports three System One transports behind one decision contract.
+Hermes-Jev v0.2.2.dev4 supports three System One transports behind one decision contract.
 
 ## OpenRouter
 
