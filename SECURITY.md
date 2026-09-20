@@ -8,11 +8,11 @@ For a potentially sensitive vulnerability, use GitHub's private security-reporti
 
 For non-sensitive security hardening or ordinary bugs, a normal issue is appropriate.
 
-Hermes-Jev sends decision state to OpenRouter/TypeSafe only when a Jev tool, gate, or active Jev ContextEngine semantic pass is invoked.
+Hermes-Jev sends decision state to the selected OpenRouter, TypeSafe, or OpenCode provider only when a Jev tool, gate, or active Jev ContextEngine semantic pass is invoked.
 
 ## Provider egress
 
-Before provider calls, state is recursively redacted for common secret-bearing keys and token/bearer patterns. The normal plugin path keeps the Decisions endpoint pinned rather than exposing an arbitrary configurable bearer-token destination.
+Before provider calls, state is recursively redacted for common secret-bearing keys and token/bearer patterns. Provider defaults are pinned to documented HTTPS endpoints; operator-controlled base-URL overrides should only target trusted HTTPS services.
 
 ## Receipts
 
