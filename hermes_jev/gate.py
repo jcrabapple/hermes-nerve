@@ -8,7 +8,6 @@ harmless tool call.
 
 from __future__ import annotations
 
-import json
 import os
 import re
 import shlex
@@ -18,6 +17,7 @@ from typing import Any, Callable
 
 from .engine import DecisionEngine, DecisionResult
 from .paths import hermes_home
+from .jsonl import append_jsonl, read_jsonl
 from .privacy import redact
 
 _SKIP_PREFIXES = ("jev_",)
@@ -129,10 +129,7 @@ def _record_gate_event(
         record["confidence"] = round(float(confidence), 6)
     if latency_ms is not None:
         record["latency_ms"] = round(float(latency_ms), 3)
-    path = gate_event_path()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("a", encoding="utf-8") as handle:
-        handle.write(json.dumps(record, sort_keys=True, ensure_ascii=False) + "\n")
+    append_jsonl(gate_event_path(), record)
 
 
 def _terminal_command(args: dict[str, Any]) -> str:
@@ -295,15 +292,7 @@ def pre_tool_call(tool_name: str, args: dict, task_id: str | None = None, **kwar
 def report(path: Path | None = None, *, recent_limit: int = 8) -> dict[str, Any]:
     """Aggregate local selective-gate telemetry without making a provider call."""
     selected = path or gate_event_path()
-    rows: list[dict[str, Any]] = []
-    if selected.exists():
-        for line in selected.read_text(encoding="utf-8", errors="replace").splitlines():
-            try:
-                value = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-            if isinstance(value, dict):
-                rows.append(value)
+    rows = read_jsonl(selected)
 
     by_action: dict[str, int] = {}
     by_reason: dict[str, int] = {}

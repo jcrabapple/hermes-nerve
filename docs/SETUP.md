@@ -1,4 +1,4 @@
-# Hermes-Jev v0.2.1.2 setup
+# Hermes-Jev v0.2.2.dev4 setup
 
 ## Install
 
@@ -27,6 +27,16 @@ export TYPESAFE_API_KEY='...'
 hermes config set plugins.entries.hermes-jev.settings.jev_provider typesafe --force
 hermes config set plugins.entries.hermes-jev.settings.typesafe_model jev-latest --force
 ```
+
+OpenCode Zen:
+
+```bash
+export OPENCODE_API_KEY='...'
+hermes config set plugins.entries.hermes-jev.settings.jev_provider opencode --force
+hermes config set plugins.entries.hermes-jev.settings.opencode_model jev-1.13 --force
+```
+
+OpenCode access in Hermes-Jev is paid-only. The `jev-1.13-free` tier is not supported because it does not work with Hermes.
 
 Only the selected provider's credential is required.
 

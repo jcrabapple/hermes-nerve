@@ -1,10 +1,10 @@
 name: hermes-jev
-version: "0.2.1.2"
+version: "0.2.2.dev4"
 description: "Asynchronous Jev decision nervous system for Hermes Agent: turn admission, adaptive local routing, confidence-gated challenges, typed decisions, verification, and context governance."
 author: "KeelTrace community"
 license: MIT
 homepage: https://github.com/keeltrace/hermes-jev
-tags: [jev, typesafe, system-one, decisions, routing, verification, context, safety, automation]
+tags: [jev, typesafe, opencode, system-one, decisions, routing, verification, context, safety, automation]
 provides_tools:
   - jev_decide
   - jev_rank
@@ -24,8 +24,9 @@ provides_hooks:
   - on_session_end
 requires_env: []
 config_schema:
-  jev_provider: {type: str, default: "openrouter", description: "Jev transport: openrouter or typesafe"}
+  jev_provider: {type: str, default: "openrouter", description: "Jev transport: openrouter, typesafe, or opencode"}
   typesafe_model: {type: str, default: "jev-latest", description: "Direct TypeSafe model id"}
+  opencode_model: {type: str, default: "jev-1.13", description: "OpenCode Zen System One model id. Hermes integration supports paid jev-1.13 only."}
   nervous_enabled: {type: bool, default: true, description: "Enable the asynchronous Jev nervous system"}
   nervous_turn_admission: {type: bool, default: true, description: "Run one asynchronous OFF/WATCH/ON Jev admission classification per user turn"}
   nervous_mode: {type: str, default: "correct_next", description: "Nervous authority mode: shadow, correct_next, or precommit"}

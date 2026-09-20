@@ -11,7 +11,7 @@ Implemented:
 - in-flight event batching
 - confidence-gated challenges and stale-state rejection
 - shadow / correct-next / precommit authority modes
-- direct TypeSafe + OpenRouter transports
+- direct TypeSafe + OpenRouter transports, plus paid OpenCode Zen on the v0.2.2 development line
 - local outcome dataset and historical relevance calibration seam
 - nervous-system decision-quality telemetry in `jev_stats`
 - existing v0.1.x tools, selective gate, evidence ledger, rehydration, and ContextEngine compatibility
@@ -30,3 +30,5 @@ External/live follow-up:
 - measure useful-disagreement precision and false-PASS rate over long autonomous tasks
 - pressure-test context anchoring/rehydration during real long-turn compaction
 - collect long-session data for the v0.2.1.2 bounded-selection and fail-open context-engine path
+- validate v0.2.2 completed-turn eviction under long-lived Hermes processes
+- compare provider-reported cost coverage across OpenRouter, direct TypeSafe, and OpenCode without treating missing cost as zero

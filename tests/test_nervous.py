@@ -292,6 +292,32 @@ class NervousSystemTests(unittest.TestCase):
             self.assertFalse(out["forwarded"])
             self.assertEqual(out["reason"], "provider-budget")
 
+    def test_finish_turn_evicts_state_and_preserves_newer_session_mapping(self):
+        with tempfile.TemporaryDirectory() as td:
+            system = self.make_system(td)
+            system.configure(admission_enabled=False)
+            system.start_turn(user_message="first", session_id="s1", turn_id="t1")
+            system.start_turn(user_message="second", session_id="s1", turn_id="t2")
+            system.finish_turn(turn_id="t1", assistant_response="done first")
+            self.assertNotIn("t1", system._turns)
+            self.assertEqual(system._session_turn.get("s1"), "t2")
+            system.finish_turn(turn_id="t2", assistant_response="done second")
+            self.assertNotIn("t2", system._turns)
+            self.assertNotIn("s1", system._session_turn)
+            self.assertEqual(system.report()["active_turns"], 0)
+            self.assertEqual(system.report()["metrics"]["turns_evicted"], 2)
+
+    def test_late_admission_after_finished_turn_is_ignored(self):
+        with tempfile.TemporaryDirectory() as td:
+            ScriptedEngine.reset()
+            system = self.make_system(td)
+            system.configure(admission_enabled=False)
+            system.start_turn(user_message="work", session_id="s1", turn_id="t1")
+            system.finish_turn(turn_id="t1", assistant_response="done")
+            system._do_admission({"turn_id": "t1", "user_message": "work"})
+            self.assertEqual(ScriptedEngine.calls, [])
+            self.assertEqual(system.status(turn_id="t1"), {"active": False})
+
 
 if __name__ == "__main__":
     unittest.main()
@@ -374,6 +400,36 @@ class OutcomeLearningTests(unittest.TestCase):
             self.assertEqual(report["metrics"]["premature_done_caught"], 1)
             self.assertEqual(report["metrics"]["decision_correction_success"], 1)
             self.assertGreater(report["average_latency_ms"], 0)
+
+    def test_local_decisions_do_not_make_provider_cost_unknown(self):
+        from hermes_jev.outcomes import OutcomeStore
+        with tempfile.TemporaryDirectory() as td:
+            store = OutcomeStore(Path(td) / "outcomes.jsonl")
+            store.append({
+                "record_type": "decision", "event_id": "local", "source": "local-loop-breaker",
+                "decision_type": "REPEATED_FAILURE", "jev_decision": "REPLAN",
+            })
+            store.append({
+                "record_type": "decision", "event_id": "remote", "decision_type": "RECOVERY",
+                "request_id": "req-1", "usage": {"input_tokens": 10, "output_tokens": 2, "cost": 0.00001},
+            })
+            report = store.report()
+            self.assertAlmostEqual(report["provider_cost"], 0.00001)
+            self.assertEqual(report["provider_cost_reported_decisions"], 1)
+            self.assertEqual(report["provider_cost_missing_decisions"], 0)
+
+    def test_missing_remote_cost_is_unknown_even_with_local_decisions(self):
+        from hermes_jev.outcomes import OutcomeStore
+        with tempfile.TemporaryDirectory() as td:
+            store = OutcomeStore(Path(td) / "outcomes.jsonl")
+            store.append({"record_type": "decision", "event_id": "local", "source": "local-loop-breaker"})
+            store.append({
+                "record_type": "decision", "event_id": "remote", "request_id": "req-2",
+                "usage": {"input_tokens": 10, "output_tokens": 2},
+            })
+            report = store.report()
+            self.assertIsNone(report["provider_cost"])
+            self.assertEqual(report["provider_cost_missing_decisions"], 1)
 
     def test_historical_model_requires_labeled_sample_floor(self):
         from hermes_jev.outcomes import HistoricalOutcomeModel, OutcomeStore

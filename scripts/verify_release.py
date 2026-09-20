@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Offline release checks for Hermes-Jev v0.2.1.2."""
+"""Offline source checks for Hermes-Jev v0.2.2.dev4."""
 from __future__ import annotations
 
 import csv
@@ -14,7 +14,7 @@ from pathlib import Path
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-EXPECTED_VERSION = "0.2.1.2"
+EXPECTED_VERSION = "0.2.2.dev4"
 
 
 class FakeCtx:
@@ -54,7 +54,12 @@ def main():
 
     assert manifest["version"] == EXPECTED_VERSION
     assert pyproject["project"]["version"] == EXPECTED_VERSION
-    assert str(catalog["version"]) == EXPECTED_VERSION
+    catalog_version = str(catalog["version"])
+    if ".dev" in EXPECTED_VERSION:
+        assert ".dev" not in catalog_version, (catalog_version, "catalog entries must remain stable releases")
+        assert catalog_version != EXPECTED_VERSION, (catalog_version, "development builds must not publish themselves to the catalog")
+    else:
+        assert catalog_version == EXPECTED_VERSION
     assert module.VERSION == EXPECTED_VERSION
     assert set(ctx.tools) == set(manifest["provides_tools"]), (ctx.tools, manifest["provides_tools"])
     assert set(ctx.hooks) == set(manifest["provides_hooks"]), (ctx.hooks, manifest["provides_hooks"])
@@ -77,7 +82,8 @@ def main():
 
     print(
         f"PASS version={EXPECTED_VERSION} tools={len(set(ctx.tools))} "
-        f"hook_names={len(set(ctx.hooks))} hook_callbacks={len(ctx.hooks)} requirements={len(rows)}"
+        f"hook_names={len(set(ctx.hooks))} hook_callbacks={len(ctx.hooks)} requirements={len(rows)} "
+        f"catalog_version={catalog_version}"
     )
     return 0
 

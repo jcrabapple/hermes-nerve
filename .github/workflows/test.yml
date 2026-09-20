@@ -18,16 +18,27 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
 
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: ${{ matrix.python-version }}
 
       - name: Install verification dependency
         run: python -m pip install "PyYAML>=6,<7" "tomli>=2,<3; python_version < '3.11'"
+
+      - name: Verify development catalog boundary
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          version="$(python -c 'import yaml; print(yaml.safe_load(open("plugin.yaml"))["version"])')"
+          if [[ "$version" == *".dev"* ]]; then
+            git diff --exit-code "${{ github.event.pull_request.base.sha }}" HEAD -- packaging/hermes-catalog/jev.yaml
+          fi
 
       - name: Unit tests
         run: python -m unittest discover -s tests -v
@@ -37,3 +48,11 @@ jobs:
 
       - name: Verify release metadata and public surface
         run: python scripts/verify_release.py
+
+  required-matrix-compat:
+    name: test (3.10) test (3.11) test (3.12) test (3.13)
+    needs: test
+    runs-on: ubuntu-latest
+    if: ${{ always() && needs.test.result == 'success' }}
+    steps:
+      - run: echo "Required matrix compatibility check passed."

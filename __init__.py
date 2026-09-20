@@ -18,6 +18,7 @@ def register(ctx):
         provider=ctx.get_config("jev_provider", "openrouter"),
         model=ctx.get_config("jev_model", legacy_model),
         typesafe_model=ctx.get_config("typesafe_model", "jev-latest"),
+        opencode_model=ctx.get_config("opencode_model", "jev-1.13"),
         timeout=ctx.get_config("timeout_seconds", 10.0),
     )
     gate.configure(

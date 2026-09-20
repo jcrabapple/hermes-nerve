@@ -18,7 +18,7 @@ python -m compileall -q .
 python scripts/verify_release.py
 ```
 
-CI runs these checks on Python 3.10, 3.11, 3.12, and 3.13.
+CI runs these checks on Python 3.10, 3.11, 3.12, 3.13, and 3.14.
 
 ## Change discipline
 

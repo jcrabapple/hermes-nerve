@@ -1,6 +1,6 @@
 # Provider setup
 
-Hermes-Jev v0.2.1.2 supports two System One transports behind one decision contract.
+Hermes-Jev v0.2.2.dev4 supports three System One transports behind one decision contract.
 
 ## OpenRouter
 
@@ -19,12 +19,29 @@ hermes config set plugins.entries.hermes-jev.settings.jev_provider openrouter --
 - Credential: `TYPESAFE_API_KEY`
 - Endpoint: `https://api.typesafe.ai/v1/systemone`
 - Default model: `jev-latest`
-- Request id: `x-typesafe-request-id` when supplied
 - Provenance transport: `typesafe-system-one`
 
 ```bash
 export TYPESAFE_API_KEY='...'
 hermes config set plugins.entries.hermes-jev.settings.jev_provider typesafe --force
+hermes config set plugins.entries.hermes-jev.settings.typesafe_model jev-latest --force
 ```
 
-The v0.2.1.2 release suite verifies the direct wire contract offline. Separately, issue #1 contains an independent successful live direct-TypeSafe smoke against v0.2.1.1 (typesafe-system-one, model jev-1.13.0, verified request/receipt provenance, about 299 ms). That is interoperability evidence for the v0.2.1.1 transport path, not a benchmark and not a credentialed live validation of the v0.2.1.2 candidate.
+## OpenCode Zen
+
+- Credential: `OPENCODE_API_KEY`
+- Endpoint: `https://opencode.ai/zen/v1/systemone`
+- Supported model: `jev-1.13` (paid only)
+- Provenance transport: `opencode-zen-system-one`
+
+```bash
+export OPENCODE_API_KEY='...'
+hermes config set plugins.entries.hermes-jev.settings.jev_provider opencode --force
+hermes config set plugins.entries.hermes-jev.settings.opencode_model jev-1.13 --force
+```
+
+Hermes-Jev rejects `jev-1.13-free` for the OpenCode provider because that tier does not work with Hermes.
+
+Only the selected provider's credential is required. OpenCode is implemented as a native System One transport, not an OpenAI-compatible chat endpoint.
+
+This is a source-repository development build. `packaging/hermes-catalog/jev.yaml` intentionally remains on v0.2.1.2 until a later reviewed stable release.

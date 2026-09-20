@@ -1,5 +1,38 @@
 # Changelog
 
+## 0.2.2.dev4 — repository-wide maintenance follow-through
+
+- Scope provider-cost completeness to provider-backed decisions so local loop-breaker decisions do not turn a complete provider cost total into an unknown total.
+- Move gate-event persistence onto the shared serialized JSONL helper and add parallel-write regression coverage.
+- Update GitHub Actions to checkout v7.0.1 and setup-python v7.0.0; extend CI through Python 3.14.
+- Group Dependabot GitHub Actions updates to reduce duplicate maintenance PRs.
+- Harden the stable release workflow: reject `.dev` versions and non-default-branch dispatches.
+- Refresh direct TypeSafe live-testing documentation with the second independent smoke/suite/Hermes integration report and explicit missing-cost semantics.
+- Annotate historical bug handoffs and public issues so old discovery-state labels are not mistaken for current defects.
+- Keep OpenRouter as default, OpenCode paid-only `jev-1.13`, and the Hermes catalog template unchanged at v0.2.1.2.
+
+## 0.2.2.dev3 — runtime and telemetry hardening
+
+- Evict completed nervous-system turn state and session mappings so long-lived Hermes processes do not retain every finished turn.
+- Treat missing provider cost as unknown instead of silently converting it to `0.0`; retain provider-reported subtotals and missing-cost counts.
+- Serialize JSONL appends for receipts, outcomes, nervous events, and context evidence, with advisory cross-process locking where available.
+- Expand defensive secret redaction for additional common credential/token formats and secret-bearing query/assignment strings.
+- Make development catalog verification generic in the offline verifier and enforce the non-catalog boundary against the PR base in CI.
+- Scope v0.2.1.2 verification artifacts explicitly as historical stable-release evidence and refresh current development documentation.
+- Restore copy-paste provider setup commands for OpenRouter and direct TypeSafe.
+
+## 0.2.2.dev2 — OpenCode paid-only correction
+
+- Correct the OpenCode Hermes integration to use paid `jev-1.13` only.
+- Explicitly reject `jev-1.13-free` because that tier does not work with Hermes.
+- Keep `OPENCODE_API_KEY`, the native `/zen/v1/systemone` endpoint, and `opencode-zen-system-one` provenance.
+- Preserve OpenRouter as the default provider and keep direct TypeSafe behavior unchanged.
+- Keep this development line non-catalog; the catalog template remains on v0.2.1.2.
+
+## 0.2.2.dev1 — OpenCode Zen System One transport
+
+- Initial OpenCode transport development cut. It included the free-tier model assumption that was corrected in dev2.
+
 ## 0.2.1.2 — bounded context-engine and fail-open stabilization
 
 - Fix issue #2: automatic apply-mode curation no longer passes more than 48 evidence items into the bounded `jev_context_curate` contract.

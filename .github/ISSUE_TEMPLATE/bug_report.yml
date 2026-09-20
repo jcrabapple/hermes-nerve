@@ -11,7 +11,7 @@ body:
     id: version
     attributes:
       label: Hermes-Jev version / commit
-      placeholder: "0.2.1.2 / full 40-character SHA"
+      placeholder: "e.g. 0.2.x / full 40-character SHA"
     validations:
       required: true
   - type: input
@@ -49,6 +49,7 @@ body:
         - Not provider-related
         - OpenRouter -> TypeSafe
         - Direct TypeSafe System One
+        - OpenCode Zen System One
         - Other / unknown
   - type: checkboxes
     id: disclosure

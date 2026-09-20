@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Live synthetic regression suite for Hermes-Jev through the selected Jev provider.
 
-Requires the credential for HERMES_JEV_PROVIDER (openrouter or typesafe). No local project data is sent. The script exercises
+Supports HERMES_JEV_PROVIDER=openrouter, typesafe, or opencode. No local project data is sent. The script exercises
 all public decision modes plus the advisory-gate classifier and prints a compact
 cost/latency summary.
 """
@@ -19,23 +19,26 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from hermes_jev import gate, ledger
+from hermes_jev.client import PROVIDER_API_KEY_ENV
 from hermes_jev.context import curate_context
 from hermes_jev.engine import DecisionEngine
 
 
-def _cost(result: dict) -> float:
-    usage = result.get("usage") or {}
+def _cost(result: dict) -> float | None:
+    usage = result.get("usage")
+    if not isinstance(usage, dict) or "cost" not in usage or usage.get("cost") in {None, ""}:
+        return None
     try:
-        return float(usage.get("cost") or 0.0)
+        return float(usage["cost"])
     except (TypeError, ValueError):
-        return 0.0
+        return None
 
 
 def main() -> int:
     provider = os.getenv("HERMES_JEV_PROVIDER", "openrouter").strip().lower() or "openrouter"
-    required = "TYPESAFE_API_KEY" if provider == "typesafe" else "OPENROUTER_API_KEY"
-    if provider not in {"openrouter", "typesafe"}:
-        print("HERMES_JEV_PROVIDER must be openrouter or typesafe.", file=sys.stderr)
+    required = PROVIDER_API_KEY_ENV.get(provider)
+    if required is None:
+        print("HERMES_JEV_PROVIDER must be openrouter, typesafe, or opencode.", file=sys.stderr)
         return 2
     if not os.getenv(required, "").strip():
         print(f"{required} is not set; live suite skipped.", file=sys.stderr)
@@ -117,12 +120,17 @@ def main() -> int:
         )
         outputs["advisory_gate"] = gate_result.as_dict() if gate_result else {"skipped": True}
 
-        costs = [_cost(v) for v in outputs.values() if isinstance(v, dict)]
+        cost_observations = [_cost(v) for v in outputs.values() if isinstance(v, dict) and isinstance(v.get("usage"), dict)]
+        reported_costs = [value for value in cost_observations if value is not None]
+        missing_cost_cases = len(cost_observations) - len(reported_costs)
         latencies = [float(v.get("latency_ms") or 0.0) for v in outputs.values() if isinstance(v, dict)]
         summary = {
             "ok": True,
             "cases": outputs,
-            "total_cost": round(sum(costs), 8),
+            "total_cost": None if missing_cost_cases else round(sum(reported_costs), 8),
+            "provider_reported_cost": round(sum(reported_costs), 8),
+            "provider_cost_reported_cases": len(reported_costs),
+            "provider_cost_missing_cases": missing_cost_cases,
             "total_latency_ms": round(sum(latencies), 3),
             "receipt_count": len(Path(os.environ["HERMES_JEV_RECEIPTS"]).read_text().splitlines()),
             "context_ledger": ledger.report(),
