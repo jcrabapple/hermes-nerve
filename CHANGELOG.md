@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.2.dev3 — runtime and telemetry hardening
+
+- Evict completed nervous-system turn state and session mappings so long-lived Hermes processes do not retain every finished turn.
+- Treat missing provider cost as unknown instead of silently converting it to `0.0`; retain provider-reported subtotals and missing-cost counts.
+- Serialize JSONL appends for receipts, outcomes, nervous events, and context evidence, with advisory cross-process locking where available.
+- Expand defensive secret redaction for additional common credential/token formats and secret-bearing query/assignment strings.
+- Make development catalog verification generic in the offline verifier and enforce the non-catalog boundary against the PR base in CI.
+- Scope v0.2.1.2 verification artifacts explicitly as historical stable-release evidence and refresh current development documentation.
+- Restore copy-paste provider setup commands for OpenRouter and direct TypeSafe.
+
 ## 0.2.2.dev2 — OpenCode paid-only correction
 
 - Correct the OpenCode Hermes integration to use paid `jev-1.13` only.

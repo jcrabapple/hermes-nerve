@@ -11,6 +11,7 @@ from typing import Any
 from .privacy import canonical_hash
 from .provenance import execution_provenance, result_provenance
 from .paths import hermes_home
+from .jsonl import append_jsonl, read_jsonl
 
 _configured_detail: str | None = None
 
@@ -98,26 +99,12 @@ def write_receipt(*, contract: str, state: Any, result: dict[str, Any], model: s
     }
     if receipt_detail() == "sanitized":
         record["state"] = state
-    path = receipt_path()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("a", encoding="utf-8") as handle:
-        handle.write(json.dumps(record, sort_keys=True, ensure_ascii=False, default=str) + "\n")
+    append_jsonl(receipt_path(), record)
     return record
 
 
 def _iter_receipts(path: Path | None = None) -> list[dict[str, Any]]:
-    selected = path or receipt_path()
-    if not selected.exists():
-        return []
-    rows: list[dict[str, Any]] = []
-    for line in selected.read_text(encoding="utf-8", errors="replace").splitlines():
-        try:
-            value = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        if isinstance(value, dict):
-            rows.append(value)
-    return rows
+    return read_jsonl(path or receipt_path())
 
 
 def report(path: Path | None = None, *, recent_limit: int = 8) -> dict[str, Any]:
@@ -126,7 +113,9 @@ def report(path: Path | None = None, *, recent_limit: int = 8) -> dict[str, Any]
     rows = _iter_receipts(selected)
     by_contract: dict[str, int] = {}
     by_model: dict[str, int] = {}
-    total_cost = 0.0
+    reported_cost = 0.0
+    provider_cost_missing_calls = 0
+    provider_cost_reported_calls = 0
     input_tokens = 0
     output_tokens = 0
     total_latency = 0.0
@@ -144,10 +133,19 @@ def report(path: Path | None = None, *, recent_limit: int = 8) -> dict[str, Any]
             pass
         result = row.get("result") if isinstance(row.get("result"), dict) else {}
         usage = result.get("usage") if isinstance(result.get("usage"), dict) else {}
-        try:
-            total_cost += float(usage.get("cost") or 0.0)
-        except (TypeError, ValueError):
-            pass
+        execution = row.get("execution") if isinstance(row.get("execution"), dict) else {}
+        live_provider_call = bool(execution.get("live_provider_call"))
+        if live_provider_call:
+            provider_calls += 1
+            raw_cost = usage.get("cost")
+            if raw_cost is None or raw_cost == "":
+                provider_cost_missing_calls += 1
+            else:
+                try:
+                    reported_cost += float(raw_cost)
+                    provider_cost_reported_calls += 1
+                except (TypeError, ValueError):
+                    provider_cost_missing_calls += 1
         for key, target in (("input_tokens", "input"), ("output_tokens", "output")):
             try:
                 value = int(usage.get(key) or 0)
@@ -157,10 +155,6 @@ def report(path: Path | None = None, *, recent_limit: int = 8) -> dict[str, Any]
                 input_tokens += value
             else:
                 output_tokens += value
-        execution = row.get("execution") if isinstance(row.get("execution"), dict) else {}
-        if execution.get("live_provider_call"):
-            provider_calls += 1
-
     limit = max(0, min(50, int(recent_limit or 0)))
     for row in rows[-limit:] if limit else []:
         result = row.get("result") if isinstance(row.get("result"), dict) else {}
@@ -185,7 +179,10 @@ def report(path: Path | None = None, *, recent_limit: int = 8) -> dict[str, Any]
         "provider_calls": provider_calls,
         "by_contract": dict(sorted(by_contract.items())),
         "by_model": dict(sorted(by_model.items())),
-        "total_cost": round(total_cost, 12),
+        "total_cost": None if provider_cost_missing_calls else round(reported_cost, 12),
+        "provider_reported_cost": round(reported_cost, 12),
+        "provider_cost_reported_calls": provider_cost_reported_calls,
+        "provider_cost_missing_calls": provider_cost_missing_calls,
         "input_tokens": input_tokens,
         "output_tokens": output_tokens,
         "average_latency_ms": round(total_latency / len(rows), 3) if rows else 0.0,

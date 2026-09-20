@@ -12,7 +12,9 @@ Hermes-Jev sends decision state to the selected OpenRouter, TypeSafe, or OpenCod
 
 ## Provider egress
 
-Before provider calls, state is recursively redacted for common secret-bearing keys and token/bearer patterns. Provider defaults are pinned to documented HTTPS endpoints; operator-controlled base-URL overrides should only target trusted HTTPS services.
+Before provider calls, state is recursively redacted for common secret-bearing keys plus common bearer, GitHub/OpenAI-style, Slack, AWS access-key, JWT, private-key, secret-assignment, and secret query-parameter shapes. Redaction is defense in depth, not a guarantee that every vendor credential format can be recognized. Provider defaults are pinned to documented HTTPS endpoints; operator-controlled base-URL overrides should only target trusted HTTPS services.
+
+Local JSONL ledgers serialize writes within the process and use advisory file locking where the platform provides `fcntl`, reducing the risk of interleaved records under concurrent Hermes/Jev activity.
 
 ## Receipts
 

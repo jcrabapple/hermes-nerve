@@ -1,6 +1,6 @@
 # Provider setup
 
-Hermes-Jev v0.2.2.dev2 supports three System One transports behind one decision contract.
+Hermes-Jev v0.2.2.dev3 supports three System One transports behind one decision contract.
 
 ## OpenRouter
 
@@ -9,12 +9,23 @@ Hermes-Jev v0.2.2.dev2 supports three System One transports behind one decision 
 - Default model: `typesafe/jev-1.13`
 - Provenance transport: `openrouter-decisions`
 
+```bash
+export OPENROUTER_API_KEY='...'
+hermes config set plugins.entries.hermes-jev.settings.jev_provider openrouter --force
+```
+
 ## TypeSafe direct
 
 - Credential: `TYPESAFE_API_KEY`
 - Endpoint: `https://api.typesafe.ai/v1/systemone`
 - Default model: `jev-latest`
 - Provenance transport: `typesafe-system-one`
+
+```bash
+export TYPESAFE_API_KEY='...'
+hermes config set plugins.entries.hermes-jev.settings.jev_provider typesafe --force
+hermes config set plugins.entries.hermes-jev.settings.typesafe_model jev-latest --force
+```
 
 ## OpenCode Zen
 

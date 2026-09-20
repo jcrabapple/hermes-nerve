@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-VERSION = "0.2.2.dev2"
+VERSION = "0.2.2.dev3"
 VERIFIED = "VERIFIED"
 LOCAL_ONLY = "LOCAL_ONLY"
 UNVERIFIED = "UNVERIFIED"

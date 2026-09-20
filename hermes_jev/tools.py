@@ -172,6 +172,7 @@ def jev_nervous_event(args: dict, **kwargs) -> str:
 def _compact_receipts(report: dict) -> dict:
     return {key: report.get(key) for key in (
         "receipt_count", "provider_calls", "by_contract", "by_model", "total_cost",
+        "provider_reported_cost", "provider_cost_reported_calls", "provider_cost_missing_calls",
         "input_tokens", "output_tokens", "average_latency_ms",
     )}
 

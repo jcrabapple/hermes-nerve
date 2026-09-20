@@ -292,6 +292,32 @@ class NervousSystemTests(unittest.TestCase):
             self.assertFalse(out["forwarded"])
             self.assertEqual(out["reason"], "provider-budget")
 
+    def test_finish_turn_evicts_state_and_preserves_newer_session_mapping(self):
+        with tempfile.TemporaryDirectory() as td:
+            system = self.make_system(td)
+            system.configure(admission_enabled=False)
+            system.start_turn(user_message="first", session_id="s1", turn_id="t1")
+            system.start_turn(user_message="second", session_id="s1", turn_id="t2")
+            system.finish_turn(turn_id="t1", assistant_response="done first")
+            self.assertNotIn("t1", system._turns)
+            self.assertEqual(system._session_turn.get("s1"), "t2")
+            system.finish_turn(turn_id="t2", assistant_response="done second")
+            self.assertNotIn("t2", system._turns)
+            self.assertNotIn("s1", system._session_turn)
+            self.assertEqual(system.report()["active_turns"], 0)
+            self.assertEqual(system.report()["metrics"]["turns_evicted"], 2)
+
+    def test_late_admission_after_finished_turn_is_ignored(self):
+        with tempfile.TemporaryDirectory() as td:
+            ScriptedEngine.reset()
+            system = self.make_system(td)
+            system.configure(admission_enabled=False)
+            system.start_turn(user_message="work", session_id="s1", turn_id="t1")
+            system.finish_turn(turn_id="t1", assistant_response="done")
+            system._do_admission({"turn_id": "t1", "user_message": "work"})
+            self.assertEqual(ScriptedEngine.calls, [])
+            self.assertEqual(system.status(turn_id="t1"), {"active": False})
+
 
 if __name__ == "__main__":
     unittest.main()

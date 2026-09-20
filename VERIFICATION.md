@@ -1,5 +1,7 @@
 # Hermes-Jev v0.2.1.2 verification receipt
 
+> **Historical stable-release evidence.** This receipt verifies v0.2.1.2 only; it does not verify the current v0.2.2 development checkout. For development builds, use the exact commit plus its GitHub Actions result.
+
 ## Build target
 
 - Baseline commit: `4feea5ef45aeb301622f18175ed4cf2e068b99bd` (v0.2.1.1).

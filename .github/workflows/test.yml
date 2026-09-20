@@ -22,12 +22,23 @@ jobs:
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: ${{ matrix.python-version }}
 
       - name: Install verification dependency
         run: python -m pip install "PyYAML>=6,<7" "tomli>=2,<3; python_version < '3.11'"
+
+      - name: Verify development catalog boundary
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          version="$(python -c 'import yaml; print(yaml.safe_load(open("plugin.yaml"))["version"])')"
+          if [[ "$version" == *".dev"* ]]; then
+            git diff --exit-code "${{ github.event.pull_request.base.sha }}" HEAD -- packaging/hermes-catalog/jev.yaml
+          fi
 
       - name: Unit tests
         run: python -m unittest discover -s tests -v

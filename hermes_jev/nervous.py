@@ -27,6 +27,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from .engine import DecisionEngine
+from .jsonl import append_jsonl
 from .outcomes import HistoricalOutcomeModel, OutcomeStore
 from .paths import hermes_home
 from .privacy import canonical_hash, redact
@@ -233,14 +234,27 @@ class NervousSystem:
             self._historical_model = HistoricalOutcomeModel(self._outcomes, cfg.local_learning_min_samples)
         if self._config.enabled:
             self._ensure_worker()
+        else:
+            self._stop_worker()
 
     def _ensure_worker(self) -> None:
         with self._lock:
             if self._worker and self._worker.is_alive():
+                self._stopping = False
                 return
             self._stopping = False
             self._worker = threading.Thread(target=self._run, name="hermes-jev-nervous", daemon=True)
             self._worker.start()
+
+    def _stop_worker(self) -> None:
+        with self._lock:
+            self._stopping = True
+            worker = self._worker
+        if worker and worker is not threading.current_thread():
+            worker.join(timeout=0.5)
+        with self._lock:
+            if self._worker is worker and (worker is None or not worker.is_alive()):
+                self._worker = None
 
     def _run(self) -> None:
         while not self._stopping:
@@ -271,9 +285,7 @@ class NervousSystem:
         record = {"schema": "hermes-jev-nervous/v2", "timestamp": self._now(), "kind": kind, **redact(payload)}
         path = self._log_path()
         try:
-            path.parent.mkdir(parents=True, exist_ok=True)
-            with path.open("a", encoding="utf-8") as handle:
-                handle.write(json.dumps(record, sort_keys=True, ensure_ascii=False, default=str) + "\n")
+            append_jsonl(path, record)
         except Exception:
             self._metrics["log_errors"] += 1
 
@@ -1103,25 +1115,32 @@ class NervousSystem:
         if state is None:
             return
         with self._lock:
+            if state.finished:
+                return
             if state.active_control is not None:
                 self._metrics["controls_expired"] += 1
                 self._record_control_lifecycle(state, state.active_control, stage="expired", disposition="turn-ended")
                 state.active_control = None
             state.finished = True
+            completion = {
+                "turn_id": state.turn_id,
+                "session_id": state.session_id,
+                "admission": state.admission,
+                "events_seen": state.events_seen,
+                "events_forwarded": state.events_forwarded,
+                "events_suppressed": state.events_suppressed,
+                "provider_calls": state.provider_calls,
+                "provider_errors": state.provider_errors,
+                "challenges": state.challenge_count,
+                "failure_episodes": len(state.failure_episodes),
+                "response_sha256": canonical_hash(assistant_response),
+            }
             self._metrics["turns_finished"] += 1
-        self._log("turn_complete", {
-            "turn_id": state.turn_id,
-            "session_id": state.session_id,
-            "admission": state.admission,
-            "events_seen": state.events_seen,
-            "events_forwarded": state.events_forwarded,
-            "events_suppressed": state.events_suppressed,
-            "provider_calls": state.provider_calls,
-            "provider_errors": state.provider_errors,
-            "challenges": state.challenge_count,
-            "failure_episodes": len(state.failure_episodes),
-            "response_sha256": canonical_hash(assistant_response),
-        })
+            self._metrics["turns_evicted"] += 1
+            self._turns.pop(state.turn_id, None)
+            if state.session_id and self._session_turn.get(state.session_id) == state.turn_id:
+                self._session_turn.pop(state.session_id, None)
+        self._log("turn_complete", completion)
 
     def status(self, *, turn_id: str = "", session_id: str = "") -> dict[str, Any]:
         state = self._resolve_turn(turn_id=turn_id, session_id=session_id)
@@ -1243,7 +1262,9 @@ class NervousSystem:
             "p50_jev_latency_ms": outcome.get("p50_latency_ms", 0.0),
             "p95_jev_latency_ms": outcome.get("p95_latency_ms", 0.0),
             "jev_tokens": outcome.get("jev_tokens", 0),
-            "jev_provider_cost": outcome.get("provider_cost", 0.0),
+            "jev_provider_cost": outcome.get("provider_cost"),
+            "jev_provider_reported_cost": outcome.get("provider_reported_cost", 0.0),
+            "jev_provider_cost_missing_decisions": outcome.get("provider_cost_missing_decisions", 0),
             "estimated_avoided_jev_calls": avoided,
             "estimated_avoided_provider_cost": None,
             "avoided_synchronous_wait_ms": round(float(outcome.get("average_latency_ms", 0.0)) * calls, 3),

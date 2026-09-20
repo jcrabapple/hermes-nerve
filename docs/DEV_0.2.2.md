@@ -1,5 +1,18 @@
 # Hermes-Jev 0.2.2 development line
 
+## v0.2.2.dev3
+
+Runtime/reliability hardening on top of the paid-only OpenCode provider work:
+
+- completed nervous-system turns are evicted instead of accumulating for the process lifetime;
+- missing provider cost is represented as unknown, with reported-cost subtotals kept separate from missing-cost counts;
+- JSONL receipts, outcomes, nervous events, and evidence records use serialized append helpers with advisory cross-process locking where available;
+- secret redaction covers additional common credential formats and secret-bearing assignments/query parameters;
+- development CI verifies the Hermes catalog file remains unchanged from the PR base;
+- stable v0.2.1.2 verification artifacts are explicitly documented as historical release evidence.
+
+OpenRouter remains the default provider. OpenCode remains paid-only `jev-1.13`, and the catalog entry remains v0.2.1.2.
+
 ## v0.2.2.dev2
 
 Adds OpenCode Zen as a native System One provider without changing the current Hermes catalog entry.

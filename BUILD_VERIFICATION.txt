@@ -1,3 +1,4 @@
+HISTORICAL STABLE-RELEASE EVIDENCE ONLY — this file verifies v0.2.1.2, not the current development checkout.
 Hermes-Jev v0.2.1.2 release verification
 Date: 2026-09-19
 Baseline: 4feea5ef45aeb301622f18175ed4cf2e068b99bd (v0.2.1.1)

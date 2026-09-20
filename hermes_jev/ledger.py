@@ -9,15 +9,14 @@ from __future__ import annotations
 
 import json
 import os
-import threading
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from .privacy import canonical_hash, redact
 from .paths import hermes_home
+from .jsonl import append_jsonl, read_jsonl
 
-_LOCK = threading.RLock()
 _configured_enabled = True
 _configured_detail = "sanitized"
 _current_session_id = ""
@@ -53,10 +52,7 @@ def ledger_path() -> Path:
 def _write(record: dict[str, Any]) -> dict[str, Any]:
     if not enabled():
         return record
-    path = ledger_path()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with _LOCK, path.open("a", encoding="utf-8") as handle:
-        handle.write(json.dumps(record, sort_keys=True, ensure_ascii=False, default=str) + "\n")
+    append_jsonl(ledger_path(), record)
     return record
 
 
@@ -113,19 +109,7 @@ def record_shadow_plan(*, contract: str, goal: str, decisions: list[dict[str, An
 
 
 def _iter_records(path: Path | None = None) -> list[dict[str, Any]]:
-    path = path or ledger_path()
-    if not path.exists():
-        return []
-    rows: list[dict[str, Any]] = []
-    with _LOCK:
-        for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
-            try:
-                value = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-            if isinstance(value, dict):
-                rows.append(value)
-    return rows
+    return read_jsonl(path or ledger_path())
 
 
 def rehydrate(evidence_id: str) -> dict[str, Any]:

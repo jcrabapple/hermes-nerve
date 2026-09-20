@@ -24,12 +24,14 @@ from hermes_jev.context import curate_context
 from hermes_jev.engine import DecisionEngine
 
 
-def _cost(result: dict) -> float:
-    usage = result.get("usage") or {}
+def _cost(result: dict) -> float | None:
+    usage = result.get("usage")
+    if not isinstance(usage, dict) or "cost" not in usage or usage.get("cost") in {None, ""}:
+        return None
     try:
-        return float(usage.get("cost") or 0.0)
+        return float(usage["cost"])
     except (TypeError, ValueError):
-        return 0.0
+        return None
 
 
 def main() -> int:
@@ -118,12 +120,17 @@ def main() -> int:
         )
         outputs["advisory_gate"] = gate_result.as_dict() if gate_result else {"skipped": True}
 
-        costs = [_cost(v) for v in outputs.values() if isinstance(v, dict)]
+        cost_observations = [_cost(v) for v in outputs.values() if isinstance(v, dict) and isinstance(v.get("usage"), dict)]
+        reported_costs = [value for value in cost_observations if value is not None]
+        missing_cost_cases = len(cost_observations) - len(reported_costs)
         latencies = [float(v.get("latency_ms") or 0.0) for v in outputs.values() if isinstance(v, dict)]
         summary = {
             "ok": True,
             "cases": outputs,
-            "total_cost": round(sum(costs), 8),
+            "total_cost": None if missing_cost_cases else round(sum(reported_costs), 8),
+            "provider_reported_cost": round(sum(reported_costs), 8),
+            "provider_cost_reported_cases": len(reported_costs),
+            "provider_cost_missing_cases": missing_cost_cases,
             "total_latency_ms": round(sum(latencies), 3),
             "receipt_count": len(Path(os.environ["HERMES_JEV_RECEIPTS"]).read_text().splitlines()),
             "context_ledger": ledger.report(),

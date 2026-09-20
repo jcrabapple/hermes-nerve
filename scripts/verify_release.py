@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Offline source checks for Hermes-Jev v0.2.2.dev2."""
+"""Offline source checks for Hermes-Jev v0.2.2.dev3."""
 from __future__ import annotations
 
 import csv
@@ -14,7 +14,7 @@ from pathlib import Path
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-EXPECTED_VERSION = "0.2.2.dev2"
+EXPECTED_VERSION = "0.2.2.dev3"
 
 
 class FakeCtx:
@@ -56,7 +56,8 @@ def main():
     assert pyproject["project"]["version"] == EXPECTED_VERSION
     catalog_version = str(catalog["version"])
     if ".dev" in EXPECTED_VERSION:
-        assert catalog_version == "0.2.1.2", (catalog_version, "development builds must not advance the catalog template")
+        assert ".dev" not in catalog_version, (catalog_version, "catalog entries must remain stable releases")
+        assert catalog_version != EXPECTED_VERSION, (catalog_version, "development builds must not publish themselves to the catalog")
     else:
         assert catalog_version == EXPECTED_VERSION
     assert module.VERSION == EXPECTED_VERSION

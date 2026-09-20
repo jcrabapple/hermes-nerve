@@ -11,6 +11,7 @@ from statistics import median
 from typing import Any, Protocol
 
 from .paths import hermes_home
+from .jsonl import append_jsonl, read_jsonl
 from .privacy import redact
 
 
@@ -34,22 +35,10 @@ class OutcomeStore:
         self.path = path or outcome_path()
 
     def append(self, row: dict[str, Any]) -> None:
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        with self.path.open("a", encoding="utf-8") as handle:
-            handle.write(json.dumps(redact(row), sort_keys=True, ensure_ascii=False, default=str) + "\n")
+        append_jsonl(self.path, redact(row))
 
     def rows(self) -> list[dict[str, Any]]:
-        if not self.path.exists():
-            return []
-        out: list[dict[str, Any]] = []
-        for line in self.path.read_text(encoding="utf-8", errors="replace").splitlines():
-            try:
-                value = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-            if isinstance(value, dict):
-                out.append(value)
-        return out
+        return read_jsonl(self.path)
 
     def report(self) -> dict[str, Any]:
         rows = self.rows()
@@ -58,7 +47,9 @@ class OutcomeStore:
         lifecycle = [r for r in rows if r.get("record_type") == "control_lifecycle"]
         counts = Counter()
         latencies: list[float] = []
-        costs = 0.0
+        reported_cost = 0.0
+        cost_missing_decisions = 0
+        cost_reported_decisions = 0
         tokens = 0
         confidence_buckets: dict[str, list[int]] = defaultdict(list)
         by_event: dict[str, Counter] = defaultdict(Counter)
@@ -84,10 +75,15 @@ class OutcomeStore:
             except (TypeError, ValueError):
                 pass
             usage = row.get("usage") if isinstance(row.get("usage"), dict) else {}
-            try:
-                costs += float(usage.get("cost") or 0.0)
-            except (TypeError, ValueError):
-                pass
+            raw_cost = usage.get("cost")
+            if raw_cost is None or raw_cost == "":
+                cost_missing_decisions += 1
+            else:
+                try:
+                    reported_cost += float(raw_cost)
+                    cost_reported_decisions += 1
+                except (TypeError, ValueError):
+                    cost_missing_decisions += 1
             try:
                 tokens += int(usage.get("input_tokens") or 0) + int(usage.get("output_tokens") or 0)
             except (TypeError, ValueError):
@@ -190,7 +186,10 @@ class OutcomeStore:
             "average_latency_ms": round(sum(latencies) / len(latencies), 3) if latencies else 0.0,
             "p50_latency_ms": round(median(latencies), 3) if latencies else 0.0,
             "p95_latency_ms": round(percentile(0.95), 3),
-            "provider_cost": round(costs, 12),
+            "provider_cost": None if cost_missing_decisions else round(reported_cost, 12),
+            "provider_reported_cost": round(reported_cost, 12),
+            "provider_cost_reported_decisions": cost_reported_decisions,
+            "provider_cost_missing_decisions": cost_missing_decisions,
             "jev_tokens": tokens,
             "by_event_type": {k: dict(v) for k, v in sorted(by_event.items())},
             "confidence_calibration": {

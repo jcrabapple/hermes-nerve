@@ -140,7 +140,7 @@ class JevClient:
             "Authorization": f"Bearer {self.api_key}",
             "Accept": "application/json",
             "Content-Type": "application/json",
-            "User-Agent": "hermes-jev/0.2.2.dev2",
+            "User-Agent": "hermes-jev/0.2.2.dev3",
         }
         started = time.monotonic()
         raw_result = self._transport(self.base_url + self.path, headers, body, self.timeout)

@@ -51,11 +51,26 @@ class EngineTests(unittest.TestCase):
         client._configured_timeout = None
 
     def test_redacts_secrets_and_hashes_stably(self):
-        value = {"api_key": "abc", "nested": {"token": "secret"}, "text": "Bearer abcdefghijklmnop"}
+        value = {
+            "api_key": "abc",
+            "nested": {"token": "secret", "vendor_api_key": "vendor-secret"},
+            "text": "Bearer abcdefghijklmnop",
+            "slack": "xoxb-1234567890-abcdefghijkl",
+            "aws": "AKIA1234567890ABCDEF",
+            "jwt": "eyJabcdefghijk.abcdefghijk.abcdefghijk",
+            "query": "https://example.test/cb?token=super-secret-value&ok=1",
+            "pem": "-----BEGIN PRIVATE KEY-----\nabc123\n-----END PRIVATE KEY-----",
+        }
         safe = privacy.redact(value)
         self.assertEqual(safe["api_key"], "[REDACTED]")
         self.assertEqual(safe["nested"]["token"], "[REDACTED]")
+        self.assertEqual(safe["nested"]["vendor_api_key"], "[REDACTED]")
         self.assertNotIn("abcdefghijklmnop", safe["text"])
+        self.assertNotIn("xoxb-", safe["slack"])
+        self.assertNotIn("AKIA1234567890ABCDEF", safe["aws"])
+        self.assertNotIn("eyJabcdefghijk", safe["jwt"])
+        self.assertNotIn("super-secret-value", safe["query"])
+        self.assertNotIn("abc123", safe["pem"])
         self.assertEqual(privacy.canonical_hash({"b": 2, "a": 1}), privacy.canonical_hash({"a": 1, "b": 2}))
 
     def test_client_wire_protocol_and_metadata(self):
@@ -672,6 +687,29 @@ class ProvenanceAndLedgerTests(unittest.TestCase):
             self.assertEqual(report["by_contract"], {"decision/v1": 1, "verify/v1": 1})
             self.assertEqual(len(report["recent"]), 1)
             self.assertEqual(report["recent"][0]["value"], "PASS")
+            self.assertEqual(report["provider_cost_missing_calls"], 0)
+
+    def test_receipt_report_marks_missing_provider_cost_unknown(self):
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / "receipts.jsonl"
+            rows = [
+                {
+                    "timestamp": "2026-09-20T00:00:00Z", "contract": "decision/v1", "model": "jev-test", "latency_ms": 100,
+                    "execution": {"live_provider_call": True},
+                    "result": {"value": "A", "request_id": "r1", "usage": {"cost": 0.00001, "input_tokens": 10, "output_tokens": 2}},
+                },
+                {
+                    "timestamp": "2026-09-20T00:00:01Z", "contract": "verify/v1", "model": "jev-test", "latency_ms": 100,
+                    "execution": {"live_provider_call": True},
+                    "result": {"value": "PASS", "request_id": "r2", "usage": {"input_tokens": 20, "output_tokens": 3}},
+                },
+            ]
+            path.write_text("\n".join(json.dumps(x) for x in rows) + "\n")
+            report = receipts.report(path)
+            self.assertIsNone(report["total_cost"])
+            self.assertAlmostEqual(report["provider_reported_cost"], 0.00001)
+            self.assertEqual(report["provider_cost_reported_calls"], 1)
+            self.assertEqual(report["provider_cost_missing_calls"], 1)
 
     def test_stats_tool_is_local_and_combines_receipts_and_context(self):
         with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {
@@ -748,6 +786,25 @@ class ProvenanceAndLedgerTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 ledger.rehydrate("e-hash")
         ledger.configure(enabled=False, detail="sanitized")
+
+
+class JsonlDurabilityTests(unittest.TestCase):
+    def test_parallel_appends_remain_parseable(self):
+        from concurrent.futures import ThreadPoolExecutor
+        from hermes_jev.jsonl import append_jsonl, read_jsonl
+
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / "parallel.jsonl"
+
+            def write_row(idx):
+                append_jsonl(path, {"idx": idx, "payload": "x" * 256})
+
+            with ThreadPoolExecutor(max_workers=12) as pool:
+                list(pool.map(write_row, range(600)))
+
+            rows = read_jsonl(path)
+            self.assertEqual(len(rows), 600)
+            self.assertEqual({row["idx"] for row in rows}, set(range(600)))
 
 
 class ContextEngineTests(unittest.TestCase):
