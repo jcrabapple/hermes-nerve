@@ -17,9 +17,7 @@ TYPESAFE_BASE_URL = "https://api.typesafe.ai"
 TYPESAFE_MODEL = "jev-latest"
 TYPESAFE_PATH = "/v1/systemone"
 OPENCODE_BASE_URL = "https://opencode.ai"
-OPENCODE_FREE_MODEL = "jev-1.13-free"
-OPENCODE_PAID_MODEL = "jev-1.13"
-OPENCODE_MODEL = OPENCODE_FREE_MODEL
+OPENCODE_MODEL = "jev-1.13"
 OPENCODE_PATH = "/zen/v1/systemone"
 SUPPORTED_PROVIDERS = frozenset({"openrouter", "typesafe", "opencode"})
 PROVIDER_API_KEY_ENV = {
@@ -92,6 +90,8 @@ class JevClient:
             self.api_key = api_key or os.getenv(PROVIDER_API_KEY_ENV[selected_provider], "").strip()
             selected_base_url = base_url or _configured_base_url or os.getenv("OPENCODE_BASE_URL") or OPENCODE_BASE_URL
             self.model = model or _configured_opencode_model or os.getenv("HERMES_JEV_OPENCODE_MODEL") or OPENCODE_MODEL
+            if self.model != OPENCODE_MODEL:
+                raise JevError("OpenCode Hermes-Jev access currently supports only paid model 'jev-1.13'")
             self.path = OPENCODE_PATH
             self.transport_name = "opencode-zen-system-one"
         elif selected_provider == "typesafe":
@@ -140,7 +140,7 @@ class JevClient:
             "Authorization": f"Bearer {self.api_key}",
             "Accept": "application/json",
             "Content-Type": "application/json",
-            "User-Agent": "hermes-jev/0.2.2.dev1",
+            "User-Agent": "hermes-jev/0.2.2.dev2",
         }
         started = time.monotonic()
         raw_result = self._transport(self.base_url + self.path, headers, body, self.timeout)
