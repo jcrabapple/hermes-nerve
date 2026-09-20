@@ -1,4 +1,4 @@
-# Architecture — Hermes-Jev v0.2.1.2
+# Architecture — Hermes-Jev v0.2.2.dev1
 
 ## Public seam
 
@@ -41,10 +41,11 @@ Hermes remains the reasoning and execution engine. Jev is not placed in front of
 
 ## Provider seam
 
-Both transports implement the same System One contract:
+All three transports implement the same System One contract:
 
 - OpenRouter Decisions -> `openrouter-decisions`
 - TypeSafe System One direct -> `typesafe-system-one`
+- OpenCode Zen System One -> `opencode-zen-system-one`
 
 Provider selection does not change Hermes-visible tools or nervous-system schemas.
 
