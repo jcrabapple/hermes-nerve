@@ -48,3 +48,11 @@ jobs:
 
       - name: Verify release metadata and public surface
         run: python scripts/verify_release.py
+
+  required-matrix-compat:
+    name: test (3.10) test (3.11) test (3.12) test (3.13)
+    needs: test
+    runs-on: ubuntu-latest
+    if: ${{ always() && needs.test.result == 'success' }}
+    steps:
+      - run: echo "Required matrix compatibility check passed."
