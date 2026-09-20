@@ -1,6 +1,6 @@
 # Provider setup
 
-Hermes-Jev v0.2.1.2 supports two System One transports behind one decision contract.
+Hermes-Jev v0.2.2.dev1 supports three System One transports behind one decision contract.
 
 ## OpenRouter
 
@@ -9,22 +9,33 @@ Hermes-Jev v0.2.1.2 supports two System One transports behind one decision contr
 - Default model: `typesafe/jev-1.13`
 - Provenance transport: `openrouter-decisions`
 
-```bash
-export OPENROUTER_API_KEY='...'
-hermes config set plugins.entries.hermes-jev.settings.jev_provider openrouter --force
-```
-
 ## TypeSafe direct
 
 - Credential: `TYPESAFE_API_KEY`
 - Endpoint: `https://api.typesafe.ai/v1/systemone`
 - Default model: `jev-latest`
-- Request id: `x-typesafe-request-id` when supplied
 - Provenance transport: `typesafe-system-one`
 
+## OpenCode Zen
+
+- Credential: `OPENCODE_API_KEY`
+- Endpoint: `https://opencode.ai/zen/v1/systemone`
+- Default model: `jev-1.13-free`
+- Optional paid model: `jev-1.13`
+- Provenance transport: `opencode-zen-system-one`
+
 ```bash
-export TYPESAFE_API_KEY='...'
-hermes config set plugins.entries.hermes-jev.settings.jev_provider typesafe --force
+export OPENCODE_API_KEY='...'
+hermes config set plugins.entries.hermes-jev.settings.jev_provider opencode --force
+hermes config set plugins.entries.hermes-jev.settings.opencode_model jev-1.13-free --force
 ```
 
-The v0.2.1.2 release suite verifies the direct wire contract offline. Separately, issue #1 contains an independent successful live direct-TypeSafe smoke against v0.2.1.1 (typesafe-system-one, model jev-1.13.0, verified request/receipt provenance, about 299 ms). That is interoperability evidence for the v0.2.1.1 transport path, not a benchmark and not a credentialed live validation of the v0.2.1.2 candidate.
+Switch to paid Jev without changing provider or credentials:
+
+```bash
+hermes config set plugins.entries.hermes-jev.settings.opencode_model jev-1.13 --force
+```
+
+Only the selected provider's credential is required. OpenCode is implemented as a native System One transport, not an OpenAI-compatible chat endpoint.
+
+This is a source-repository development build. `packaging/hermes-catalog/jev.yaml` intentionally remains on v0.2.1.2 until a later reviewed stable release.
