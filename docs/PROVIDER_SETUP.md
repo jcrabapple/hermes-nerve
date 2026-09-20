@@ -29,11 +29,7 @@ hermes config set plugins.entries.hermes-jev.settings.jev_provider opencode --fo
 hermes config set plugins.entries.hermes-jev.settings.opencode_model jev-1.13 --force
 ```
 
-Switch to paid Jev without changing provider or credentials:
-
-```bash
-hermes config set plugins.entries.hermes-jev.settings.opencode_model jev-1.13 --force
-```
+Hermes-Jev rejects `jev-1.13-free` for the OpenCode provider because that tier does not work with Hermes.
 
 Only the selected provider's credential is required. OpenCode is implemented as a native System One transport, not an OpenAI-compatible chat endpoint.
 
