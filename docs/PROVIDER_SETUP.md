@@ -1,6 +1,6 @@
 # Provider setup
 
-Hermes-Jev v0.2.2.dev1 supports three System One transports behind one decision contract.
+Hermes-Jev v0.2.2.dev2 supports three System One transports behind one decision contract.
 
 ## OpenRouter
 
@@ -20,14 +20,13 @@ Hermes-Jev v0.2.2.dev1 supports three System One transports behind one decision 
 
 - Credential: `OPENCODE_API_KEY`
 - Endpoint: `https://opencode.ai/zen/v1/systemone`
-- Default model: `jev-1.13-free`
-- Optional paid model: `jev-1.13`
+- Supported model: `jev-1.13` (paid only)
 - Provenance transport: `opencode-zen-system-one`
 
 ```bash
 export OPENCODE_API_KEY='...'
 hermes config set plugins.entries.hermes-jev.settings.jev_provider opencode --force
-hermes config set plugins.entries.hermes-jev.settings.opencode_model jev-1.13-free --force
+hermes config set plugins.entries.hermes-jev.settings.opencode_model jev-1.13 --force
 ```
 
 Switch to paid Jev without changing provider or credentials:
