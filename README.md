@@ -6,6 +6,14 @@ Hermes remains the reasoning and execution engine. Jev supervises accountable de
 
 > Community project. Not affiliated with or endorsed by TypeSafe AI or Nous Research.
 
+## Development: v0.2.2.dev1
+
+The current development line adds OpenCode Zen as a third first-class Jev transport. It uses the native System One endpoint, defaults to `jev-1.13-free`, and can switch to paid `jev-1.13` without changing provider credentials or provenance. OpenRouter remains the default provider.
+
+This is a non-catalog development build. The Hermes catalog template remains on v0.2.1.2 until a later reviewed stable release.
+
+See [`docs/PROVIDER_SETUP.md`](docs/PROVIDER_SETUP.md) and [`docs/DEV_0.2.2.md`](docs/DEV_0.2.2.md).
+
 ## v0.2.1.2
 
 Stabilization patch for the automatic Jev ContextEngine:
@@ -47,7 +55,7 @@ See:
 - [`docs/PROVIDER_SETUP.md`](docs/PROVIDER_SETUP.md)
 - [`VERIFICATION.md`](VERIFICATION.md)
 
-Both OpenRouter Decisions and direct TypeSafe System One are supported. Only the selected provider credential is required.
+OpenRouter Decisions, direct TypeSafe System One, and OpenCode Zen System One are supported. Only the selected provider credential is required.
 
 ## Historical v0.1.5.5 documentation
 
