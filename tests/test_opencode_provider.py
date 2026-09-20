@@ -20,7 +20,7 @@ class OpenCodeProviderTests(unittest.TestCase):
         def transport(url, headers, body, timeout):
             captured.update(url=url, headers=headers, body=json.loads(body), timeout=timeout)
             return 200, json.dumps({
-                "id": "zen-req-1", "provider": "TypeSafe", "model": "jev-1.13-free",
+                "id": "zen-req-1", "provider": "TypeSafe", "model": "jev-1.13",
                 "answers": {"q": {"type": "choice", "choice": "A", "confidence": 0.9, "probabilities": {"A": 0.9, "B": 0.1}}},
                 "usage": {"input_tokens": 3, "output_tokens": 1, "cost": 0},
             }).encode(), {}
@@ -28,7 +28,7 @@ class OpenCodeProviderTests(unittest.TestCase):
         r = c.system_one(state={"x": 1}, questions={"q": {"type": "choice", "criteria": {"A": None, "B": None}}})
         self.assertEqual(captured["url"], "https://opencode.ai/zen/v1/systemone")
         self.assertEqual(captured["headers"]["Authorization"], "Bearer zen-secret")
-        self.assertEqual(captured["body"]["model"], "jev-1.13-free")
+        self.assertEqual(captured["body"]["model"], "jev-1.13")
         self.assertEqual(r.transport, "opencode-zen-system-one")
         self.assertEqual(r.request_id, "zen-req-1")
 
@@ -36,7 +36,7 @@ class OpenCodeProviderTests(unittest.TestCase):
         with patch.dict(os.environ, {"OPENCODE_API_KEY": "zen"}, clear=True):
             c = client.JevClient(provider="opencode")
             self.assertEqual(c.api_key, "zen")
-            self.assertEqual(c.model, client.OPENCODE_FREE_MODEL)
+            self.assertEqual(c.model, client.OPENCODE_MODEL)
 
     def test_other_provider_keys_do_not_satisfy_opencode(self):
         with patch.dict(os.environ, {"OPENROUTER_API_KEY": "or", "TYPESAFE_API_KEY": "ts"}, clear=True):
@@ -44,9 +44,14 @@ class OpenCodeProviderTests(unittest.TestCase):
                 client.JevClient(provider="opencode")
 
     def test_paid_model_selection(self):
-        client.configure(provider="opencode", opencode_model=client.OPENCODE_PAID_MODEL)
+        client.configure(provider="opencode", opencode_model=client.OPENCODE_MODEL)
         with patch.dict(os.environ, {"OPENCODE_API_KEY": "zen"}, clear=True):
             self.assertEqual(client.JevClient().model, "jev-1.13")
+
+    def test_free_model_is_rejected_for_hermes(self):
+        with patch.dict(os.environ, {"OPENCODE_API_KEY": "zen"}, clear=True):
+            with self.assertRaisesRegex(client.JevError, "supports only paid model 'jev-1.13'"):
+                client.JevClient(provider="opencode", model="jev-1.13-free")
 
     def test_provider_credential_map_is_complete(self):
         self.assertEqual(client.PROVIDER_API_KEY_ENV, {
