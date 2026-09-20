@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Live synthetic regression suite for Hermes-Jev through the selected Jev provider.
 
-Requires the credential for HERMES_JEV_PROVIDER (openrouter or typesafe). No local project data is sent. The script exercises
+Supports HERMES_JEV_PROVIDER=openrouter, typesafe, or opencode. No local project data is sent. The script exercises
 all public decision modes plus the advisory-gate classifier and prints a compact
 cost/latency summary.
 """
@@ -19,6 +19,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from hermes_jev import gate, ledger
+from hermes_jev.client import PROVIDER_API_KEY_ENV
 from hermes_jev.context import curate_context
 from hermes_jev.engine import DecisionEngine
 
@@ -33,9 +34,9 @@ def _cost(result: dict) -> float:
 
 def main() -> int:
     provider = os.getenv("HERMES_JEV_PROVIDER", "openrouter").strip().lower() or "openrouter"
-    required = "TYPESAFE_API_KEY" if provider == "typesafe" else "OPENROUTER_API_KEY"
-    if provider not in {"openrouter", "typesafe"}:
-        print("HERMES_JEV_PROVIDER must be openrouter or typesafe.", file=sys.stderr)
+    required = PROVIDER_API_KEY_ENV.get(provider)
+    if required is None:
+        print("HERMES_JEV_PROVIDER must be openrouter, typesafe, or opencode.", file=sys.stderr)
         return 2
     if not os.getenv(required, "").strip():
         print(f"{required} is not set; live suite skipped.", file=sys.stderr)
