@@ -49,6 +49,7 @@ body:
         - Not provider-related
         - OpenRouter -> TypeSafe
         - Direct TypeSafe System One
+        - OpenCode Zen System One
         - Other / unknown
   - type: checkboxes
     id: disclosure
