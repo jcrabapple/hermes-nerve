@@ -16,7 +16,7 @@ That report is interoperability evidence for the v0.2.1.1 direct transport. It i
 
 ### OpenCode Zen System One
 
-v0.2.2.dev1 adds offline wire-contract coverage for OpenCode Zen. No credentialed OpenCode live run is claimed until one is actually performed.
+v0.2.2.dev2 adds offline wire-contract coverage for OpenCode Zen. No credentialed OpenCode live run is claimed until one is actually performed.
 
 ## Synthetic smoke
 
@@ -41,7 +41,7 @@ or:
 ```bash
 export HERMES_JEV_PROVIDER=opencode
 export OPENCODE_API_KEY='...'
-export HERMES_JEV_OPENCODE_MODEL=jev-1.13-free
+export HERMES_JEV_OPENCODE_MODEL=jev-1.13
 python3 scripts/live_api_smoke.py
 ```
 
