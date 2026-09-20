@@ -43,8 +43,11 @@ class FakeProvider:
 
 class EngineTests(unittest.TestCase):
     def setUp(self):
+        client._configured_provider = None
         client._configured_base_url = None
         client._configured_model = None
+        client._configured_typesafe_model = None
+        client._configured_opencode_model = None
         client._configured_timeout = None
 
     def test_redacts_secrets_and_hashes_stably(self):
@@ -511,6 +514,7 @@ class RegistrationTests(unittest.TestCase):
                 return {
                     "model_id": "typesafe/jev-legacy",
                     "jev_model": "typesafe/jev-custom",
+                    "opencode_model": "jev-1.13",
                     "timeout_seconds": 6.0,
                     "gate_mode": "advisory",
                     "gate_scope": "selective",
@@ -549,6 +553,7 @@ class RegistrationTests(unittest.TestCase):
         self.assertAlmostEqual(module.gate.minimum_confidence(), 0.91)
         self.assertEqual(module.receipts.receipt_detail(), "sanitized")
         self.assertEqual(module.client._configured_model, "typesafe/jev-custom")
+        self.assertEqual(module.client._configured_opencode_model, "jev-1.13")
         self.assertEqual(module.client._configured_timeout, 6.0)
         self.assertEqual(module.context._configured_preview_chars, 900)
         self.assertEqual(module.context._configured_anchor_chars, 120)
@@ -612,7 +617,7 @@ class ProvenanceAndLedgerTests(unittest.TestCase):
                 state={}, instructions="choose", choices=["A", "B"]
             ).as_dict()
         self.assertEqual(result["execution"]["engine"], "hermes-jev")
-        self.assertEqual(result["execution"]["version"], "0.2.1.2")
+        self.assertEqual(result["execution"]["version"], "0.2.2.dev1")
         self.assertEqual(result["execution"]["transport"], "openrouter-decisions")
         self.assertTrue(result["execution"]["live_provider_call"])
 
