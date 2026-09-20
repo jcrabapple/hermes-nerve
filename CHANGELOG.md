@@ -1,15 +1,16 @@
 # Changelog
 
+## 0.2.2.dev2 — OpenCode paid-only correction
+
+- Correct the OpenCode Hermes integration to use paid `jev-1.13` only.
+- Explicitly reject `jev-1.13-free` because that tier does not work with Hermes.
+- Keep `OPENCODE_API_KEY`, the native `/zen/v1/systemone` endpoint, and `opencode-zen-system-one` provenance.
+- Preserve OpenRouter as the default provider and keep direct TypeSafe behavior unchanged.
+- Keep this development line non-catalog; the catalog template remains on v0.2.1.2.
+
 ## 0.2.2.dev1 — OpenCode Zen System One transport
 
-- Add OpenCode Zen as a third first-class provider alongside OpenRouter Decisions and direct TypeSafe.
-- Add `OPENCODE_API_KEY` credential isolation and provider-specific model/base-URL overrides.
-- Support `jev-1.13-free` by default and optional paid `jev-1.13` on the native `/zen/v1/systemone` endpoint.
-- Preserve the existing System One contract with explicit `opencode-zen-system-one` provenance.
-- Keep OpenRouter as the default provider for backwards compatibility.
-- Extend synthetic live smoke and suite provider selection to OpenCode.
-- Add regressions for endpoint/model selection, credential isolation, provider-map consistency, and existing-provider compatibility.
-- Development build only: do not advance or submit the Hermes catalog template.
+- Initial OpenCode transport development cut. It included the free-tier model assumption that was corrected in dev2.
 
 ## 0.2.1.2 — bounded context-engine and fail-open stabilization
 
