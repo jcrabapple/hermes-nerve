@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Offline structural verifier for Hermes-Jev v0.2.2.dev17."""
+"""Offline structural verifier for Hermes-Jev v0.2.2."""
 from __future__ import annotations
 
 import importlib.util
@@ -17,7 +17,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
  sys.path.insert(0,str(ROOT))
-EXPECTED="0.2.2.dev17"
+EXPECTED="0.2.2"
 EXPECTED_TOOLS={
  "jev_decide","jev_rank","jev_verify","jev_assess","jev_context_curate","jev_context_rehydrate","jev_stats","jev_nervous_event",
  "jev_supervise_card","jev_work_event","jev_work_status","jev_remote_delegate_task","jev_remote_worker_status","jev_remote_worker_result","jev_remote_worker_cancel","jev_remote_worker_control",

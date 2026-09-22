@@ -1,11 +1,15 @@
 name: release
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "pyproject.toml"
   workflow_dispatch:
     inputs:
       version:
         description: Version to release, without the leading v (for example 0.2.2)
-        required: true
+        required: false
         type: string
 
 permissions:
@@ -32,20 +36,23 @@ jobs:
       - name: Install verification dependency
         run: python -m pip install "PyYAML>=6,<7" "tomli>=2,<3; python_version < '3.11'"
 
-      - name: Verify requested version
+      - name: Resolve and verify release version
         env:
-          VERSION: ${{ inputs.version }}
+          REQUESTED_VERSION: ${{ inputs.version }}
         run: |
           python - <<'PY'
           import os, tomllib
           from pathlib import Path
-          version = os.environ["VERSION"].strip()
+          requested = os.environ.get("REQUESTED_VERSION", "").strip()
           pyproject = tomllib.loads(Path("pyproject.toml").read_text())
           actual = pyproject["project"]["version"]
-          if actual != version:
-              raise SystemExit(f"requested version {version!r} does not match pyproject version {actual!r}")
+          if requested and actual != requested:
+              raise SystemExit(f"requested version {requested!r} does not match pyproject version {actual!r}")
+          version = requested or actual
           if ".dev" in version:
               raise SystemExit("development versions cannot be published by the stable release workflow")
+          with open(os.environ["GITHUB_ENV"], "a") as fh:
+              fh.write(f"VERSION={version}\n")
           PY
 
       - name: Verify default branch
@@ -67,22 +74,48 @@ jobs:
           python -m compileall -q .
           python scripts/verify_release.py
 
-      - name: Build source archives
+      - name: Check existing release
         env:
-          VERSION: ${{ inputs.version }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "v${VERSION}" >/dev/null 2>&1; then
+            echo "Release v${VERSION} already exists; nothing to publish."
+            echo "RELEASE_EXISTS=1" >> "${GITHUB_ENV}"
+          else
+            echo "RELEASE_EXISTS=0" >> "${GITHUB_ENV}"
+          fi
+
+      - name: Build source archives
+        if: env.RELEASE_EXISTS != '1'
         run: |
           mkdir -p dist
           git archive --format=zip --prefix="hermes-jev-v${VERSION}/" -o "dist/hermes-jev-v${VERSION}.zip" HEAD
           git archive --format=tar.gz --prefix="hermes-jev-v${VERSION}/" -o "dist/hermes-jev-v${VERSION}.tar.gz" HEAD
           (cd dist && sha256sum hermes-jev-v${VERSION}.zip hermes-jev-v${VERSION}.tar.gz > SHA256SUMS.txt)
+          cat > dist/RELEASE_NOTES.md <<'EOF'
+## Hermes-Jev v0.2.2
+
+This release promotes the validated dev17 RC and lands the Nerve supervisory architecture from PR #9.
+
+- Nerve/Reflex is the watchdog and forecaster; the main Hermes orchestrator/reviewer retains the final COMPLETE / MORE WORK / CHANGES / BLOCK authority.
+- Hosted Jev and self-hosted Laya are live-validated on the RC path, including the SSH transport and orchestrator-review handoff.
+- OpenJev integration is included and covered by unit/interface tests, setup guards, identity pinning, and LOCAL_ONLY provenance.
+
+### OpenJev validation status
+
+Real OpenJev 27B model inference and hosted-Jev vs OpenJev A/B testing have **not** been performed on suitable large-GPU hardware. This is intentionally tracked as follow-up issue #10 and is not claimed as tested by v0.2.2.
+EOF
 
       - name: Create GitHub release
+        if: env.RELEASE_EXISTS != '1'
         env:
           GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ inputs.version }}
         run: |
-          if gh release view "v${VERSION}" >/dev/null 2>&1; then
-            echo "Release v${VERSION} already exists; refusing to overwrite it."
-            exit 1
-          fi
-          gh release create "v${VERSION}"             dist/hermes-jev-v${VERSION}.zip             dist/hermes-jev-v${VERSION}.tar.gz             dist/SHA256SUMS.txt             --target "${GITHUB_SHA}"             --title "Hermes-Jev v${VERSION}"             --generate-notes
+          gh release create "v${VERSION}" \
+            "dist/hermes-jev-v${VERSION}.zip" \
+            "dist/hermes-jev-v${VERSION}.tar.gz" \
+            "dist/SHA256SUMS.txt" \
+            --target "${GITHUB_SHA}" \
+            --title "Hermes-Jev v${VERSION}" \
+            --notes-file dist/RELEASE_NOTES.md \
+            --generate-notes

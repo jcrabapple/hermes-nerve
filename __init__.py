@@ -1,4 +1,4 @@
-"""Hermes-Jev plugin registration — v0.2.2.dev17 open-source reflex validation."""
+"""Hermes-Jev plugin registration — v0.2.2 Nerve supervision and open Reflex backends."""
 from __future__ import annotations
 
 import logging

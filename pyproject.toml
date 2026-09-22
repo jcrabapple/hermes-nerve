@@ -1,6 +1,6 @@
 [project]
 name = "hermes-jev"
-version = "0.2.2.dev17"
+version = "0.2.2"
 description = "Provider-neutral Reflex decision nervous system with Jev/Laya/OpenJev integration, evidence-backed Kanban supervision, and SSH workers for Hermes Agent"
 readme = "README.md"
 requires-python = ">=3.10"
