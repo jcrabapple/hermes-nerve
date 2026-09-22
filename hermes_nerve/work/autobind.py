@@ -292,7 +292,7 @@ def ensure_kanban_binding(supervisor, *, task_id: str = "", session_id: str = ""
     current = supervisor.store.current_identity(tid)
     if current != ident:
         supervisor.bind_run(ident)
-    os.environ["HERMES_JEV_DOD_HASH"] = active.contract_hash
+    os.environ["HERMES_NERVE_DOD_HASH"] = active.contract_hash
     workspace = str(os.getenv("HERMES_KANBAN_WORKSPACE") or os.getenv("TERMINAL_CWD") or "").strip()
     supervisor.store.save_run_context(
         ident,

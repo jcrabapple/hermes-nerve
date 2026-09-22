@@ -54,7 +54,7 @@ def _current_identity(task_id: str = "") -> RunIdentity:
     return identity
 
 
-def jev_supervise_card(args: dict, **kwargs) -> str:
+def nerve_supervise_card(args: dict, **kwargs) -> str:
     try:
         _require_enabled()
         action = str(args.get("action") or "status").strip().lower()
@@ -130,7 +130,7 @@ def jev_supervise_card(args: dict, **kwargs) -> str:
             ok, reason = adapter.request_review(
                 task_id=identity.task_id,
                 expected_run_id=identity.run_id,
-                summary=str(args.get("summary") or checkpoint.get("reason") or "Hermes-Jev trajectory handoff"),
+                summary=str(args.get("summary") or checkpoint.get("reason") or "Nerve trajectory handoff"),
                 metadata={
                     "jev_supervision": {
                         "decision_id": checkpoint.get("decision_id"),
@@ -148,12 +148,12 @@ def jev_supervise_card(args: dict, **kwargs) -> str:
         return _error(exc)
 
 
-def jev_work_event(args: dict, **kwargs) -> str:
+def nerve_work_event(args: dict, **kwargs) -> str:
     try:
         # Remote workers intentionally do not open the controller supervision DB.
         # Their structured tool call is the wire event: the controller parses it
         # from stream-json and applies it to the exact canonical run.
-        if str(os.getenv("HERMES_JEV_REMOTE_MODE") or "").strip() == "1":
+        if str(os.getenv("HERMES_NERVE_REMOTE_MODE") or "").strip() == "1":
             identity = runtime_identity_from_env(str(args.get("task_id") or kwargs.get("task_id") or "") or None)
             if identity is None:
                 raise ValueError("remote supervised worker is missing exact run identity")
@@ -197,7 +197,7 @@ def jev_work_event(args: dict, **kwargs) -> str:
                     ok, reason = CanonicalKanbanAdapter().request_review(
                         task_id=identity.task_id,
                         expected_run_id=identity.run_id,
-                        summary=str(checkpoint.get("reason") or "Hermes-Jev checkpoint handoff"),
+                        summary=str(checkpoint.get("reason") or "Nerve checkpoint handoff"),
                         metadata={"jev_supervision": checkpoint},
                         reviewer=reviewer(),
                     )
@@ -215,14 +215,14 @@ def jev_work_event(args: dict, **kwargs) -> str:
         return _error(exc)
 
 
-def jev_work_status(args: dict, **kwargs) -> str:
+def nerve_work_status(args: dict, **kwargs) -> str:
     try:
-        if str(os.getenv("HERMES_JEV_REMOTE_MODE") or "").strip() == "1":
+        if str(os.getenv("HERMES_NERVE_REMOTE_MODE") or "").strip() == "1":
             identity = runtime_identity_from_env(str(args.get("task_id") or kwargs.get("task_id") or "") or None)
             return _ok(
                 remote_worker=True,
                 identity=identity.as_dict() if identity else None,
-                control_file=str(os.getenv("HERMES_JEV_REMOTE_CONTROL_FILE") or ""),
+                control_file=str(os.getenv("HERMES_NERVE_REMOTE_CONTROL_FILE") or ""),
             )
         _require_enabled()
         task_id = str(args.get("task_id") or kwargs.get("task_id") or "").strip()

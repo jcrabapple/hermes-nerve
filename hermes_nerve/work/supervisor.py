@@ -107,7 +107,7 @@ class CardSupervisor:
             raise ValueError("cannot amend a task with no existing contract")
 
         semantic = {
-            "schema": "hermes-jev-dod/v1",
+            "schema": "hermes-nerve-dod/v1",
             "task_id": task_id,
             "goal": goal,
             "criteria": [c.as_dict() for c in specs],
@@ -696,7 +696,7 @@ def normalize_mode(mode: str) -> str:
 
 
 def default_store_path() -> Path:
-    explicit = str(os.getenv("HERMES_JEV_SUPERVISION_DB") or "").strip()
+    explicit = str(os.getenv("HERMES_NERVE_SUPERVISION_DB") or "").strip()
     return Path(explicit).expanduser() if explicit else hermes_home() / "jev" / "work-supervision.sqlite3"
 
 
@@ -799,7 +799,7 @@ def runtime_identity_from_env(task_id: str | None = None) -> RunIdentity | None:
     # may denote an inner/subtask identifier on some Hermes call paths.
     tid = str(os.getenv("HERMES_KANBAN_TASK_ID") or os.getenv("HERMES_KANBAN_TASK") or task_id or "").strip()
     raw_run = str(os.getenv("HERMES_KANBAN_RUN_ID") or "").strip()
-    contract_hash = str(os.getenv("HERMES_JEV_DOD_HASH") or "").strip()
+    contract_hash = str(os.getenv("HERMES_NERVE_DOD_HASH") or "").strip()
     claim = str(
         os.getenv("HERMES_KANBAN_CLAIM_IDENTITY")
         or os.getenv("HERMES_KANBAN_CLAIM_LOCK")

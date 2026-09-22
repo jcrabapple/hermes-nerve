@@ -152,18 +152,18 @@ def run_job(job_id: str, data_dir: Path) -> int:
             git_host = host
             update_job(job_id, data_dir, workspace=host.workspace, workspace_result_json={"prepared": prepared_git.metadata()})
         control_path = str(spec.get("control_path") or "")
-        remote_env = {"HERMES_JEV_REMOTE_MODE": "1"}
+        remote_env = {"HERMES_NERVE_REMOTE_MODE": "1"}
         if identity:
             remote_env.update({
                 "HERMES_KANBAN_TASK_ID": identity.task_id,
                 "HERMES_KANBAN_RUN_ID": str(identity.run_id),
-                "HERMES_JEV_DOD_HASH": identity.contract_hash,
+                "HERMES_NERVE_DOD_HASH": identity.contract_hash,
                 "HERMES_KANBAN_CLAIM_IDENTITY": identity.claim_identity,
             })
             if identity.worker_id:
                 remote_env["HERMES_KANBAN_WORKER_ID"] = identity.worker_id
         if control_path:
-            remote_env["HERMES_JEV_REMOTE_CONTROL_FILE"] = control_path
+            remote_env["HERMES_NERVE_REMOTE_CONTROL_FILE"] = control_path
         argv = build_ssh_argv(host, env=remote_env)
     except Exception as exc:
         code = exc.code if isinstance(exc, RemoteWorkerError) else "internal_error"

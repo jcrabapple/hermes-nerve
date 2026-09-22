@@ -22,7 +22,7 @@ _CONTROLLER_COMPLETION_DISPATCH = ContextVar("jev_controller_completion_dispatch
 _CONTROLLER_COMPLETION_ATTEMPTS = 3
 
 _CHECKPOINT_SAFE_TOOLS = {
-    "jev_work_event", "jev_work_status", "kanban_request_review", "kanban_block",
+    "nerve_work_event", "nerve_work_status", "kanban_request_review", "kanban_block",
     "read_file", "search_files", "file_read", "file_search",
 }
 
@@ -99,7 +99,7 @@ def _set_terminal_lifecycle(sup, identity, verdict, state: str, *, attempts: int
         control=_TERMINAL_READY_CONTROL,
         decision_id=_completion_decision_id(identity, verdict),
         payload={
-            "reason": str(getattr(verdict, "reason", "") or "Hermes-Jev verified completion."),
+            "reason": str(getattr(verdict, "reason", "") or "Nerve verified completion."),
             "confidence": float(getattr(verdict, "confidence", 1.0) or 0.0),
             "receipt_id": str(getattr(verdict, "receipt_id", "") or ""),
             "lifecycle_state": str(state),
@@ -122,7 +122,7 @@ def _arm_terminal_ready(sup, identity, verdict) -> None:
 def _prior_verdict(control: dict[str, Any]):
     payload = dict(control.get("payload") or {})
     return SimpleNamespace(
-        reason=str(payload.get("reason") or "Hermes-Jev completion already verified."),
+        reason=str(payload.get("reason") or "Nerve completion already verified."),
         confidence=float(payload.get("confidence") or 1.0),
         receipt_id=str(payload.get("receipt_id") or control.get("decision_id") or ""),
         decision_id=str(control.get("decision_id") or ""),
@@ -144,7 +144,7 @@ def _worker_completion_intent(tool_name: str, args: dict[str, Any] | None) -> bo
     markers = (
         "kanban_complete", "hermes kanban complete", "complete_task(", ".complete_task(",
         "_kanban_done.py", "_finish_kanban.py", "complete_task.py", "complete_task2.py",
-        "canonicalkanbanadapter", "adapter.complete(", "hermes_jev.work.kanban_adapter",
+        "canonicalkanbanadapter", "adapter.complete(", "hermes_nerve.work.kanban_adapter",
     )
     if any(marker in blob for marker in markers):
         return True
@@ -167,13 +167,13 @@ def _native_completion_args(sup, identity, proposal: dict[str, Any], verdict) ->
         or proposal.get("response")
         or proposal.get("summary")
         or proposal.get("result")
-        or "Hermes-Jev verified the locked Definition of Done."
+        or "Nerve verified the locked Definition of Done."
     ).strip()
     return {
         "summary": summary[:12000],
-        "result": "Hermes-Jev verified completion.",
+        "result": "Nerve verified completion.",
         "metadata": {
-            "hermes_jev": {
+            "hermes_nerve": {
                 "verified": True,
                 "run_id": identity.run_id,
                 "contract_hash": identity.contract_hash,
@@ -379,7 +379,7 @@ def _maybe_assess(identity, *, trigger: str) -> None:
                 run_id=identity.run_id,
                 kind="provider_call_skipped",
                 payload={"trigger": trigger, **decision},
-                created_at=__import__("hermes_jev.work.models", fromlist=["utc_now"]).utc_now(),
+                created_at=__import__("hermes_nerve.work.models", fromlist=["utc_now"]).utc_now(),
             )
         except Exception:
             pass
@@ -518,10 +518,10 @@ def pre_tool_call(tool_name: str, args: dict, task_id: str | None = None, sessio
             return {
                 "action": "block",
                 "message": (
-                    "Hermes-Jev controller owns terminal completion and has already completed this verified run. "
+                    "Nerve controller owns terminal completion and has already completed this verified run. "
                     "Do not perform any additional completion work."
                     if ok else
-                    "Hermes-Jev completion is already verified. Controller-owned native completion is deferred for lifecycle retry; "
+                    "Nerve completion is already verified. Controller-owned native completion is deferred for lifecycle retry; "
                     "do not search for, script, or call alternate completion paths. "
                     f"Last native result: {str(native_result)[:500]}"
                 ),
@@ -541,7 +541,7 @@ def pre_tool_call(tool_name: str, args: dict, task_id: str | None = None, sessio
         except Exception as exc:
             return {
                 "action": "block",
-                "message": f"Hermes-Jev controller could not verify completion: {type(exc).__name__}: {exc}",
+                "message": f"Nerve controller could not verify completion: {type(exc).__name__}: {exc}",
                 "rule_key": "jev:work-completion-error",
             }
         if verdict.allow:
@@ -550,7 +550,7 @@ def pre_tool_call(tool_name: str, args: dict, task_id: str | None = None, sessio
             except Exception as exc:
                 return {
                     "action": "block",
-                    "message": f"Hermes-Jev verified completion but could not persist terminal state: {type(exc).__name__}: {exc}",
+                    "message": f"Nerve verified completion but could not persist terminal state: {type(exc).__name__}: {exc}",
                     "rule_key": "jev:work-terminal-ready-error",
                 }
             ok, native_result = _complete_verified_run(
@@ -561,10 +561,10 @@ def pre_tool_call(tool_name: str, args: dict, task_id: str | None = None, sessio
             return {
                 "action": "block",
                 "message": (
-                    "Hermes-Jev verified the locked Definition of Done and the controller completed the Kanban run. "
+                    "Nerve verified the locked Definition of Done and the controller completed the Kanban run. "
                     "No further worker action is required."
                     if ok else
-                    "Hermes-Jev verified the locked Definition of Done. Controller-owned native completion is queued for lifecycle retry; "
+                    "Nerve verified the locked Definition of Done. Controller-owned native completion is queued for lifecycle retry; "
                     "the worker must stop completion work. "
                     f"Last native result: {str(native_result)[:500]}"
                 ),
@@ -593,14 +593,14 @@ def pre_tool_call(tool_name: str, args: dict, task_id: str | None = None, sessio
             if not _owns_kanban_terminal_authority():
                 return {
                     "action": "block",
-                    "message": "Hermes-Jev completion authority belongs to the dispatcher-owned Kanban worker.",
+                    "message": "Nerve completion authority belongs to the dispatcher-owned Kanban worker.",
                     "rule_key": "jev:work-completion-authority",
                 }
             return None
         return {
             "action": "block",
             "message": (
-                "Hermes-Jev completion is already verified for this exact run. "
+                "Nerve completion is already verified for this exact run. "
                 "Only the native kanban_complete fallback is permitted; generic shell/search/file work is fenced."
             ),
             "rule_key": _TERMINAL_READY_RULE,
@@ -610,7 +610,7 @@ def pre_tool_call(tool_name: str, args: dict, task_id: str | None = None, sessio
         if not _owns_kanban_terminal_authority():
             return {
                 "action": "block",
-                "message": "Hermes-Jev completion authority belongs to the dispatcher-owned Kanban worker.",
+                "message": "Nerve completion authority belongs to the dispatcher-owned Kanban worker.",
                 "rule_key": "jev:work-completion-authority",
             }
         try:
@@ -618,7 +618,7 @@ def pre_tool_call(tool_name: str, args: dict, task_id: str | None = None, sessio
         except Exception as exc:
             return {
                 "action": "block",
-                "message": f"Hermes-Jev supervised completion could not be verified: {type(exc).__name__}: {exc}",
+                "message": f"Nerve supervised completion could not be verified: {type(exc).__name__}: {exc}",
                 "rule_key": "jev:work-completion-error",
             }
         if verdict.allow:
@@ -627,7 +627,7 @@ def pre_tool_call(tool_name: str, args: dict, task_id: str | None = None, sessio
             except Exception as exc:
                 return {
                     "action": "block",
-                    "message": f"Hermes-Jev verified completion but could not arm terminal authority: {type(exc).__name__}: {exc}",
+                    "message": f"Nerve verified completion but could not arm terminal authority: {type(exc).__name__}: {exc}",
                     "rule_key": "jev:work-terminal-ready-error",
                 }
             return None
@@ -645,7 +645,7 @@ def pre_tool_call(tool_name: str, args: dict, task_id: str | None = None, sessio
         return {
             "action": "block",
             "message": (
-                f"Hermes-Jev work control {control.get('control')} is active for this exact run. "
+                f"Nerve work control {control.get('control')} is active for this exact run. "
                 "Checkpoint useful work now, then request canonical review/replan."
             ),
             "rule_key": "jev:work-control",
@@ -999,7 +999,7 @@ def pre_verify(*, task_id: str = "", session_id: str = "", **kwargs: Any):
         return {
             "action": "continue",
             "message": (
-                "Hermes-Jev completion is already verified, but this plugin host does not expose controller dispatch. "
+                "Nerve completion is already verified, but this plugin host does not expose controller dispatch. "
                 "Use only the directly-listed kanban_complete fallback."
             ),
             "rule_key": _TERMINAL_READY_RULE,
@@ -1018,7 +1018,7 @@ def pre_verify(*, task_id: str = "", session_id: str = "", **kwargs: Any):
             pass
         return {
             "action": "continue",
-            "message": "Hermes-Jev completion verification failed; re-check the locked Definition of Done before finishing.",
+            "message": "Nerve completion verification failed; re-check the locked Definition of Done before finishing.",
         }
     try:
         from .models import utc_now
@@ -1041,7 +1041,7 @@ def pre_verify(*, task_id: str = "", session_id: str = "", **kwargs: Any):
         except Exception as exc:
             return {
                 "action": "continue",
-                "message": f"Hermes-Jev verified completion but could not persist terminal state: {type(exc).__name__}: {exc}.",
+                "message": f"Nerve verified completion but could not persist terminal state: {type(exc).__name__}: {exc}.",
                 "rule_key": "jev:work-terminal-ready-error",
             }
         if tool_dispatcher_available():
@@ -1050,7 +1050,7 @@ def pre_verify(*, task_id: str = "", session_id: str = "", **kwargs: Any):
         return {
             "action": "continue",
             "message": (
-                "Hermes-Jev completion is verified. This plugin host lacks controller dispatch; "
+                "Nerve completion is verified. This plugin host lacks controller dispatch; "
                 "use only the directly-listed kanban_complete fallback."
             ),
             "rule_key": _TERMINAL_READY_RULE,
@@ -1058,7 +1058,7 @@ def pre_verify(*, task_id: str = "", session_id: str = "", **kwargs: Any):
     missing = f" Missing: {', '.join(verdict.missing_criteria)}" if verdict.missing_criteria else ""
     return {
         "action": "continue",
-        "message": f"Hermes-Jev completion gate: {verdict.reason}{missing}",
+        "message": f"Nerve completion gate: {verdict.reason}{missing}",
     }
 
 def post_llm_call(*, task_id: str = "", session_id: str = "", **kwargs: Any) -> None:
