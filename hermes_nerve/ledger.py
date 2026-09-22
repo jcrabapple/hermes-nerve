@@ -42,7 +42,7 @@ def set_session(session_id: str | None) -> None:
 
 
 def ledger_path() -> Path:
-    explicit = os.getenv("HERMES_JEV_CONTEXT_LEDGER")
+    explicit = os.getenv("HERMES_NERVE_CONTEXT_LEDGER")
     if explicit:
         return Path(explicit).expanduser()
     return hermes_home() / "jev" / "context-ledger.jsonl"
@@ -74,7 +74,7 @@ def record_evidence(
 ) -> dict[str, Any]:
     safe_metadata = redact(metadata or {})
     record: dict[str, Any] = {
-        "schema": "hermes-jev-evidence/v1",
+        "schema": "hermes-nerve-evidence/v1",
         "event": "evidence",
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "session_id": _current_session_id,
@@ -95,7 +95,7 @@ def record_evidence(
 
 def record_shadow_plan(*, contract: str, goal: str, decisions: list[dict[str, Any]], stats: dict[str, Any]) -> dict[str, Any]:
     record = {
-        "schema": "hermes-jev-shadow/v1",
+        "schema": "hermes-nerve-shadow/v1",
         "event": "shadow_plan",
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "session_id": _current_session_id,
@@ -121,7 +121,7 @@ def rehydrate(evidence_id: str) -> dict[str, Any]:
                 raise ValueError("evidence exists but ledger detail=hash does not retain rehydratable content")
             _write(
                 {
-                    "schema": "hermes-jev-evidence-event/v1",
+                    "schema": "hermes-nerve-evidence-event/v1",
                     "event": "rehydrated",
                     "timestamp": datetime.now(timezone.utc).isoformat(),
                     "session_id": _current_session_id,

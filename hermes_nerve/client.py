@@ -28,20 +28,20 @@ class JevResponse:
  model:str; answers:dict[str,dict[str,Any]]; usage:dict[str,Any]; latency_ms:float; request_id:str=""; provider:str=""; transport:str="openrouter-decisions"; live_provider_call:bool=True
 class JevClient:
  def __init__(self,*,provider:str|None=None,api_key:str|None=None,base_url:str|None=None,model:str|None=None,timeout:float|None=None,transport:Callable|None=None)->None:
-  selected=str(provider or _configured_provider or os.getenv("HERMES_JEV_PROVIDER") or "openrouter").strip().lower()
+  selected=str(provider or _configured_provider or os.getenv("HERMES_NERVE_PROVIDER") or "openrouter").strip().lower()
   if selected not in SUPPORTED_PROVIDERS: raise JevError("jev provider must be 'openrouter', 'typesafe', or 'opencode'")
   self.provider_kind=selected
   if selected=="opencode":
-   self.api_key=api_key or os.getenv("OPENCODE_API_KEY","").strip(); selected_base_url=base_url or _configured_base_url or os.getenv("OPENCODE_BASE_URL") or OPENCODE_BASE_URL; self.model=model or _configured_opencode_model or os.getenv("HERMES_JEV_OPENCODE_MODEL") or OPENCODE_MODEL
-   if self.model!=OPENCODE_MODEL: raise JevError("OpenCode Hermes-Jev access currently supports only paid model 'jev-1.13'")
+   self.api_key=api_key or os.getenv("OPENCODE_API_KEY","").strip(); selected_base_url=base_url or _configured_base_url or os.getenv("OPENCODE_BASE_URL") or OPENCODE_BASE_URL; self.model=model or _configured_opencode_model or os.getenv("HERMES_NERVE_OPENCODE_MODEL") or OPENCODE_MODEL
+   if self.model!=OPENCODE_MODEL: raise JevError("OpenCode Nerve access currently supports only paid model 'jev-1.13'")
    self.path=OPENCODE_PATH; self.transport_name="opencode-zen-system-one"
   elif selected=="typesafe":
-   self.api_key=api_key or os.getenv("TYPESAFE_API_KEY","").strip(); selected_base_url=base_url or _configured_base_url or os.getenv("TYPESAFE_BASE_URL") or TYPESAFE_BASE_URL; self.model=model or _configured_typesafe_model or os.getenv("HERMES_JEV_TYPESAFE_MODEL") or TYPESAFE_MODEL; self.path=TYPESAFE_PATH; self.transport_name="typesafe-system-one"
+   self.api_key=api_key or os.getenv("TYPESAFE_API_KEY","").strip(); selected_base_url=base_url or _configured_base_url or os.getenv("TYPESAFE_BASE_URL") or TYPESAFE_BASE_URL; self.model=model or _configured_typesafe_model or os.getenv("HERMES_NERVE_TYPESAFE_MODEL") or TYPESAFE_MODEL; self.path=TYPESAFE_PATH; self.transport_name="typesafe-system-one"
   else:
-   self.api_key=api_key or os.getenv("OPENROUTER_API_KEY","").strip(); selected_base_url=base_url or _configured_base_url or os.getenv("OPENROUTER_BASE_URL") or OPENROUTER_BASE_URL; self.model=model or _configured_model or os.getenv("HERMES_JEV_MODEL") or OPENROUTER_MODEL; self.path=OPENROUTER_PATH; self.transport_name="openrouter-decisions"
+   self.api_key=api_key or os.getenv("OPENROUTER_API_KEY","").strip(); selected_base_url=base_url or _configured_base_url or os.getenv("OPENROUTER_BASE_URL") or OPENROUTER_BASE_URL; self.model=model or _configured_model or os.getenv("HERMES_NERVE_MODEL") or OPENROUTER_MODEL; self.path=OPENROUTER_PATH; self.transport_name="openrouter-decisions"
   if not self.api_key: raise JevError(f"{PROVIDER_API_KEY_ENV[selected]} is not configured")
   self.base_url=str(selected_base_url).rstrip("/"); raw=timeout if timeout is not None else _configured_timeout
-  if raw is None: raw=float(os.getenv("HERMES_JEV_TIMEOUT",str(DEFAULT_TIMEOUT)))
+  if raw is None: raw=float(os.getenv("HERMES_NERVE_TIMEOUT",str(DEFAULT_TIMEOUT)))
   self.timeout=min(120.0,max(1.0,float(raw))); self._transport=transport or self._urllib_transport
   if not self.base_url.startswith("https://"): raise JevError("Jev base_url must use https://")
  @staticmethod
@@ -55,7 +55,7 @@ class JevClient:
  def system_one(self,*,state:Any,questions:dict[str,dict[str,Any]],model:str|None=None)->JevResponse:
   if not questions: raise JevError("At least one question is required")
   payload={"state":state,"model":model or self.model,"questions":questions}; body=json.dumps(payload,separators=(",",":"),ensure_ascii=False,default=str).encode()
-  headers={"Authorization":f"Bearer {self.api_key}","Accept":"application/json","Content-Type":"application/json","User-Agent":"hermes-jev/0.2.2.dev17"}
+  headers={"Authorization":f"Bearer {self.api_key}","Accept":"application/json","Content-Type":"application/json","User-Agent":"hermes-nerve/0.2.2.dev17"}
   started=time.monotonic(); raw_result=self._transport(self.base_url+self.path,headers,body,self.timeout); latency_ms=(time.monotonic()-started)*1000
   if not isinstance(raw_result,tuple) or len(raw_result) not in {2,3}: raise JevError("Jev transport returned an invalid response tuple")
   status,raw=raw_result[0],raw_result[1]; response_headers=raw_result[2] if len(raw_result)==3 and isinstance(raw_result[2],dict) else {}; response_headers={str(k).lower():str(v) for k,v in response_headers.items()}

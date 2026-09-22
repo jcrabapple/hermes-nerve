@@ -1,14 +1,14 @@
-"""Hermes-Jev decision runtime package."""
+"""Nerve decision runtime package."""
 from .client import JevClient, JevError, JevResponse
 from .engine import DecisionEngine, DecisionResult
 from .provenance import VERSION
 from .reflex import LayaClient, LayaError, LayaResponse, OpenJevClient, OpenJevError, OpenJevResponse, ShadowProvider
 try:
-    from .context_engine import JevContextEngine
+    from .context_engine import NerveContextEngine
 except Exception:
-    JevContextEngine = None
+    NerveContextEngine = None
 
 __all__ = [
     "DecisionEngine", "DecisionResult", "JevClient", "JevError", "JevResponse",
-    "LayaClient", "LayaError", "LayaResponse", "OpenJevClient", "OpenJevError", "OpenJevResponse", "ShadowProvider", "JevContextEngine", "VERSION",
+    "LayaClient", "LayaError", "LayaResponse", "OpenJevClient", "OpenJevError", "OpenJevResponse", "ShadowProvider", "NerveContextEngine", "VERSION",
 ]

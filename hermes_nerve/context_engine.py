@@ -124,7 +124,7 @@ def _is_jev_anchor(content: Any) -> bool:
     return _content_text(content).lstrip().startswith("[JEV_CONTEXT_ANCHOR ")
 
 
-class JevContextEngine(ContextEngine):
+class NerveContextEngine(ContextEngine):
     """Conservative Jev context engine focused on tool-result evidence."""
 
     emit_automatic_compaction_status = False
@@ -215,7 +215,7 @@ class JevContextEngine(ContextEngine):
 
     def _fallback_compress(
         self, messages: list[dict[str, Any]], current_tokens: int | None,
-        focus_topic: str | None, force: bool, memory_context: str, jev_candidates: int = 0,
+        focus_topic: str | None, force: bool, memory_context: str, nerve_candidates: int = 0,
     ) -> list[dict[str, Any]]:
         """Delegate to Hermes' built-in compressor without ever breaking the turn."""
         fallback = self._fallback
@@ -240,7 +240,7 @@ class JevContextEngine(ContextEngine):
                 "contract": "context-engine/fail-open/v1",
                 "stats": {
                     "fallback_failed": True,
-                    "jev_candidates": int(jev_candidates),
+                    "nerve_candidates": int(nerve_candidates),
                     "failure_type": self._last_failure_type,
                 },
             }
@@ -250,7 +250,7 @@ class JevContextEngine(ContextEngine):
             self.last_prompt_tokens = -1
             self._last_plan = {
                 "contract": "context-engine/fallback-built-in/v1",
-                "stats": {"fallback_used": True, "jev_candidates": int(jev_candidates)},
+                "stats": {"fallback_used": True, "nerve_candidates": int(nerve_candidates)},
             }
             return out
         return messages
@@ -321,7 +321,7 @@ class JevContextEngine(ContextEngine):
                         "tool_call_id": tool_call_id,
                         "tool_name": tool_name,
                         "tool_args": args,
-                        "recovery_pointer": f"jev_context_rehydrate:{evidence_id}",
+                        "recovery_pointer": f"nerve_context_rehydrate:{evidence_id}",
                     },
                 }
             )
@@ -381,7 +381,7 @@ class JevContextEngine(ContextEngine):
                 }
                 return messages
             return self._fallback_compress(
-                messages, current_tokens, focus_topic, force, memory_context, jev_candidates=0
+                messages, current_tokens, focus_topic, force, memory_context, nerve_candidates=0
             )
 
         self._curation_attempts += 1
@@ -444,12 +444,12 @@ class JevContextEngine(ContextEngine):
                 return out
         except Exception as exc:
             self._curation_fail_open_count += 1
-            self._last_failure_stage = "jev-curation"
+            self._last_failure_stage = "nerve-curation"
             self._last_failure_type = type(exc).__name__
             self._last_plan = {
                 "contract": "context-engine/fail-open/v1",
                 "stats": {
-                    "jev_curation_failed": True,
+                    "nerve_curation_failed": True,
                     "failure_type": self._last_failure_type,
                     "engine_selection": dict(selection),
                 },

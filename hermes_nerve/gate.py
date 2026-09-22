@@ -71,14 +71,14 @@ def configure(*, mode: Any = None, min_confidence: Any = None, scope: Any = None
 def gate_mode() -> str:
     if _configured_mode is not None:
         return _configured_mode
-    mode = os.getenv("HERMES_JEV_GATE_MODE", "off").strip().lower()
+    mode = os.getenv("HERMES_NERVE_GATE_MODE", "off").strip().lower()
     return mode if mode in {"off", "advisory", "enforce"} else "off"
 
 
 def gate_scope() -> str:
     if _configured_scope is not None:
         return _configured_scope
-    scope = os.getenv("HERMES_JEV_GATE_SCOPE", "selective").strip().lower()
+    scope = os.getenv("HERMES_NERVE_GATE_SCOPE", "selective").strip().lower()
     return scope if scope in {"selective", "all"} else "selective"
 
 
@@ -86,14 +86,14 @@ def minimum_confidence() -> float:
     if _configured_min_confidence is not None:
         return _configured_min_confidence
     try:
-        value = float(os.getenv("HERMES_JEV_MIN_CONFIDENCE", "0.80"))
+        value = float(os.getenv("HERMES_NERVE_MIN_CONFIDENCE", "0.80"))
     except ValueError:
         value = 0.80
     return min(1.0, max(0.0, value))
 
 
 def gate_event_path() -> Path:
-    explicit = str(os.getenv("HERMES_JEV_GATE_EVENTS") or "").strip()
+    explicit = str(os.getenv("HERMES_NERVE_GATE_EVENTS") or "").strip()
     return Path(explicit).expanduser() if explicit else hermes_home() / "jev" / "gate-events.jsonl"
 
 
@@ -111,7 +111,7 @@ def _record_gate_event(
     tool_call_id: str = "",
 ) -> None:
     record = {
-        "schema": "hermes-jev-gate-event/v1",
+        "schema": "hermes-nerve-gate-event/v1",
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "tool_name": str(tool_name),
         "mode": gate_mode(),
@@ -248,7 +248,7 @@ def pre_tool_call(tool_name: str, args: dict, task_id: str | None = None, **kwar
         if mode == "enforce":
             return {
                 "action": "approve",
-                "message": "Hermes-Jev could not obtain a decision; human approval is required (fail-to-human).",
+                "message": "Nerve could not obtain a decision; human approval is required (fail-to-human).",
                 "rule_key": "jev:provider-unavailable",
             }
         return None
@@ -272,18 +272,18 @@ def pre_tool_call(tool_name: str, args: dict, task_id: str | None = None, **kwar
     if result.confidence < min_conf:
         return {
             "action": "approve",
-            "message": f"Hermes-Jev confidence {result.confidence:.3f} is below {min_conf:.3f}; human approval required.",
+            "message": f"Nerve confidence {result.confidence:.3f} is below {min_conf:.3f}; human approval required.",
             "rule_key": "jev:low-confidence",
         }
     if result.value == "BLOCK":
         return {
             "action": "block",
-            "message": f"Blocked by Hermes-Jev ({result.confidence:.3f} confidence).",
+            "message": f"Blocked by Nerve ({result.confidence:.3f} confidence).",
         }
     if result.value == "APPROVAL":
         return {
             "action": "approve",
-            "message": f"Hermes-Jev requests human approval ({result.confidence:.3f} confidence).",
+            "message": f"Nerve requests human approval ({result.confidence:.3f} confidence).",
             "rule_key": f"jev:{tool_name}",
         }
     return None

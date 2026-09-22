@@ -25,7 +25,7 @@ class LocalRelevanceModel(Protocol):
 
 
 def outcome_path() -> Path:
-    explicit = os.getenv("HERMES_JEV_OUTCOMES", "").strip()
+    explicit = os.getenv("HERMES_NERVE_OUTCOMES", "").strip()
     return Path(explicit).expanduser() if explicit else hermes_home() / "jev" / "decision-outcomes.jsonl"
 
 

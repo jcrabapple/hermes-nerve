@@ -243,7 +243,7 @@ class NervousSystem:
                 self._stopping = False
                 return
             self._stopping = False
-            self._worker = threading.Thread(target=self._run, name="hermes-jev-nervous", daemon=True)
+            self._worker = threading.Thread(target=self._run, name="hermes-nerve-nervous", daemon=True)
             self._worker.start()
 
     def _stop_worker(self) -> None:
@@ -278,11 +278,11 @@ class NervousSystem:
         return datetime.now(timezone.utc).isoformat()
 
     def _log_path(self) -> Path:
-        explicit = os.getenv("HERMES_JEV_NERVOUS_EVENTS", "").strip()
+        explicit = os.getenv("HERMES_NERVE_NERVOUS_EVENTS", "").strip()
         return Path(explicit).expanduser() if explicit else hermes_home() / "jev" / "nervous-events.jsonl"
 
     def _log(self, kind: str, payload: dict[str, Any]) -> None:
-        record = {"schema": "hermes-jev-nervous/v2", "timestamp": self._now(), "kind": kind, **redact(payload)}
+        record = {"schema": "hermes-nerve-nervous/v2", "timestamp": self._now(), "kind": kind, **redact(payload)}
         path = self._log_path()
         try:
             append_jsonl(path, record)
@@ -348,7 +348,7 @@ class NervousSystem:
                 "WATCH": "A material decision may emerge; observe locally and wake supervision if it does.",
                 "ON": "Material accountable decisions are expected during this turn.",
             },
-            contract="hermes/jev-turn-admission/v1",
+            contract="hermes/nerve-turn-admission/v1",
         )
         with self._lock:
             state = self._turns.get(tid)
@@ -774,7 +774,7 @@ class NervousSystem:
                     proposed_action_fingerprint=proposed_fp, attempted_override=True,
                 )
                 message = (
-                    f"Hermes-Jev {directive.control} control {directive.decision_id} prevents repeating the exact action "
+                    f"Nerve {directive.control} control {directive.decision_id} prevents repeating the exact action "
                     "that already failed. Choose a materially different diagnostic/recovery step"
                     + (" or escalate." if directive.control == "ESCALATE" else ".")
                 )
@@ -816,7 +816,7 @@ class NervousSystem:
                     ),
                     choices=choices,
                     criteria=event.get("criteria") if isinstance(event.get("criteria"), dict) else None,
-                    contract="hermes/jev-nervous-decision/v1",
+                    contract="hermes/nerve-nervous-decision/v1",
                 )
                 jev_decision = result.value
                 confidence = result.confidence
@@ -838,7 +838,7 @@ class NervousSystem:
                             "criteria": {label: None for label in CONTROL_CHOICES},
                         },
                     },
-                    contract="hermes/jev-nervous-control/v1",
+                    contract="hermes/nerve-nervous-control/v1",
                 )
                 answer = assessment["answers"].get("next_control") or {}
                 jev_decision = str(answer.get("choice") or "CONTINUE")
@@ -1331,8 +1331,8 @@ def pre_llm_call(**kwargs: Any) -> str | None:
     )
     if _default._config.emit_prompt_hint:
         return (
-            "Hermes-Jev nervous supervision is active for this turn. For a material bounded decision with explicit "
-            "alternatives, you may call jev_nervous_event once with your proposed choice; routine reads and tool calls "
+            "Nerve nervous supervision is active for this turn. For a material bounded decision with explicit "
+            "alternatives, you may call nerve_nervous_event once with your proposed choice; routine reads and tool calls "
             "do not need explicit Jev calls."
         )
     return None
