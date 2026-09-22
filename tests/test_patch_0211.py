@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from hermes_jev import client, engine, nervous, provenance, schemas, tools
+from hermes_nerve import client, engine, nervous, provenance, schemas, tools
 
 
 class CountingProvider:
@@ -62,8 +62,8 @@ class NoopNervousEngine:
 
 
 class Patch0211Tests(unittest.TestCase):
-    def test_deferred_jev_assess_schema_exposes_runtime_choice_and_score_constraints(self):
-        questions = schemas.JEV_ASSESS["parameters"]["properties"]["questions"]
+    def test_deferred_nerve_assess_schema_exposes_runtime_choice_and_score_constraints(self):
+        questions = schemas.NERVE_ASSESS["parameters"]["properties"]["questions"]
         self.assertEqual(questions["minProperties"], 1)
         variants = questions["additionalProperties"]["oneOf"]
         by_type = {variant["properties"]["type"]["enum"][0]: variant for variant in variants}
@@ -76,7 +76,7 @@ class Patch0211Tests(unittest.TestCase):
 
     def test_valid_choice_reaches_provider_once_and_invalid_choice_stays_local(self):
         provider = CountingProvider()
-        with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {"HERMES_JEV_RECEIPTS": str(Path(td) / "r.jsonl")}, clear=False):
+        with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {"HERMES_NERVE_RECEIPTS": str(Path(td) / "r.jsonl")}, clear=False):
             runtime = engine.DecisionEngine(provider)
             result = runtime.assess(
                 state={"candidate": "cache.tmp"},
@@ -102,14 +102,14 @@ class Patch0211Tests(unittest.TestCase):
     def test_jev_internal_failure_is_recorded_and_never_remotely_supervised(self):
         NoopNervousEngine.reset()
         with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {
-            "HERMES_JEV_NERVOUS_EVENTS": str(Path(td) / "nervous.jsonl"),
-            "HERMES_JEV_OUTCOMES": str(Path(td) / "outcomes.jsonl"),
+            "HERMES_NERVE_NERVOUS_EVENTS": str(Path(td) / "nervous.jsonl"),
+            "HERMES_NERVE_OUTCOMES": str(Path(td) / "outcomes.jsonl"),
         }, clear=False):
             system = nervous.NervousSystem(engine_factory=NoopNervousEngine)
             system.configure(enabled=True, admission_enabled=False, mode="correct_next")
             system.start_turn(user_message="verify candidates", session_id="s1", turn_id="t1")
             result = system.observe_tool_call(
-                tool_name="jev_assess",
+                tool_name="nerve_assess",
                 args={"questions": {"bad": {"type": "choice"}}},
                 status="error",
                 error_message="choice question requires at least two criteria labels",
@@ -126,15 +126,15 @@ class Patch0211Tests(unittest.TestCase):
             self.assertEqual(metrics.get("jev_internal_suppressed"), 1)
             quality = system.quality_metrics()
             self.assertEqual(quality["jev_internal_events_suppressed"], 1)
-            self.assertNotIn("jev_assess", quality["provider_calls_by_origin"])
+            self.assertNotIn("nerve_assess", quality["provider_calls_by_origin"])
 
     def test_valid_explicit_jev_call_does_not_self_amplify_after_post_tool_observation(self):
         direct_provider = CountingProvider()
         NoopNervousEngine.reset()
         with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {
-            "HERMES_JEV_RECEIPTS": str(Path(td) / "receipts.jsonl"),
-            "HERMES_JEV_NERVOUS_EVENTS": str(Path(td) / "nervous.jsonl"),
-            "HERMES_JEV_OUTCOMES": str(Path(td) / "outcomes.jsonl"),
+            "HERMES_NERVE_RECEIPTS": str(Path(td) / "receipts.jsonl"),
+            "HERMES_NERVE_NERVOUS_EVENTS": str(Path(td) / "nervous.jsonl"),
+            "HERMES_NERVE_OUTCOMES": str(Path(td) / "outcomes.jsonl"),
         }, clear=False):
             result = engine.DecisionEngine(direct_provider).assess(
                 state={"candidate": "cache.tmp"},
@@ -145,7 +145,7 @@ class Patch0211Tests(unittest.TestCase):
             system.configure(enabled=True, admission_enabled=False)
             system.start_turn(user_message="verify", session_id="s1", turn_id="t1")
             observed = system.observe_tool_call(
-                tool_name="jev_assess", args={}, status="success", result=json.dumps(result),
+                tool_name="nerve_assess", args={}, status="success", result=json.dumps(result),
                 tool_call_id="jev-call-ok", session_id="s1", turn_id="t1",
             )
             self.assertFalse(observed["forwarded"])
@@ -154,7 +154,7 @@ class Patch0211Tests(unittest.TestCase):
 
     def test_remote_decide_rank_assess_verify_are_receipt_backed(self):
         provider = CountingProvider()
-        with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {"HERMES_JEV_RECEIPTS": str(Path(td) / "r.jsonl")}, clear=False):
+        with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {"HERMES_NERVE_RECEIPTS": str(Path(td) / "r.jsonl")}, clear=False):
             runtime = engine.DecisionEngine(provider)
             results = [
                 runtime.decide(state={"n": 1}, instructions="choose", choices=["SAFE", "KEEP"]).as_dict(),
@@ -176,7 +176,7 @@ class Patch0211Tests(unittest.TestCase):
 
     def test_provider_without_request_id_is_still_auditable_by_receipt(self):
         provider = CountingProvider(request_id="")
-        with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {"HERMES_JEV_RECEIPTS": str(Path(td) / "r.jsonl")}, clear=False):
+        with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {"HERMES_NERVE_RECEIPTS": str(Path(td) / "r.jsonl")}, clear=False):
             result = engine.DecisionEngine(provider).decide(
                 state={"x": 1}, instructions="choose", choices=["SAFE", "KEEP"]
             ).as_dict()
@@ -191,9 +191,9 @@ class Patch0211Tests(unittest.TestCase):
                 raise RuntimeError("provider unavailable")
 
         runtime = engine.DecisionEngine(FailingProvider())
-        with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {"HERMES_JEV_RECEIPTS": str(Path(td) / "r.jsonl")}, clear=False):
+        with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {"HERMES_NERVE_RECEIPTS": str(Path(td) / "r.jsonl")}, clear=False):
             with patch.object(tools, "_engine_factory", lambda: runtime):
-                provider_error = json.loads(tools.jev_verify({"state": {}, "instructions": "verify"}))
+                provider_error = json.loads(tools.nerve_verify({"state": {}, "instructions": "verify"}))
             self.assertFalse(provider_error["ok"])
             self.assertEqual(provider_error["provenance_status"], provenance.ERROR)
             self.assertFalse((Path(td) / "r.jsonl").exists())
@@ -215,20 +215,20 @@ class Patch0211Tests(unittest.TestCase):
         self.assertTrue(stale["provenance"]["stale"])
 
     def test_error_and_local_results_cannot_present_as_verified(self):
-        error = json.loads(tools.jev_assess({"questions": {"q": {"type": "choice", "criteria": {"only": "x"}}}}))
+        error = json.loads(tools.nerve_assess({"questions": {"q": {"type": "choice", "criteria": {"only": "x"}}}}))
         self.assertFalse(error["ok"])
         self.assertEqual(error["provenance_status"], provenance.ERROR)
         self.assertFalse(error["execution"]["live_provider_call"])
         self.assertEqual(error["execution"]["provenance_status"], provenance.ERROR)
 
         with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {
-            "HERMES_JEV_RECEIPTS": str(Path(td) / "r.jsonl"),
-            "HERMES_JEV_GATE_EVENTS": str(Path(td) / "g.jsonl"),
-            "HERMES_JEV_CONTEXT_LEDGER": str(Path(td) / "c.jsonl"),
-            "HERMES_JEV_NERVOUS_EVENTS": str(Path(td) / "n.jsonl"),
-            "HERMES_JEV_OUTCOMES": str(Path(td) / "o.jsonl"),
+            "HERMES_NERVE_RECEIPTS": str(Path(td) / "r.jsonl"),
+            "HERMES_NERVE_GATE_EVENTS": str(Path(td) / "g.jsonl"),
+            "HERMES_NERVE_CONTEXT_LEDGER": str(Path(td) / "c.jsonl"),
+            "HERMES_NERVE_NERVOUS_EVENTS": str(Path(td) / "n.jsonl"),
+            "HERMES_NERVE_OUTCOMES": str(Path(td) / "o.jsonl"),
         }, clear=False):
-            local = json.loads(tools.jev_stats({"section": "summary"}))
+            local = json.loads(tools.nerve_stats({"section": "summary"}))
             self.assertEqual(local["provenance_status"], provenance.LOCAL_ONLY)
             self.assertEqual(local["execution"]["provenance_status"], provenance.LOCAL_ONLY)
 
