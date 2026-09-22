@@ -31,7 +31,7 @@ Current dev17 default:
 convaiinnovations/laya-typed-decisions
 ```
 
-The Hermes plugin remains dependency-free. The sidecar venv pins the current published `laya==0.3.3` package and keeps the model resident. The setup script first uses a working stdlib `venv`; if the host lacks `ensurepip`/`python3-venv`, it bootstraps `uv` in user space and provisions Python 3.12 without requiring sudo.
+The Hermes plugin remains dependency-free. The sidecar venv pins the current published `laya==0.3.3` package and keeps the model resident. The setup script first uses a working stdlib `venv`; if the host lacks `ensurepip`/`python3-venv`, it uses an already-installed trusted `uv` executable (or `UV_BIN`) to provision Python 3.12. It deliberately does not download and execute an installer automatically.
 
 ```bash
 bash scripts/setup_laya_dev17.sh
