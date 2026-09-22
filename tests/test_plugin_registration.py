@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from hermes_jev.provenance import VERSION
+from hermes_nerve.provenance import VERSION
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -27,19 +27,19 @@ class FakeCtx:
 
 class RegistrationTests(unittest.TestCase):
     def load_plugin(self):
-        spec=importlib.util.spec_from_file_location("hermes_jev_plugin_root",ROOT/"__init__.py",submodule_search_locations=[str(ROOT)])
+        spec=importlib.util.spec_from_file_location("hermes_nerve_plugin_root",ROOT/"__init__.py",submodule_search_locations=[str(ROOT)])
         mod=importlib.util.module_from_spec(spec);sys.modules[spec.name]=mod;spec.loader.exec_module(mod);return mod
     def test_version_and_tools_and_hooks(self):
         with tempfile.TemporaryDirectory() as td:
             mod=self.load_plugin();ctx=FakeCtx(Path(td));mod.register(ctx)
             self.assertEqual(VERSION,"0.2.2")
             self.assertEqual(len(ctx.tools),16)
-            for name in ("jev_decide","jev_nervous_event","jev_supervise_card","jev_work_event","jev_remote_delegate_task","jev_remote_worker_control"):
+            for name in ("nerve_decide","nerve_event","nerve_supervise_card","nerve_work_event","nerve_remote_delegate_task","nerve_remote_worker_control"):
                 self.assertIn(name,ctx.tools)
             names={n for n,_ in ctx.hooks}
             self.assertEqual(names,{"pre_tool_call","post_tool_call","pre_llm_call","transform_tool_result","pre_verify","post_api_request","api_request_error","post_llm_call","on_session_end"})
             self.assertIsNotNone(ctx.engine)
-            assess=ctx.tools["jev_assess"][0]["parameters"]["properties"]["questions"]["additionalProperties"]["oneOf"]
+            assess=ctx.tools["nerve_assess"][0]["parameters"]["properties"]["questions"]["additionalProperties"]["oneOf"]
             by_type={x["properties"]["type"]["enum"][0]:x for x in assess}
             self.assertEqual(by_type["choice"]["properties"]["criteria"]["minProperties"],2)
             self.assertEqual(by_type["score"]["properties"]["criteria"]["minItems"],2)

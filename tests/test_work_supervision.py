@@ -5,9 +5,9 @@ import unittest
 from dataclasses import dataclass
 from pathlib import Path
 
-from hermes_jev.work.models import RunIdentity, WorkEvent
-from hermes_jev.work.store import SupervisionStore
-from hermes_jev.work.supervisor import CardSupervisor
+from hermes_nerve.work.models import RunIdentity, WorkEvent
+from hermes_nerve.work.store import SupervisionStore
+from hermes_nerve.work.supervisor import CardSupervisor
 
 
 @dataclass

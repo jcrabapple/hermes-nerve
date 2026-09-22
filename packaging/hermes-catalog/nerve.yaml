@@ -1,0 +1,17 @@
+# Template only. Replace sha after publishing a reviewed standalone release commit.
+name: nerve
+repo: https://github.com/keeltrace/hermes-nerve
+sha: REPLACE_WITH_40_CHARACTER_RELEASE_SHA
+subdir: ""
+description: Asynchronous Jev decision nervous system with adaptive routing, confidence-gated challenges, typed decisions, verification, and context governance.
+maintainer: keeltrace
+tier: community
+category: automation
+requires_hermes: ">=0.21"
+docs_url: https://github.com/keeltrace/hermes-nerve#readme
+version: "0.2.2"
+capabilities:
+  provides_tools: [nerve_decide, nerve_rank, nerve_verify, nerve_assess, nerve_context_curate, nerve_context_rehydrate, nerve_stats, nerve_event]
+  provides_hooks: [pre_tool_call, post_tool_call, pre_llm_call, transform_tool_result, pre_verify, post_llm_call, on_session_end]
+  provides_middleware: []
+  requires_env: []

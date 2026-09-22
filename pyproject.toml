@@ -1,7 +1,7 @@
 [project]
-name = "hermes-jev"
+name = "hermes-nerve"
 version = "0.2.2"
-description = "Provider-neutral Reflex decision nervous system with Jev/Laya/OpenJev integration, evidence-backed Kanban supervision, and SSH workers for Hermes Agent"
+description = "Nerve supervisory nervous system for Hermes Agent with provider-neutral Reflex backends, evidence-backed Kanban supervision, and SSH workers"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
@@ -9,8 +9,8 @@ authors = [{name = "KeelTrace community"}]
 dependencies = []
 
 [project.urls]
-Homepage = "https://github.com/keeltrace/hermes-jev"
-Issues = "https://github.com/keeltrace/hermes-jev/issues"
+Homepage = "https://github.com/keeltrace/hermes-nerve"
+Issues = "https://github.com/keeltrace/hermes-nerve/issues"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

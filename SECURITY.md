@@ -8,7 +8,7 @@ For a potentially sensitive vulnerability, use GitHub's private security-reporti
 
 For non-sensitive security hardening or ordinary bugs, a normal issue is appropriate.
 
-Hermes-Jev sends decision state to the selected OpenRouter, TypeSafe, or OpenCode provider only when a Jev tool, gate, or active Jev ContextEngine semantic pass is invoked.
+Nerve sends decision state to the selected OpenRouter, TypeSafe, or OpenCode provider only when a Jev tool, gate, or active Jev ContextEngine semantic pass is invoked.
 
 ## Provider egress
 
@@ -37,7 +37,7 @@ $HERMES_HOME/jev/context-ledger.jsonl
 Modes:
 
 - `sanitized` (default): force-redacted content/metadata are stored and can be rehydrated.
-- `hash`: only hashes/provenance are retained; `jev_context_rehydrate` will refuse to invent missing content.
+- `hash`: only hashes/provenance are retained; `nerve_context_rehydrate` will refuse to invent missing content.
 
 The ledger is not intended as a second verbatim transcript. Operators handling highly sensitive tool outputs should choose hash mode or disable the ledger.
 
