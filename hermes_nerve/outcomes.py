@@ -188,7 +188,7 @@ class OutcomeStore:
             "p50_latency_ms": round(median(latencies), 3) if latencies else 0.0,
             "p95_latency_ms": round(percentile(0.95), 3),
             "provider_cost": None if cost_missing_decisions else round(reported_cost, 12),
-            "provider_reported_cost": round(reported_cost, 12),
+            "provider_reported_cost": round(reported_cost, 12) if cost_reported_decisions else None,
             "provider_cost_reported_decisions": cost_reported_decisions,
             "provider_cost_missing_decisions": cost_missing_decisions,
             "jev_tokens": tokens,

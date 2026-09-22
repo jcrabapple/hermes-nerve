@@ -1262,8 +1262,13 @@ class NervousSystem:
             "p50_jev_latency_ms": outcome.get("p50_latency_ms", 0.0),
             "p95_jev_latency_ms": outcome.get("p95_latency_ms", 0.0),
             "jev_tokens": outcome.get("jev_tokens", 0),
+            # provider_cost / provider_reported_cost are None when the provider
+            # returned no cost for the underlying decisions (the typesafe
+            # transport ships no cost field); None reads as "cost unreported",
+            # a bare 0.0 would read as "Jev is free". Pair with
+            # jev_provider_cost_missing_decisions for the exact split.
             "jev_provider_cost": outcome.get("provider_cost"),
-            "jev_provider_reported_cost": outcome.get("provider_reported_cost", 0.0),
+            "jev_provider_reported_cost": outcome.get("provider_reported_cost"),
             "jev_provider_cost_missing_decisions": outcome.get("provider_cost_missing_decisions", 0),
             "estimated_avoided_jev_calls": avoided,
             "estimated_avoided_provider_cost": None,
