@@ -1,10 +1,10 @@
 name: hermes-jev
-version: "0.2.2.dev4"
-description: "Asynchronous Jev decision nervous system for Hermes Agent: turn admission, adaptive local routing, confidence-gated challenges, typed decisions, verification, and context governance."
+version: "0.2.2.dev17"
+description: "Hermes-Jev supervisory nervous system with hosted Jev plus open-source Laya/OpenJev Reflex backends, evidence-backed Kanban supervision, token-budget trajectory control, and durable SSH Hermes workers."
 author: "KeelTrace community"
 license: MIT
 homepage: https://github.com/keeltrace/hermes-jev
-tags: [jev, typesafe, opencode, system-one, decisions, routing, verification, context, safety, automation]
+tags: [jev, openjev, laya, reflex, system-one, decisions, kanban, definition-of-done, evidence, remote-worker, ssh, distributed, verification]
 provides_tools:
   - jev_decide
   - jev_rank
@@ -14,53 +14,116 @@ provides_tools:
   - jev_context_rehydrate
   - jev_stats
   - jev_nervous_event
-provides_hooks:
-  - pre_tool_call
-  - post_tool_call
-  - pre_llm_call
-  - transform_tool_result
-  - pre_verify
-  - post_llm_call
-  - on_session_end
+  - jev_supervise_card
+  - jev_work_event
+  - jev_work_status
+  - jev_remote_delegate_task
+  - jev_remote_worker_status
+  - jev_remote_worker_result
+  - jev_remote_worker_cancel
+  - jev_remote_worker_control
+provides_hooks: [pre_tool_call, post_tool_call, pre_llm_call, transform_tool_result, pre_verify, post_api_request, api_request_error, post_llm_call, on_session_end]
 requires_env: []
 config_schema:
-  jev_provider: {type: str, default: "openrouter", description: "Jev transport: openrouter, typesafe, or opencode"}
-  typesafe_model: {type: str, default: "jev-latest", description: "Direct TypeSafe model id"}
-  opencode_model: {type: str, default: "jev-1.13", description: "OpenCode Zen System One model id. Hermes integration supports paid jev-1.13 only."}
-  nervous_enabled: {type: bool, default: true, description: "Enable the asynchronous Jev nervous system"}
-  nervous_turn_admission: {type: bool, default: true, description: "Run one asynchronous OFF/WATCH/ON Jev admission classification per user turn"}
-  nervous_mode: {type: str, default: "correct_next", description: "Nervous authority mode: shadow, correct_next, or precommit"}
-  nervous_challenge_confidence: {type: float, default: 0.86, description: "Minimum confidence for Jev disagreement to become a Hermes challenge"}
-  nervous_call_threshold: {type: float, default: 0.58, description: "Adaptive local relevance threshold for remote Jev assessments; not an event-count poll"}
-  nervous_max_provider_calls_per_turn: {type: int, default: 96, description: "Hard safety budget per turn; adaptive routing remains the primary limiter"}
-  nervous_event_preview_chars: {type: int, default: 1200, description: "Maximum result/evidence preview retained in a nervous-system event"}
-  nervous_retain_recent_events: {type: int, default: 64, description: "Recent local event summaries retained per active turn"}
-  nervous_emit_prompt_hint: {type: bool, default: false, description: "Inject a compact hint telling Hermes when it may emit explicit jev_nervous_event decisions"}
-  nervous_local_learning: {type: bool, default: true, description: "Use labeled local outcome history to tune router sensitivity after enough samples exist"}
-  nervous_local_learning_min_samples: {type: int, default: 8, description: "Minimum labeled outcomes before local historical calibration may influence routing"}
-  nervous_repeated_failure_local_replan_at: {type: int, default: 3, description: "Identical failure count that activates the provider-independent local REPLAN loop breaker (2-20)"}
-  jev_model: {type: str, default: "typesafe/jev-1.13", description: "OpenRouter Jev model id (model_id remains accepted for 0.1.5.1 compatibility)"}
-  timeout_seconds: {type: float, default: 10.0, description: "Decision request timeout in seconds (1-120)"}
-  gate_mode: {type: str, default: "off", description: "Automatic pre-tool gate: off, advisory, or enforce"}
-  gate_scope: {type: str, default: "selective", description: "Gate coverage: selective bypasses conservative read-only calls locally; all evaluates every non-Jev call"}
-  min_confidence: {type: float, default: 0.80, description: "Minimum confidence before an automatic allow/block verdict is trusted"}
-  receipt_detail: {type: str, default: "hash", description: "Decision receipt state detail: hash or sanitized"}
-  context_ledger_enabled: {type: bool, default: true, description: "Record privacy-minimized evidence/shadow events for curation and rehydration"}
-  context_ledger_detail: {type: str, default: "sanitized", description: "Evidence ledger detail: sanitized (rehydratable) or hash"}
-  context_preview_chars: {type: int, default: 1200, description: "Per-evidence preview chars sent to Jev during semantic curation (160-4000)"}
-  context_anchor_chars: {type: int, default: 220, description: "Original prefix chars retained in deterministic anchors (40-1200)"}
-  context_preserve_tail: {type: int, default: 4, description: "Newest explicit evidence items protected exactly (0-12)"}
-  context_curation_mode: {type: str, default: "shadow", description: "Explicit curation mode: apply or shadow"}
-  context_drop_max_needed: {type: float, default: 0.20, description: "DROP allowed only when P(needed_again) is at or below this value"}
-  context_drop_max_exact: {type: float, default: 0.20, description: "DROP allowed only when P(exact_required) is at or below this value"}
-  context_drop_min_superseded: {type: float, default: 0.75, description: "DROP requires P(superseded) at or above this value"}
-  context_anchor_max_needed: {type: float, default: 0.55, description: "ANCHOR allowed when P(needed_again) is at or below this value"}
-  context_anchor_max_exact: {type: float, default: 0.45, description: "ANCHOR allowed when P(exact_required) is at or below this value"}
-  context_conflict_pin_min: {type: float, default: 0.70, description: "PIN evidence when P(unresolved conflict) meets this threshold"}
-  context_engine_register: {type: bool, default: true, description: "Register the opt-in Jev ContextEngine with Hermes when the host supports it"}
-  context_engine_mode: {type: str, default: "shadow", description: "Jev ContextEngine mode: apply or shadow"}
-  context_engine_threshold_percent: {type: float, default: 0.72, description: "Context usage fraction that triggers Jev engine compaction"}
-  context_engine_protect_first_n: {type: int, default: 3, description: "Non-system head messages protected by the Jev ContextEngine"}
-  context_engine_protect_last_n: {type: int, default: 6, description: "Newest non-system messages protected by the Jev ContextEngine"}
-  context_engine_shadow_trigger_percent: {type: float, default: 0.55, description: "In engine shadow mode, usage fraction that triggers a non-mutating curation plan"}
-  context_engine_fallback_builtin: {type: bool, default: true, description: "Fall back to Hermes built-in ContextCompressor when Jev cannot safely reclaim context"}
+  jev_provider: {type: str, default: "openrouter"}
+  jev_model: {type: str, default: "typesafe/jev-1.13"}
+  typesafe_model: {type: str, default: "jev-latest"}
+  opencode_model: {type: str, default: "jev-1.13"}
+  timeout_seconds: {type: float, default: 10.0}
+  reflex_backend: {type: str, default: "jev", description: "Decision backend: jev, laya, openjev, or shadow."}
+  reflex_laya_base_url: {type: str, default: "http://127.0.0.1:8765", description: "Laya sidecar base URL. Loopback HTTP or HTTPS only."}
+  reflex_laya_model: {type: str, default: "convaiinnovations/laya-typed-decisions", description: "Expected fixed Laya checkpoint identity exposed by the sidecar."}
+  reflex_laya_timeout_seconds: {type: float, default: 5.0, description: "Laya sidecar request timeout."}
+  reflex_laya_token: {type: str, default: "", description: "Optional bearer token for the Laya sidecar."}
+  reflex_openjev_base_url: {type: str, default: "http://127.0.0.1:3000", description: "OpenJev helper base URL. Loopback HTTP or HTTPS only."}
+  reflex_openjev_model: {type: str, default: "openjev", description: "Request model label sent to the OpenJev helper."}
+  reflex_openjev_timeout_seconds: {type: float, default: 10.0, description: "OpenJev helper request timeout."}
+  reflex_openjev_token: {type: str, default: "", description: "Optional SHIM_TOKEN bearer token for the OpenJev helper."}
+  reflex_openjev_expected_identity: {type: str, default: "", description: "Optional substring pin for OpenJev /v1/version and response model identity."}
+  reflex_shadow_backend: {type: str, default: "laya", description: "Open-source backend used when reflex_backend=shadow: laya or openjev."}
+  reflex_shadow_async: {type: bool, default: true, description: "Run the selected open-source shadow request asynchronously so Jev latency remains authoritative."}
+  reflex_shadow_log: {type: str, default: "", description: "Optional paired Jev/open-source shadow JSONL path."}
+  gate_mode: {type: str, default: "off"}
+  gate_scope: {type: str, default: "selective"}
+  min_confidence: {type: float, default: 0.80}
+  receipt_detail: {type: str, default: "hash"}
+  nervous_enabled: {type: bool, default: true}
+  nervous_turn_admission: {type: bool, default: true}
+  nervous_mode: {type: str, default: "correct_next"}
+  nervous_challenge_confidence: {type: float, default: 0.86}
+  nervous_call_threshold: {type: float, default: 0.58}
+  nervous_max_provider_calls_per_turn: {type: int, default: 96}
+  nervous_event_preview_chars: {type: int, default: 1200}
+  nervous_retain_recent_events: {type: int, default: 64}
+  nervous_emit_prompt_hint: {type: bool, default: false}
+  nervous_local_learning: {type: bool, default: true}
+  nervous_local_learning_min_samples: {type: int, default: 8}
+  nervous_repeated_failure_local_replan_at: {type: int, default: 3}
+  context_ledger_enabled: {type: bool, default: true}
+  context_ledger_detail: {type: str, default: "sanitized"}
+  context_preview_chars: {type: int, default: 1200}
+  context_anchor_chars: {type: int, default: 220}
+  context_preserve_tail: {type: int, default: 4}
+  context_curation_mode: {type: str, default: "shadow"}
+  context_drop_max_needed: {type: float, default: 0.20}
+  context_drop_max_exact: {type: float, default: 0.20}
+  context_drop_min_superseded: {type: float, default: 0.75}
+  context_anchor_max_needed: {type: float, default: 0.55}
+  context_anchor_max_exact: {type: float, default: 0.45}
+  context_conflict_pin_min: {type: float, default: 0.70}
+  context_engine_register: {type: bool, default: true}
+  context_engine_mode: {type: str, default: "shadow"}
+  context_engine_threshold_percent: {type: float, default: 0.72}
+  context_engine_protect_first_n: {type: int, default: 3}
+  context_engine_protect_last_n: {type: int, default: 6}
+  context_engine_shadow_trigger_percent: {type: float, default: 0.55}
+  context_engine_fallback_builtin: {type: bool, default: true}
+  work_supervision_enabled: {type: bool, default: true, description: "Enable DoD/evidence/budget supervision for canonical Kanban runs."}
+  work_supervision_mode: {type: str, default: "advisory", description: "shadow, advisory, or enforce."}
+  work_supervision_db: {type: str, default: ""}
+  work_evidence_preview_chars: {type: int, default: 1200}
+  work_calibration_min_samples: {type: int, default: 12}
+  work_calibration_max_brier: {type: float, default: 0.24}
+  work_enforcement_override: {type: bool, default: false}
+  work_control_confidence: {type: float, default: 0.86}
+  work_reviewer: {type: str, default: ""}
+  work_auto_bind_kanban: {type: bool, default: true}
+  work_headless_workers: {type: bool, default: true, description: "Hide Jev tool schemas from ordinary Kanban workers; supervision runs through hooks."}
+  work_default_task_budget_tokens: {type: int, default: 70000}
+  work_checkpoint_fractions: {type: str, default: "0.40,0.70"}
+  work_supervisor_budget_fraction: {type: float, default: 0.03}
+  work_roi_min_expected_savings_tokens: {type: int, default: 1500}
+  work_provider_decision_cooldown_tokens: {type: int, default: 8000}
+  work_estimated_decision_call_tokens: {type: int, default: 800, description: "Estimated Reflex decision-call token equivalent used for supervision ROI budgeting."}
+  work_estimated_jev_call_tokens: {type: int, default: 800, description: "Legacy alias for work_estimated_decision_call_tokens."}
+  work_provider_decisions_enabled: {type: bool, default: true}
+  work_directive_high_confidence: {type: float, default: 0.90}
+  work_directive_watch_confidence: {type: float, default: 0.75}
+  work_repeated_failure_trigger: {type: int, default: 2}
+  work_directive_max_chars: {type: int, default: 320}
+  work_completion_controller_attempts: {type: int, default: 3, description: "Bounded controller-local native completion retries after verified PASS; never consumes another worker-model turn."}
+  work_auto_estimate_task_budget: {type: bool, default: true, description: "Estimate a conservative per-task worker-token target from DoD complexity instead of using only the static floor."}
+  work_budget_dod_required: {type: bool, default: true, description: "Append non-blocking budget telemetry to the contract. Budget is execution policy, not a required correctness criterion."}
+  work_budget_dod_tolerance: {type: float, default: 1.10, description: "Small completion tolerance above the estimated target to reduce false-positive budget failures."}
+  work_budget_estimator_base_tokens: {type: int, default: 120000}
+  work_budget_estimator_per_criterion_tokens: {type: int, default: 75000}
+  work_budget_estimator_body_char_factor: {type: float, default: 25.0}
+  work_budget_estimator_safety_multiplier: {type: float, default: 1.25}
+  work_budget_estimator_max_tokens: {type: int, default: 2000000}
+  work_nerve_observer_enabled: {type: bool, default: true, description: "Continuously evaluate worker token trajectory after every provider response."}
+  work_nerve_auto_kill: {type: bool, default: false, description: "Deprecated compatibility setting. Reflex/Nerve no longer owns economic kill authority; budget escalation routes to orchestrator review."}
+  work_nerve_watch_fraction: {type: float, default: 0.65}
+  work_nerve_forecast_fraction: {type: float, default: 0.80, description: "At this fraction of the base target, ask YES/NO/MAYBE whether one bounded extension is likely to finish."}
+  work_nerve_extension_fraction: {type: float, default: 0.25, description: "One automatic extension size after a confident YES forecast."}
+  work_nerve_extension_min_confidence: {type: float, default: 0.60, description: "Minimum YES confidence for the single automatic extension; lower-confidence YES is treated as MAYBE and reviewed."}
+  work_nerve_no_handoff_fraction: {type: float, default: 0.90, description: "A NO forecast may use a short checkpoint window but must hand off to orchestrator review by this consumed fraction of the base target."}
+  work_nerve_replan_fraction: {type: float, default: 0.90}
+  work_nerve_hard_budget_multiplier: {type: float, default: 1.75, description: "Hard economic circuit breaker; crossing the estimate alone does not kill a run."}
+  work_nerve_min_calls_before_kill: {type: int, default: 12}
+  work_nerve_repeated_failure_kill: {type: int, default: 3}
+  work_nerve_high_context_streak_kill: {type: int, default: 3}
+  remote_hosts: {type: dict, default: {}}
+  remote_default_host: {type: str, default: ""}
+  remote_default_max_turns: {type: int, default: 100}
+  remote_default_task_timeout_seconds: {type: int, default: 3600}
+  remote_data_dir: {type: str, default: ""}

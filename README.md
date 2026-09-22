@@ -1,289 +1,172 @@
-# Hermes-Jev
+# Hermes-Jev v0.2.2.dev17
 
-**An asynchronous Jev decision nervous system for Hermes Agent.**
+Hermes-Jev is an asynchronous System-1 supervisory layer for Hermes Agent. `0.2.2.dev17` preserves dev16 controller-completion while correcting budget authority from live release evidence: Nerve/Reflex is a watchdog and forecaster, while the main Hermes orchestrator/reviewer owns the final stop/continue decision. Dev17 validates that architecture across hosted Jev plus self-hosted Laya and OpenJev Reflex backends. The core plugin remains dependency-free; model runtimes stay in sidecars. After verified PASS, the worker no longer owns Kanban completion: the hook/controller performs the native transition and lifecycle retries without another model-solving loop.
 
-Hermes remains the reasoning and execution engine. Jev supervises accountable decisions in parallel: turn admission, adaptive local relevance routing, bounded decision comparison, completion/recovery control, and high-confidence challenge delivery. The design is explicitly optimized around the observed ~500 ms-class remote decision latency: ordinary Hermes execution does not wait for Jev.
 
-> Community project. Not affiliated with or endorsed by TypeSafe AI or Nous Research.
+## Dev17 — open backend release matrix
 
-## Development: v0.2.2.dev4
+Dev17 adds first-class `reflex_backend=openjev`, generalizes Jev-authoritative shadowing to either Laya or OpenJev, updates the Laya sidecar to the current standalone typed-decisions checkpoint, and packages a crash-safe Jev/Laya/OpenJev matrix runner. It also carries forward the live dev16 benchmark fixes: `completed` is a successful terminal state, results flush after every arm, lingering workers are reaped, external emergency stops remain distinct from Nerve orchestrator-review handoffs, and final summaries survive cleanup errors. See [`docs/DEV17_OPEN_SOURCE_VALIDATION.md`](docs/DEV17_OPEN_SOURCE_VALIDATION.md).
 
-The current development line adds OpenCode Zen as a third first-class Jev transport and includes runtime/repository hardening: bounded turn lifecycle, accurate missing-cost telemetry, serialized JSONL persistence, expanded secret redaction, current GitHub Actions pins, and Python 3.14 CI coverage. OpenCode uses the native System One endpoint and paid `jev-1.13` only. The `jev-1.13-free` tier is not supported because it does not work with Hermes. OpenRouter remains the default provider.
+## Dev15b — Reflex + Laya integration
 
-This is a non-catalog development build. The Hermes catalog template remains on v0.2.1.2 until a later reviewed stable release.
+Dev15b introduces a provider-neutral backend seam below `DecisionEngine` without changing the existing Kanban authority model. `reflex_backend=jev` preserves current behavior, `reflex_backend=shadow` keeps Jev authoritative while logging paired Laya decisions, and `reflex_backend=laya` selects the local Laya sidecar for semantic decisions. Laya receipts are correctly marked `LOCAL_ONLY`, and shadow failures never change the authoritative result.
 
-See [`docs/PROVIDER_SETUP.md`](docs/PROVIDER_SETUP.md), [`docs/DEV_0.2.2.md`](docs/DEV_0.2.2.md), and [`docs/HISTORICAL_BUG_STATUS.md`](docs/HISTORICAL_BUG_STATUS.md) for the current disposition of archived bug handoffs.
+The plugin does not import torch or transformers. The optional Laya runtime lives in a separate process started with `python -m hermes_jev.reflex.laya_service`, preloading `convaiinnovations/laya` / `typed-decisions` once. See [`docs/DEV15B_LAYA_INTEGRATION.md`](docs/DEV15B_LAYA_INTEGRATION.md) for installation, SSH tunneling, configuration, telemetry, and live-acceptance gates.
 
-## v0.2.1.2
+## Dev14 controller-owned DOD-07 proof
 
-Stabilization patch for the automatic Jev ContextEngine:
+Dev14 closes the live dev13 gap without weakening the deterministic completion gate. In the dev13 smoke, the worker reached a clean commit and a green 26-test visible suite, but direct repeated dispatch of an already-dead event still mutated attempts from 2 to 3. Dev13 correctly held DOD-07 at deterministic FAIL, but its evidence path still depended on worker-authored focused-test names and did not surface the concrete counterexample early enough.
 
-- bound automatic semantic curation to at most 48 recoverable raw evidence items per boundary, oldest first;
-- keep deferred evidence untouched and skip existing `JEV_CONTEXT_ANCHOR` results so compaction progresses instead of nesting anchors;
-- make Jev curation and Hermes built-in fallback failures fully fail-open to the original message list;
-- make shadow curation failures and selection pressure observable in ContextEngine status;
-- count shadow ANCHOR/DROP actions as proposals only, not completed compaction;
-- avoid remote semantic calls for deterministically unrecoverable evidence in the automatic engine path.
+Dev14 executes the DOD-07 semantics itself inside the controller. The probe is in-memory, network-free, and does not modify the workspace. It proves: dead-event redispatch is stable, delivered-event redispatch does not redeliver, transient retry→success→duplicate is stable, and retry-queue work remains unique. When a probe fails, the exact observation is placed in the RETRY directive (for example, `dead-event redispatch changed attempts 2->3`).
 
-The direct TypeSafe System One transport now also has independent live-account interoperability evidence from v0.2.1.1 issue #1. That validates the released v0.2.1.1 transport path; this v0.2.1.2 package does not claim a new credentialed live run unless one is performed against the candidate.
+The hidden acceptance test now enforces the same dead-event redispatch invariant. All dev13 completion authority remains intact: deterministic FAIL cannot be semantically overridden, DOD-08 is controller-authored, fully machine-verifiable completion uses zero semantic completion calls, and successful PASS flows through native `kanban_complete` with stop-nudge suppression and session-end skip.
 
-See [`docs/BUGFIX_0.2.1.2.md`](docs/BUGFIX_0.2.1.2.md).
+## Dev11 verified-completion path
 
-## v0.2.1.1
-
-Patch release for three live Muna integration defects found against 0.2.1:
-
-- `jev_assess` now advertises the same typed choice/score requirements enforced by runtime validation, so deferred-tool models can construct valid calls from schema alone.
-- `jev_*` tool outcomes are an explicit nervous-system self-observation boundary: they are logged locally but cannot recursively create background Jev assessments.
-- explicit remote decision tools now return receipt-backed provenance (`receipt_id`, `provenance_status`, provider/model/transport, subject hash, and result hash) so a user-visible Jev claim can be audited one-to-one.
-
-See [`docs/BUGFIX_0.2.1.1.md`](docs/BUGFIX_0.2.1.1.md) for the bug-to-fix matrix and verification boundary.
-
-## v0.2.1
-
-Public tools: the seven v0.1.5.5 tools plus `jev_nervous_event`. Public hook names: `pre_tool_call`, `post_tool_call`, `pre_llm_call`, `transform_tool_result`, `pre_verify`, `post_llm_call`, and `on_session_end`.
-
-The recommended path is the nervous system, not synchronous evaluate-every-tool gating. At turn ingress a background Jev admission call classifies the turn as `OFF`, `WATCH`, or `ON`; Hermes starts immediately. During supervised turns a local adaptive router consumes structured events, suppresses routine/redundant state, batches in-flight bursts, and sends only decision-significant state to Jev. Agreement and low-confidence disagreement remain silent telemetry. High-confidence disagreement is delivered only while the challenged state is current.
-
-v0.2.1 hardens the recovery/control path discovered during Muna testing: identical failure episodes are fingerprinted locally, repeated equivalent failures stop generating provider calls, and a third identical failure creates a provider-independent `REPLAN` lease. In `correct_next`/`precommit`, the composed pre-tool control seam prevents the exact failed action from executing again unless Jev explicitly chose `RETRY`. Decision IDs now connect the decision, delivery, next action, disposition, and outcome telemetry. `jev_stats` is compact by default to avoid feeding tens of kilobytes of telemetry back into the main model context.
-
-See:
-
-- [`docs/NERVOUS_SYSTEM.md`](docs/NERVOUS_SYSTEM.md)
-- [`docs/GUIDE.md`](docs/GUIDE.md)
-- [`docs/SETUP.md`](docs/SETUP.md)
-- [`docs/PROVIDER_SETUP.md`](docs/PROVIDER_SETUP.md)
-- [`VERIFICATION.md`](VERIFICATION.md) — historical v0.2.1.2 release receipt; current development proof is GitHub Actions on the exact branch head
-
-OpenRouter Decisions, direct TypeSafe System One, and OpenCode Zen System One are supported. Only the selected provider credential is required.
-
-## Historical v0.1.5.5 documentation
-
-### v0.1.5.5
-
-The release moves context management from "save tokens" to **preserve the smallest sufficient working set for correct continuation**.
-
-Public tools:
-
-- `jev_decide` — one bounded choice plus calibrated probabilities.
-- `jev_rank` — rank a bounded candidate set from Jev probabilities.
-- `jev_verify` — `PASS | RETRY | REPLAN | ESCALATE` verification.
-- `jev_assess` — up to 16 native `noul`, `choice`, or `score` questions over one shared state.
-- `jev_context_curate` — semantic context-value planning with deterministic retention policy.
-- `jev_context_rehydrate` — restore sanitized evidence from a local evidence anchor; no provider call.
-- `jev_stats` — local active-profile receipt + context telemetry; no provider call.
-
-Hooks:
-
-- `pre_tool_call` — optional `off | advisory | enforce` Jev gate.
-- `post_tool_call` — privacy-minimized evidence observation for context telemetry/rehydration.
-
-Optional context engine:
-
-- `context.engine: jev` — Jev-first context management using Hermes' public `ContextEngine` interface.
-- Never auto-activated. The built-in Hermes compressor remains the default until explicitly selected.
-- If Jev cannot safely reclaim eligible tool evidence, the engine can fall back to Hermes' built-in `ContextCompressor` rather than stall on text-heavy sessions.
-
-## The context governor
-
-Jev does **not** decide deletion directly. For each eligible evidence unit it estimates four semantic quantities:
-
-- `needed_again` — probability the evidence will matter later in the current goal.
-- `exact_required` — probability exact original detail will be needed rather than provenance/identity.
-- `superseded` — probability newer state has made the evidence stale or redundant.
-- `conflict` — probability it participates in an unresolved contradiction.
-
-Local deterministic code then chooses an action:
-
-- `KEEP_EXACT` — retain original content.
-- `PIN` — keep exact while a lifecycle lease is active or conflict is unresolved.
-- `ANCHOR` — replace bulk content with deterministic provenance, hash, prefix, and recovery pointer.
-- `DROP` — allowed only for deterministically recoverable, low-value, superseded evidence in explicit curation.
-- `REHYDRATE` — restore sanitized anchored evidence from the local ledger.
-
-Automatic ContextEngine mode never physically removes a tool-result message because doing so can orphan its corresponding assistant tool call. A proposed `DROP` becomes a minimal anchor instead.
-
-### Lifecycle leases
-
-User/assistant text is protected. Nonrecoverable failure evidence is automatically leased `until_verification_pass`; a real `jev_verify` `PASS` releases that lease for later curation. Callers can also provide an explicit `metadata.lease`.
-
-### Shadow mode
-
-Use `mode=shadow` to collect Jev's proposed actions without changing returned evidence. Shadow plans are written to the evidence ledger and can be summarized with:
-
-```bash
-python3 scripts/context_shadow_report.py
-python3 scripts/jev_report.py
-```
-
-The report includes proposed action counts, proposed character savings, rehydration counts, and recovery-demand rate. The standalone reporter is profile-aware: when launched from `~/.hermes/profiles/<name>/plugins/hermes-jev`, it infers that profile instead of silently reading the global default ledger. Recovery demand is a tuning signal, not automatically a false-forget failure.
-
-Inside Hermes, `jev_stats` is the preferred sanity check because it reads the exact active-profile paths used by the running process.
-
-See [`docs/CONTEXT_CURATION.md`](docs/CONTEXT_CURATION.md).
-
-## Provenance
-
-Every live Jev result carries an explicit execution block so a main chat model cannot be mistaken for the decision provider:
-
-```json
-{
-  "execution": {
-    "engine": "hermes-jev",
-    "version": "0.1.5.5",
-    "transport": "openrouter-decisions",
-    "live_provider_call": true
-  },
-  "provider": "TypeSafe",
-  "model": "typesafe/jev-1.13-20260917",
-  "request_id": "gen-dec-..."
-}
-```
-
-`jev_context_rehydrate` instead reports `transport: local-evidence-ledger` and `live_provider_call: false`. `jev_stats` reports `transport: local-telemetry`.
-
-## Configuration
-
-The canonical model setting is `jev_model`. `model_id` remains accepted as a migration alias for the hand-fixed 0.1.5.1 tree.
-
-```bash
-hermes config set plugins.entries.hermes-jev.settings.jev_model typesafe/jev-1.13 --force
-hermes config set plugins.entries.hermes-jev.settings.timeout_seconds 15 --force
-```
-
-### Gate
-
-```bash
-hermes config set plugins.entries.hermes-jev.settings.gate_mode advisory --force
-```
-
-Modes:
-
-- `off` — no automatic Jev gate calls.
-- `advisory` — evaluate material/unknown calls and receipt them, never alter execution.
-- `enforce` — high-confidence `BLOCK` can block; `APPROVAL`, low confidence, or provider failure route toward human approval.
-
-`0.1.5.5` defaults the gate to `gate_scope=selective`. A conservative local prefilter bypasses Jev for exact known read-only Hermes tools and narrowly parsed read-only terminal commands (`pwd`, `ls`, `rg`, `git status`, `git diff`, etc.). Unknown, mutating, shell-composed, or ambiguous calls still go to Jev. This removes a network round trip from routine introspection without weakening the gate for consequential actions.
-
-To restore the old evaluate-every-call behavior:
-
-```bash
-hermes config set plugins.entries.hermes-jev.settings.gate_scope all --force
-```
-
-`jev_stats` reports gate events separately (`bypassed`, `evaluated`, provider errors, provider latency, and estimated provider calls avoided) so the latency impact is directly measurable.
-
-### Explicit curation
-
-Recommended evaluation phase:
-
-```bash
-hermes config set plugins.entries.hermes-jev.settings.context_curation_mode shadow --force
-```
-
-Switch to `apply` only after reviewing your own shadow telemetry.
-
-### Evidence ledger
-
-Defaults:
+Dev11 closes the dev10 production failure at the authority boundary instead of asking the model to discover its own exit path:
 
 ```text
-$HERMES_HOME/jev/context-ledger.jsonl
+worker satisfies locked DoD
+  -> deterministic evidence proves mechanical criteria locally
+  -> Jev judges only unresolved semantic criteria
+  -> completion PASS
+  -> plugin arms durable COMPLETE_READY
+  -> hook dispatches registered native kanban_complete in-process
+  -> canonical Kanban card/run closes
+  -> worker unwinds with zero post-PASS model/tool discovery required
 ```
 
-`context_ledger_detail=sanitized` stores force-redacted content and supports rehydration. `hash` stores no rehydratable content and is the stricter privacy mode.
+Completion now fails closed. A non-PASS verdict leaves the card running and returns the exact missing criteria. Generic lifecycle wrappers, shell/CLI completion, worker-authored Kanban SQLite mutators, and direct task-status SQL are blocked from supervised workers. The registered `kanban_*` tools remain the only canonical mutation surface.
 
-### Opt-in ContextEngine
+For the frozen event-delivery benchmark, dev11 also machine-verifies public signature parity against the frozen Git baseline, regression-test count, focused retry/dead-letter idempotency evidence, and the final per-DoD command/result summary. This removes the dev10 false-negative completion batch that kept reporting DOD-06/07/08 missing after the implementation was already proven.
 
-Hermes still uses its built-in compressor unless you explicitly select Jev:
+## Dev9 token-saving Kanban path
 
-```bash
-hermes config set context.engine jev --force
-```
-
-Useful settings:
-
-```bash
-hermes config set plugins.entries.hermes-jev.settings.context_engine_mode shadow --force
-hermes config set plugins.entries.hermes-jev.settings.context_engine_threshold_percent 0.72 --force
-hermes config set plugins.entries.hermes-jev.settings.context_engine_fallback_builtin true --force
-```
-
-Both `context_curation_mode` and `context_engine_mode` default to `shadow` in 0.1.5.5. After evaluating shadow mode, use `context_engine_mode=apply` to let the engine anchor eligible old tool evidence at compaction boundaries.
-
-Do **not** add `jev` to a saved static platform-toolset list merely to expose these tools. Hermes dynamically registers plugin tools; on current Hermes builds a saved `jev` entry may produce an early `Unknown toolsets: jev` warning before plugin discovery even though the plugin subsequently loads correctly.
-
-## Privacy
-
-All Jev-bound state goes through Hermes-Jev's recursive secret redaction. Decision receipts default to hash-only state. The evidence ledger is separate because rehydration requires retaining content; its `sanitized` mode force-redacts stored content and metadata.
-
-Decision receipts:
+For a Kanban worker with Hermes-Jev enabled:
 
 ```text
-$HERMES_HOME/jev/receipts.jsonl
+card claim
+  -> auto-bind locked DoD + 70k default budget
+  -> worker starts with ZERO Jev tool schemas
+  -> post_api_request records worker input/output/reasoning tokens
+  -> post_tool_call records evidence and stable failure fingerprints
+  -> deterministic verifiers prove mechanical criteria locally
+  -> local ROI router stays silent on healthy work
+  -> repeated failure / unhealthy 40% or 70% checkpoint may trigger ONE Jev call
+  -> Jev returns trajectory + bounded next action
+  -> high-confidence directive is appended once to the next tool result
+  -> worker executes without a separate ask-Jev turn
+  -> completion proves deterministic remainder locally and batches semantic remainder
 ```
 
-Evidence ledger:
+Design invariant: **Jev must earn every token it spends.** `jev_work_status` exposes worker tokens, supervisor tokens, combined tokens, estimated avoided tokens, and estimated net savings for controller/debug sessions.
+
+The permanent healthy-run benchmark target is <=2% fixed overhead versus plain Hermes, with <=0.5% as the stretch target. A second benchmark class measures savings when a plausible wrong path causes repeated failures/replanning.
+
+
+
+## Dev9 terminal-handoff fixes
+
+Dev9 is a minimal lifecycle hardening release built from the measured dev8 A/B. It preserves dev8 decision policy and provider economics while fixing the post-solution failure that left a correct treatment worker running until protocol violation:
+
+- only the dispatcher-owned Kanban worker may run Jev completion verification or completion auditing; delegated child contexts are fenced from parent completion state and provider spend;
+- `kanban_complete` gets a fresh locked-DoD completion verdict before older trajectory control is consulted, so stale WATCH/REPLAN state cannot deadlock an already-complete run;
+- a passing completion verdict acknowledges older run control and hands authority back to Hermes' native `kanban_complete`; Jev never owns canonical task state;
+- fallback auto-binding prefers canonical dispatcher `HERMES_KANBAN_TASK[_ID]` over hook-local/session identifiers;
+- dev8's router activation, deterministic verification, bounded completion batches, cooldown, headless startup binding, and zero worker-visible Jev tools are unchanged.
+
+## Distributed-supervision foundation retained from dev5
+
+- **Locked Definition of Done contracts** for canonical Hermes Kanban cards.
+- **Evidence-backed progress**: worker claims, controller observations, and Jev verification are separate states. Only `VERIFIED_PASS` counts as verified progress.
+- **Deterministic frontier tracking** across DoD dependencies.
+- **Independent completion gate**: `kanban_complete` is treated as a proposal for supervised cards until every required criterion is verified. Mechanical criteria are proved locally; Jev is used only for the remaining semantic judgment when one exists.
+- **Token-budget trajectory supervision** with configurable checkpoints and `CONTINUE | WATCH | REPLAN | BLOCK` decisions.
+- **Safe mid-task correction**: advisory/enforced controls block new implementation work, permit checkpoint actions, preserve evidence/artifacts, and route the exact canonical run to `review` for orchestrator replanning.
+- **Durable SSH Hermes workers** with admin-defined aliases, workspace/profile allowlists, stdin-only task transport, cancellation, timeouts, rate-limit exit 75 preservation, and exact-run fencing.
+- **Git-native remote execution**: exact HEAD + dirty/untracked overlay, per-run remote repo, returned result ref under `refs/hermes-kanban-labs/results/*`, and a hard invariant that the controller checkout is never switched/reset/merged by the transport.
+- **Successor-run resume**: verified criterion verdicts survive retry/replan while the locked DoD hash is unchanged, so replacement workers resume at the unresolved frontier instead of redoing proven work.
+
+## Authority model
 
 ```text
-$HERMES_HOME/jev/context-ledger.jsonl
+Hermes Kanban             canonical cards / dependencies / runs / claims / review / done
+      |
+      +-- exact task_id + run_id + claim_lock
+      |
+Hermes-Jev CardSupervisor DoD / evidence / verified progress / budgets / Jev decisions
+      |
+      +-- local Hermes worker
+      +-- SSH Hermes worker
 ```
 
-See [`SECURITY.md`](SECURITY.md).
+Hermes-Jev deliberately does **not** own canonical task status, dependencies, retries, queues, or completion state. Those remain in Hermes Kanban.
 
-## Maintainer / release status
+## Install
 
-The source of truth for a release is the versioned commit plus its GitHub Actions result. GitHub Releases may lag source history; do not infer the current plugin version from the releases page alone.
+From the extracted final package:
 
-Maintainers can publish a verified release from the current default-branch version using the manual **release** GitHub Actions workflow. The workflow refuses a requested version that does not match `pyproject.toml`, reruns unit/compile/release verification, creates source archives, writes SHA-256 checksums, and creates the GitHub Release without overwriting an existing tag.
+```bash
+cd hermes-jev-v0.2.2.dev17-final
+bash scripts/install_dev17_profile.sh abtest-jev-dev17
+```
 
-## Testing
+The installer preserves an existing `hermes-jev` directory as a timestamped backup, installs this package into the selected profile, and enables the plugin.
 
-Offline:
+Dev17 keeps economical headless supervision and auto-estimates a task token target, records it as non-blocking `DOD-BUDGET` telemetry, and observes token trajectory after every provider call. Budget pressure cannot invalidate correct work: Nerve may grant one bounded extension after a YES forecast or hand the run to canonical review, but only the orchestrator/reviewer may decide to stop/block it. The 70k setting remains a floor rather than the typical final estimate. Controller/admin sessions still expose the public Jev tools; dispatcher-spawned Kanban workers do not.
+
+Verify the package before a live run:
+
+```bash
+bash scripts/verify_dev17.sh
+```
+
+For the Pair-3 lifecycle fix specifically:
+
+```bash
+python3 -m pytest -q tests/test_dev15_controller_completion.py tests/test_dev14_dod07_probe.py
+```
+
+See `docs/DEV16_INSTALL_AND_RETEST.md` for nerve thresholds, live acceptance, completion diagnostics, and the next A/B protocol; dev15 documentation remains for lifecycle history.
+
+Remote machines used as supervised Hermes workers should run a compatible dev15 build so run identity/checkpoint and controller-owned completion semantics match the controller.
+
+### Remote host example
+
+Configure `remote_hosts` through the Hermes plugin configuration mechanism as a mapping. Each host is an admin-defined alias; callers cannot inject arbitrary SSH options. A host can constrain `workspace_root`, `profile` / `allowed_profiles`, `max_turns`, timeout, model/provider/toolsets, and optional `git_cache_root` / `control_root`.
+
+Remote task text is sent over stdin. Controller provider credentials are not forwarded through SSH.
+
+## New tools
+
+- `jev_supervise_card` — bind/amend DoD, bind run, status, verify criteria, record budget, assess trajectory, checkpoint, label outcomes, request canonical review.
+- `jev_work_event` — worker progress/checkpoint events.
+- `jev_work_status` — compact progress/frontier/control view.
+- `jev_remote_delegate_task` — durable SSH delegation.
+- `jev_remote_worker_status`
+- `jev_remote_worker_result`
+- `jev_remote_worker_cancel`
+- `jev_remote_worker_control`
+
+The original eight dev4 Jev tools remain registered.
+
+## Verification
 
 ```bash
 python3 -m unittest discover -s tests -v
+python3 scripts/verify_dev6_benchmark.py
 python3 -m compileall -q .
+python3 scripts/verify_release.py
 ```
 
-Live synthetic regression suite:
+The North-Star regression deliberately proves: locked DoD → partial verified progress → bad remote trajectory → Jev REPLAN → checkpoint/review handoff → successor run resumes inherited verified facts → remaining criterion verified → terminal completion PASS → 100% verified.
 
-```bash
-set -a
-source ~/.hermes/profiles/muna/.env
-set +a
-python3 scripts/live_api_suite.py
-```
+## Development provenance
 
-The live path has been validated through Hermes -> hermes-jev -> OpenRouter Decisions -> TypeSafe Jev using a free primary Hermes model. Four verified live calls consumed 2,264 input + 281 output tokens, cost $0.000095088 total, and averaged 419.276 ms provider latency. See [`docs/LIVE_TEST_NOTES_2026-09-17.md`](docs/LIVE_TEST_NOTES_2026-09-17.md). The context-governor policy remains shadow-first before automatic apply mode.
+The dev5 foundation started from the last publicly verifiable Hermes-Jev development fixed point, `0.2.2.dev4` commit `a3aeedc0006797c244ef29d7e085616a5253e627`, and incorporates behavior derived from:
 
-## Benchmarking objective
+- Hermes Outpost `9764b4fd0fb7f7923b8c5796b0e17036046858f0`
+- Hermes Kanban Labs `acf73737673c6639ac59991d61e349456738b132`
+- current Hermes Kanban lifecycle APIs, while keeping Kanban as the sole canonical work-state authority.
 
-Raw compression ratio is not the primary metric. The target is **continuation fidelity per context token**: preserve constraints and exact failure evidence, reduce stale/recoverable clutter, avoid repeated work, and successfully rehydrate when older evidence becomes relevant again.
-
-See [`docs/BENCHMARKING.md`](docs/BENCHMARKING.md).
-
-## License
-
-MIT
-
-### v0.2.1 repeated-failure loop breaker
-
-The local fallback threshold is configurable:
-
-```bash
-hermes config set plugins.entries.hermes-jev.settings.nervous_repeated_failure_local_replan_at 3 --force
-```
-
-The default `3` means the first equivalent failure may be assessed by Jev, later
-identical failures are provider-deduplicated, and the third identical failure
-activates a local `REPLAN` control even if remote supervision is late. In
-`correct_next`/`precommit`, the next exact same failed action is blocked; an explicit
-Jev `RETRY` permits one retry.
-
-For debugging, `jev_stats` now defaults to a compact summary. Request a narrow section
-instead of injecting the whole telemetry ledger into model context, for example:
-
-```text
-jev_stats {"section":"nervous","include_recent":true,"recent_limit":3}
-```
+See `docs/DEV_0.2.2.md` and `SOURCE_PROVENANCE.md`.

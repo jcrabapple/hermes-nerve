@@ -1,18 +1,46 @@
-"""Hermes-Jev plugin registration."""
+"""Hermes-Jev plugin registration — v0.2.2.dev17 open-source reflex validation."""
+from __future__ import annotations
 
 import logging
+import os
 from pathlib import Path
 
-from .hermes_jev import client, context, gate, ledger, receipts, schemas, tools, nervous
-from .hermes_jev.context_engine import JevContextEngine
-from .hermes_jev.provenance import VERSION
+try:
+    # Hermes plugin loader imports the plugin as a package. Relative imports are
+    # required there because the plugin root itself is not added to sys.path.
+    from .hermes_jev import client, context, gate, ledger, nervous, receipts, schemas, tools
+    from .hermes_jev import reflex
+    from .hermes_jev.context_engine import JevContextEngine
+    from .hermes_jev.provenance import VERSION
+    from .hermes_jev.remote import control as remote_control
+    from .hermes_jev.remote import runtime as remote_runtime
+    from .hermes_jev.remote import tools as remote_tools
+    from .hermes_jev.work import hooks as work_hooks
+    from .hermes_jev.work import runtime as work_runtime
+    from .hermes_jev.work import tools as work_tools
+except ImportError:
+    # Pytest and direct offline verification may import this file as bare
+    # ``__init__``. Preserve that source-tree workflow without regressing the
+    # real Hermes package-loader fix above.
+    from hermes_jev import client, context, gate, ledger, nervous, receipts, schemas, tools
+    from hermes_jev import reflex
+    from hermes_jev.context_engine import JevContextEngine
+    from hermes_jev.provenance import VERSION
+    from hermes_jev.remote import control as remote_control
+    from hermes_jev.remote import runtime as remote_runtime
+    from hermes_jev.remote import tools as remote_tools
+    from hermes_jev.work import hooks as work_hooks
+    from hermes_jev.work import runtime as work_runtime
+    from hermes_jev.work import tools as work_tools
 
 logger = logging.getLogger("hermes_jev")
 
 
 def register(ctx):
-    # Compatibility with the user's hand-fixed 0.1.5.1 tree: model_id remains
-    # accepted, while jev_model is the canonical non-reserved key going forward.
+    is_kanban_worker = bool(
+        str(os.getenv("HERMES_KANBAN_TASK") or os.getenv("HERMES_KANBAN_TASK_ID") or "").strip()
+    )
+    headless_worker = is_kanban_worker and bool(ctx.get_config("work_headless_workers", True))
     legacy_model = ctx.get_config("model_id", "typesafe/jev-1.13")
     client.configure(
         provider=ctx.get_config("jev_provider", "openrouter"),
@@ -20,6 +48,21 @@ def register(ctx):
         typesafe_model=ctx.get_config("typesafe_model", "jev-latest"),
         opencode_model=ctx.get_config("opencode_model", "jev-1.13"),
         timeout=ctx.get_config("timeout_seconds", 10.0),
+    )
+    reflex.configure(
+        backend=ctx.get_config("reflex_backend", "jev"),
+        laya_base_url=ctx.get_config("reflex_laya_base_url", os.getenv("HERMES_REFLEX_LAYA_BASE_URL", "http://127.0.0.1:8765")),
+        laya_model=ctx.get_config("reflex_laya_model", os.getenv("HERMES_REFLEX_LAYA_MODEL", "convaiinnovations/laya-typed-decisions")),
+        laya_timeout_seconds=ctx.get_config("reflex_laya_timeout_seconds", os.getenv("HERMES_REFLEX_LAYA_TIMEOUT", 5.0)),
+        laya_token=ctx.get_config("reflex_laya_token", os.getenv("HERMES_REFLEX_LAYA_TOKEN", "")),
+        openjev_base_url=ctx.get_config("reflex_openjev_base_url", os.getenv("HERMES_REFLEX_OPENJEV_BASE_URL", "http://127.0.0.1:3000")),
+        openjev_model=ctx.get_config("reflex_openjev_model", os.getenv("HERMES_REFLEX_OPENJEV_MODEL", "openjev")),
+        openjev_timeout_seconds=ctx.get_config("reflex_openjev_timeout_seconds", os.getenv("HERMES_REFLEX_OPENJEV_TIMEOUT", 10.0)),
+        openjev_token=ctx.get_config("reflex_openjev_token", os.getenv("HERMES_REFLEX_OPENJEV_TOKEN", "")),
+        openjev_expected_identity=ctx.get_config("reflex_openjev_expected_identity", os.getenv("HERMES_REFLEX_OPENJEV_EXPECTED_IDENTITY", "")),
+        shadow_backend=ctx.get_config("reflex_shadow_backend", "laya"),
+        shadow_async=ctx.get_config("reflex_shadow_async", True),
+        shadow_log=ctx.get_config("reflex_shadow_log", ""),
     )
     gate.configure(
         mode=ctx.get_config("gate_mode", "off"),
@@ -57,49 +100,167 @@ def register(ctx):
         anchor_max_exact=ctx.get_config("context_anchor_max_exact", 0.45),
         conflict_pin_min=ctx.get_config("context_conflict_pin_min", 0.70),
     )
+    # dev11: retain Hermes' supported in-process tool dispatcher so a passing
+    # pre_verify gate can complete the owning Kanban run without another model turn.
+    # Older/offline test contexts may not expose dispatch_tool; fail closed there.
+    work_runtime.set_tool_dispatcher(getattr(ctx, "dispatch_tool", None))
+    work_runtime.configure(
+        enabled=ctx.get_config("work_supervision_enabled", True),
+        mode=ctx.get_config("work_supervision_mode", "advisory"),
+        store_path=ctx.get_config("work_supervision_db", ""),
+        preview_chars=ctx.get_config("work_evidence_preview_chars", 1200),
+        calibration_min_samples=ctx.get_config("work_calibration_min_samples", 12),
+        calibration_max_brier=ctx.get_config("work_calibration_max_brier", 0.24),
+        enforcement_override=ctx.get_config("work_enforcement_override", False),
+        control_confidence=ctx.get_config("work_control_confidence", 0.86),
+        reviewer=ctx.get_config("work_reviewer", ""),
+        auto_bind_kanban=ctx.get_config("work_auto_bind_kanban", True),
+        headless_workers=ctx.get_config("work_headless_workers", True),
+        default_task_budget_tokens=ctx.get_config("work_default_task_budget_tokens", 70000),
+        checkpoint_fractions=ctx.get_config("work_checkpoint_fractions", "0.40,0.70"),
+        supervisor_budget_fraction=ctx.get_config("work_supervisor_budget_fraction", 0.03),
+        roi_min_expected_savings_tokens=ctx.get_config("work_roi_min_expected_savings_tokens", 1500),
+        provider_decision_cooldown_tokens=ctx.get_config("work_provider_decision_cooldown_tokens", 8000),
+        estimated_decision_call_tokens=ctx.get_config("work_estimated_decision_call_tokens", ctx.get_config("work_estimated_jev_call_tokens", 800)),
+        estimated_jev_call_tokens=ctx.get_config("work_estimated_jev_call_tokens", 800),
+        provider_decisions_enabled=ctx.get_config("work_provider_decisions_enabled", True),
+        directive_high_confidence=ctx.get_config("work_directive_high_confidence", 0.90),
+        directive_watch_confidence=ctx.get_config("work_directive_watch_confidence", 0.75),
+        repeated_failure_trigger=ctx.get_config("work_repeated_failure_trigger", 2),
+        directive_max_chars=ctx.get_config("work_directive_max_chars", 320),
+        completion_controller_attempts=ctx.get_config("work_completion_controller_attempts", 3),
+        auto_estimate_task_budget=ctx.get_config("work_auto_estimate_task_budget", True),
+        budget_dod_required=ctx.get_config("work_budget_dod_required", True),
+        budget_dod_tolerance=ctx.get_config("work_budget_dod_tolerance", 1.10),
+        budget_estimator_base_tokens=ctx.get_config("work_budget_estimator_base_tokens", 120000),
+        budget_estimator_per_criterion_tokens=ctx.get_config("work_budget_estimator_per_criterion_tokens", 75000),
+        budget_estimator_body_char_factor=ctx.get_config("work_budget_estimator_body_char_factor", 25.0),
+        budget_estimator_safety_multiplier=ctx.get_config("work_budget_estimator_safety_multiplier", 1.25),
+        budget_estimator_max_tokens=ctx.get_config("work_budget_estimator_max_tokens", 2000000),
+        nerve_observer_enabled=ctx.get_config("work_nerve_observer_enabled", True),
+        nerve_auto_kill=ctx.get_config("work_nerve_auto_kill", True),
+        nerve_watch_fraction=ctx.get_config("work_nerve_watch_fraction", 0.65),
+        nerve_replan_fraction=ctx.get_config("work_nerve_replan_fraction", 0.90),
+        nerve_hard_budget_multiplier=ctx.get_config("work_nerve_hard_budget_multiplier", 1.75),
+        nerve_min_calls_before_kill=ctx.get_config("work_nerve_min_calls_before_kill", 12),
+        nerve_repeated_failure_kill=ctx.get_config("work_nerve_repeated_failure_kill", 3),
+        nerve_high_context_streak_kill=ctx.get_config("work_nerve_high_context_streak_kill", 3),
+    )
+    # dev7: establish the exact Kanban run + locked DoD before the worker's
+    # first provider call. This is local-only and therefore adds no LLM/token
+    # overhead. Later hooks refresh the session id but do not own bootstrap.
+    startup_identity = None
+    if headless_worker and work_runtime.enabled():
+        startup_identity = work_hooks.bootstrap_kanban_worker()
 
-    ctx.register_tool(name="jev_decide", toolset="jev", schema=schemas.JEV_DECIDE, handler=tools.jev_decide)
-    ctx.register_tool(name="jev_rank", toolset="jev", schema=schemas.JEV_RANK, handler=tools.jev_rank)
-    ctx.register_tool(name="jev_verify", toolset="jev", schema=schemas.JEV_VERIFY, handler=tools.jev_verify)
-    ctx.register_tool(name="jev_assess", toolset="jev", schema=schemas.JEV_ASSESS, handler=tools.jev_assess)
-    ctx.register_tool(name="jev_context_curate", toolset="jev", schema=schemas.JEV_CONTEXT_CURATE, handler=tools.jev_context_curate)
-    ctx.register_tool(name="jev_context_rehydrate", toolset="jev", schema=schemas.JEV_CONTEXT_REHYDRATE, handler=tools.jev_context_rehydrate)
-    ctx.register_tool(name="jev_stats", toolset="jev", schema=schemas.JEV_STATS, handler=tools.jev_stats)
-    ctx.register_tool(name="jev_nervous_event", toolset="jev", schema=schemas.JEV_NERVOUS_EVENT, handler=tools.jev_nervous_event)
-    # v0.2.1: one composed pre-tool control seam. Local nervous control runs
-    # first; the optional synchronous legacy gate is consulted only when the
-    # local loop breaker does not already constrain the action.
+    remote_runtime.configure(
+        hosts=ctx.get_config("remote_hosts", {}),
+        default_host=ctx.get_config("remote_default_host", ""),
+        default_max_turns=ctx.get_config("remote_default_max_turns", 100),
+        default_task_timeout_seconds=ctx.get_config("remote_default_task_timeout_seconds", 3600),
+        data_dir=ctx.get_config("remote_data_dir", ""),
+    )
+
+    registrations = [
+        ("jev_decide", schemas.JEV_DECIDE, tools.jev_decide),
+        ("jev_rank", schemas.JEV_RANK, tools.jev_rank),
+        ("jev_verify", schemas.JEV_VERIFY, tools.jev_verify),
+        ("jev_assess", schemas.JEV_ASSESS, tools.jev_assess),
+        ("jev_context_curate", schemas.JEV_CONTEXT_CURATE, tools.jev_context_curate),
+        ("jev_context_rehydrate", schemas.JEV_CONTEXT_REHYDRATE, tools.jev_context_rehydrate),
+        ("jev_stats", schemas.JEV_STATS, tools.jev_stats),
+        ("jev_nervous_event", schemas.JEV_NERVOUS_EVENT, tools.jev_nervous_event),
+        ("jev_supervise_card", schemas.JEV_SUPERVISE_CARD, work_tools.jev_supervise_card),
+        ("jev_work_event", schemas.JEV_WORK_EVENT, work_tools.jev_work_event),
+        ("jev_work_status", schemas.JEV_WORK_STATUS, work_tools.jev_work_status),
+        ("jev_remote_delegate_task", schemas.JEV_REMOTE_DELEGATE_TASK, remote_tools.jev_remote_delegate_task),
+        ("jev_remote_worker_status", schemas.JEV_REMOTE_WORKER_STATUS, remote_tools.jev_remote_worker_status),
+        ("jev_remote_worker_result", schemas.JEV_REMOTE_WORKER_RESULT, remote_tools.jev_remote_worker_result),
+        ("jev_remote_worker_cancel", schemas.JEV_REMOTE_WORKER_CANCEL, remote_tools.jev_remote_worker_cancel),
+        ("jev_remote_worker_control", schemas.JEV_REMOTE_WORKER_CONTROL, remote_tools.jev_remote_worker_control),
+    ]
+    # Controller/admin sessions retain the full Jev surface. Ordinary Kanban
+    # workers are deliberately headless: exposing these schemas was the largest
+    # fixed token cost in the first A/B benchmark and encouraged the worker to
+    # spend turns operating its own supervisor.
+    if not headless_worker:
+        for name, schema, handler in registrations:
+            ctx.register_tool(name=name, toolset="jev", schema=schema, handler=handler)
+
     def _pre_tool_control(**kwargs):
-        directive = nervous.pre_tool_call(**kwargs)
-        if directive is not None:
-            return directive
-        return gate.pre_tool_call(**kwargs)
+        callbacks = (remote_control.pre_tool_call, work_hooks.pre_tool_call)
+        if not headless_worker:
+            callbacks += (nervous.pre_tool_call, gate.pre_tool_call)
+        for callback in callbacks:
+            directive = callback(**kwargs)
+            if directive is not None:
+                return directive
+        return None
+
+    def _pre_llm(**kwargs):
+        work_result = work_hooks.pre_llm_call(**kwargs)
+        if headless_worker:
+            return work_result
+        nervous_result = nervous.pre_llm_call(**kwargs)
+        return work_result if work_result is not None else nervous_result
+
+    def _transform_tool_result(**kwargs):
+        work_result = work_hooks.transform_tool_result(**kwargs)
+        if work_result is not None:
+            return work_result
+        if not headless_worker:
+            return nervous.transform_tool_result(**kwargs)
+        return None
+
+    def _post_llm(**kwargs):
+        work_hooks.post_llm_call(**kwargs)
+        if not headless_worker:
+            nervous.post_llm_call(**kwargs)
+
+    def _session_end(**kwargs):
+        work_hooks.on_session_end(**kwargs)
+        if not headless_worker:
+            nervous.on_session_end(**kwargs)
 
     ctx.register_hook("pre_tool_call", _pre_tool_control)
-    ctx.register_hook("post_tool_call", ledger.observe_tool_call)
-    # Admission and provider work are asynchronous; transform_tool_result is the
-    # non-blocking model-context backchannel for confident challenges.
-    ctx.register_hook("pre_llm_call", nervous.pre_llm_call)
-    ctx.register_hook("post_tool_call", nervous.post_tool_call)
-    ctx.register_hook("transform_tool_result", nervous.transform_tool_result)
-    ctx.register_hook("pre_verify", nervous.pre_verify)
-    ctx.register_hook("post_llm_call", nervous.post_llm_call)
-    ctx.register_hook("on_session_end", nervous.on_session_end)
+    ctx.register_hook("post_tool_call", work_hooks.post_tool_call)
+    if not headless_worker:
+        ctx.register_hook("post_tool_call", ledger.observe_tool_call)
+        ctx.register_hook("post_tool_call", nervous.post_tool_call)
+    ctx.register_hook("pre_llm_call", _pre_llm)
+    ctx.register_hook("transform_tool_result", _transform_tool_result)
+    ctx.register_hook("pre_verify", work_hooks.pre_verify if headless_worker else nervous.pre_verify)
+    ctx.register_hook("post_api_request", work_hooks.post_api_request)
+    ctx.register_hook("api_request_error", work_hooks.api_request_error)
+    ctx.register_hook("post_llm_call", _post_llm)
+    ctx.register_hook("on_session_end", _session_end)
 
-    # Registration is harmless until the user explicitly selects context.engine=jev.
-    # Guard for older Hermes versions that do not yet expose the public ContextEngine slot.
-    if bool(ctx.get_config("context_engine_register", True)) and hasattr(ctx, "register_context_engine"):
-        engine = JevContextEngine(
+    if not headless_worker and bool(ctx.get_config("context_engine_register", True)) and hasattr(ctx, "register_context_engine"):
+        ctx.register_context_engine(JevContextEngine(
             mode=ctx.get_config("context_engine_mode", "shadow"),
             threshold_percent=ctx.get_config("context_engine_threshold_percent", 0.72),
             protect_first_n=ctx.get_config("context_engine_protect_first_n", 3),
             protect_last_n=ctx.get_config("context_engine_protect_last_n", 6),
             shadow_trigger_percent=ctx.get_config("context_engine_shadow_trigger_percent", 0.55),
             fallback_builtin=ctx.get_config("context_engine_fallback_builtin", True),
-        )
-        ctx.register_context_engine(engine)
-
+        ))
     logger.info(
-        "Hermes-Jev %s loaded from %s; tools=8 hook_names=7 hook_callbacks=8 context_engine_register=%s",
-        VERSION, Path(__file__).resolve().parent, bool(ctx.get_config("context_engine_register", True)),
+        "Hermes-Jev %s loaded from %s; tools=%d headless_worker=%s work_supervision=%s",
+        VERSION, Path(__file__).resolve().parent, 0 if headless_worker else len(registrations), headless_worker,
+        ctx.get_config("work_supervision_enabled", True),
     )
+    if headless_worker:
+        if startup_identity is not None:
+            logger.info(
+                "Hermes-Jev headless supervision bound at startup: task=%s run=%s contract=%s",
+                startup_identity.task_id, startup_identity.run_id, startup_identity.contract_hash[:12],
+            )
+        else:
+            message = (
+                "Hermes-Jev headless supervision did not bind at startup; inspect supervision_diagnostics "
+                "before treating this run as a valid Jev-supervised measurement"
+            )
+            if os.getenv("HERMES_JEV_OFFLINE_VERIFY") == "1":
+                logger.info("%s (offline verifier: not applicable)", message)
+            else:
+                logger.warning(message)

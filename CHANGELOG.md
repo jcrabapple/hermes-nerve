@@ -1,153 +1,165 @@
 # Changelog
 
-## 0.2.2.dev4 — repository-wide maintenance follow-through
+## 0.2.2.dev17 — release hardening + Laya/OpenJev validation
 
-- Scope provider-cost completeness to provider-backed decisions so local loop-breaker decisions do not turn a complete provider cost total into an unknown total.
-- Move gate-event persistence onto the shared serialized JSONL helper and add parallel-write regression coverage.
-- Update GitHub Actions to checkout v7.0.1 and setup-python v7.0.0; extend CI through Python 3.14.
-- Group Dependabot GitHub Actions updates to reduce duplicate maintenance PRs.
-- Harden the stable release workflow: reject `.dev` versions and non-default-branch dispatches.
-- Refresh direct TypeSafe live-testing documentation with the second independent smoke/suite/Hermes integration report and explicit missing-cost semantics.
-- Annotate historical bug handoffs and public issues so old discovery-state labels are not mistaken for current defects.
-- Keep OpenRouter as default, OpenCode paid-only `jev-1.13`, and the Hermes catalog template unchanged at v0.2.1.2.
+- **RC authority correction from live matrix evidence:** Nerve/Reflex no longer owns economic kill authority. At budget pressure it acts as a watchdog/forecaster and returns the final stop/continue decision to the Hermes LLM orchestrator through canonical `kanban_request_review`.
+- Split correctness from spending policy: `DOD-BUDGET` remains visible telemetry when appended, but is non-required and cannot make otherwise-correct work impossible to complete.
+- Add one bounded token-extension forecast: at 80% of the base target ask `YES | NO | MAYBE` whether +25% is likely to finish. A confident YES grants one extension; MAYBE reviews immediately; NO gets only a bounded checkpoint window and reviews by 90%; exhausting the granted extension always reviews.
+- Retain the former 1.75x hard ceiling only as an emergency **review/pause** fence. No economic condition dispatches `kanban_block`; the orchestrator/reviewer owns COMPLETE / CHANGES / BLOCK.
+- Matrix profiles route Nerve budget handoffs to the source orchestrator profile so the release test exercises the intended authority chain.
+- Freeze dev16 controller-completion, token-budget estimator, tolerance, and Nerve thresholds as the policy baseline for backend validation.
+- Add first-class local `openjev` Reflex backend and provider-neutral Jev-authoritative shadow selection (`laya` or `openjev`).
+- Add secure loopback/HTTPS OpenJev client, optional served-identity pinning, `/v1/version` smoke, LOCAL_ONLY provenance, and token redaction.
+- Update Laya operator path to the current published `laya==0.3.3` package and standalone `convaiinnovations/laya-typed-decisions` checkpoint while retaining sidecar compatibility with `system_one`/`predict`.
+- Fix live A/B validity classification so Hermes `completed` is accepted alongside `done`.
+- Replace fragile shell-cleanup/result-finalization behavior with a crash-safe Python model-matrix runner that flushes every arm, reaps lingering workers, preserves external emergency stops separately from Nerve kills, and emits explicit outcome taxonomy plus tail metrics.
+- Make offline fake-headless verification quiet/not-applicable without weakening the real worker binding warning.
+- Add setup/smoke/profile configuration tooling for Laya and OpenJev and a hosted-Jev/Laya/OpenJev release matrix.
+- Document OpenJev's CC BY-NC 4.0 weights separately from its Apache-2.0 helper/serve code; dev17 does not redistribute model weights.
 
-## 0.2.2.dev3 — runtime and telemetry hardening
 
-- Evict completed nervous-system turn state and session mappings so long-lived Hermes processes do not retain every finished turn.
-- Treat missing provider cost as unknown instead of silently converting it to `0.0`; retain provider-reported subtotals and missing-cost counts.
-- Serialize JSONL appends for receipts, outcomes, nervous events, and context evidence, with advisory cross-process locking where available.
-- Expand defensive secret redaction for additional common credential/token formats and secret-bearing query/assignment strings.
-- Make development catalog verification generic in the offline verifier and enforce the non-catalog boundary against the PR base in CI.
-- Scope v0.2.1.2 verification artifacts explicitly as historical stable-release evidence and refresh current development documentation.
-- Restore copy-paste provider setup commands for OpenRouter and direct TypeSafe.
+## 0.2.2.dev16 — token-budget DoD + nerve observer / kill switch
 
-## 0.2.2.dev2 — OpenCode paid-only correction
+- Adds a local task-token estimator and locks the resulting target into every auto-bound Kanban Definition of Done as required `DOD-BUDGET`.
+- Adds a default 10% deterministic completion tolerance to reduce estimate-boundary false positives while keeping budget authority controller-owned.
+- Adds the zero-provider-cost nerve observer with CONTINUE/WATCH/REPLAN/KILL states and state-transition-only directives.
+- Adds a conservative hard circuit breaker: default 1.75x target and at least 12 provider calls; crossing the estimate alone never kills a run.
+- Adds an earlier corroborated kill only when overrun, repeated identical failures, and sustained high-context calls all agree.
+- Adds controller-owned canonical `kanban_block` dispatch for confirmed runaway runs, with durable BLOCK fencing if the native transition fails.
+- Prefers controller-owned `kanban_complete` over kill when a late provider call is observed after verified PASS.
+- Prevents watchdog state from overwriting an already COMPLETED run.
+- Makes auto-budget splitting exact instead of losing rounding tokens.
+- Exposes live nerve state through `jev_work_status`.
+- Adds dev16 regression coverage for conservative estimation, false-positive guards, hard-runaway kill, canonical kill dispatch, and post-PASS completion recovery.
 
-- Correct the OpenCode Hermes integration to use paid `jev-1.13` only.
-- Explicitly reject `jev-1.13-free` because that tier does not work with Hermes.
-- Keep `OPENCODE_API_KEY`, the native `/zen/v1/systemone` endpoint, and `opencode-zen-system-one` provenance.
-- Preserve OpenRouter as the default provider and keep direct TypeSafe behavior unchanged.
-- Keep this development line non-catalog; the catalog template remains on v0.2.1.2.
+## 0.2.2.dev15 — controller-owned completion + Reflex/Laya integration
 
-## 0.2.2.dev1 — OpenCode Zen System One transport
+- Integrates the dev15b provider-neutral Reflex/Laya slice into the finalized dev15 package while keeping Jev as the default authoritative decision backend.
+- Converts terminal completion into an explicit controller-owned lifecycle: `VERIFIED -> COMPLETING -> COMPLETED`, with durable `COMPLETION_RETRY` for native transition failures.
+- Removes the dev14 post-PASS worker retry loop: when controller dispatch is available, a verified PASS never returns `action=continue` merely because native `kanban_complete` failed. Controller-local retries happen without another worker-model call.
+- Converts worker/model completion intent into controller verification + native completion, including direct `kanban_complete`, `hermes kanban ... complete`, generic tool-search wrappers, `CanonicalKanbanAdapter.complete(...)`, generated `complete_task.py`, and direct Kanban lifecycle bypass attempts.
+- Keeps worker-originated lifecycle mutation fenced while allowing the hook-owned `PluginContext.dispatch_tool("kanban_complete", ...)` re-entry through an internal ContextVar guard.
+- Retries a verified-but-deferred native transition from `on_session_end` instead of re-running semantic completion verification or waking the worker.
+- Audits any provider request observed after verified PASS as `completion_worker_call_after_verified`; the dev15 acceptance invariant is zero such calls.
+- Adds bounded `work_completion_controller_attempts` (default 3) for controller-local native completion retries.
+- Adds the Pair-3 regression suite proving CLI completion wandering is collapsed into one controller-owned terminal transition, including delegated/child-fenced worker conditions and dispatch re-entry.
+- Preserves dev14 deterministic DOD-07 authority, dev13 deterministic-over-semantic precedence, dev12 stop-nudge suppression after explicit success, and the single canonical Hermes Kanban task/run authority.
+- Includes `jev`, `laya`, and Jev-authoritative `shadow` Reflex modes, the dependency-free Laya client, preloaded sidecar, fail-open paired telemetry, LOCAL_ONLY Laya provenance, model-pin/auth checks, and optional `laya==0.3.5` extra.
+- Leaves the Hermes community catalog unchanged.
 
-- Initial OpenCode transport development cut. It included the free-tier model assumption that was corrected in dev2.
+## 0.2.2.dev14 — controller-owned DOD-07 behavioral proof
 
-## 0.2.1.2 — bounded context-engine and fail-open stabilization
+- Replace DOD-07 test-name inference with a controller-owned, in-memory behavioral probe that executes the locked retry/dead-letter/idempotency semantics directly against the implementation.
+- Reproduce the live dev13 miss: the worker had a green 26-test suite while re-dispatching an already-dead event changed its attempt counter from 2 to 3.
+- Return the exact deterministic counterexample in the completion RETRY directive so the worker sees the failing behavior rather than a generic `DOD-07 missing` message.
+- Persist the deterministic failure reason in `completion_pre_verify` diagnostics.
+- Extend hidden acceptance to require dead-event redispatch stability, no post-dead handler invocation, delivered-event stability, and retry-queue uniqueness.
+- Add dev14 regressions proving a green visible suite can still be rejected for the live DOD-07 bug, that the counterexample is surfaced verbatim, and that the repaired short-circuit reaches harness-owned native completion with zero semantic completion calls.
+- Preserve dev13 deterministic authority, controller-authored DOD-08 summary, dev12 stop-nudge suppression, native completion, and lifecycle bypass fences.
 
-- Fix issue #2: automatic apply-mode curation no longer passes more than 48 evidence items into the bounded `jev_context_curate` contract.
-- Select recoverable raw tool-result evidence oldest-first, defer excess candidates unchanged, and exclude existing Jev anchors from future semantic curation.
-- Make the full compression boundary fail-open: Jev curation failures try the configured Hermes built-in compressor, and fallback-compressor failures return the original message list instead of escaping into the turn loop.
-- Make shadow curation failures and selection pressure observable through ContextEngine status.
-- Fix shadow telemetry so proposed ANCHOR/DROP actions do not count as applied compaction or inflate recovery-demand metrics.
-- Avoid automatic remote semantic assessments for deterministically unrecoverable evidence, and preserve safety-rejected tool evidence exactly instead of sending it through the generic fallback.
-- Add 0.2.1.2 regressions for 48/49/60/851-item boundaries, double-failure fail-open behavior, anchor idempotence, shadow telemetry, unrecoverable evidence, and the 12-request maximum semantic fan-out for 48 items.
-- Record the independent successful v0.2.1.1 direct-TypeSafe smoke from issue #1 without overstating it as a v0.2.1.2 credentialed validation.
+## 0.2.2.dev13 — deterministic completion authority
 
-## 0.2.1.1 — deferred schema, self-observation, and provenance patch
+- Make controller-observed deterministic verdicts authoritative for machine-verifiable Definition-of-Done criteria; semantic completion verification can no longer overwrite a deterministic FAIL.
+- Reproduce the live dev12 false-negative where correct retry/dead-letter/idempotency evidence still left DOD-07/DOD-08 unresolved and drove a 67-call completion-discovery spiral.
+- Broaden DOD-07 focused-test recognition to equivalent behavioral names such as retry-then-success stability, never-redeliver, and dead short-circuit/no-reattempt.
+- Remove dev12's extra retry-queue clause from DOD-07 when that clause is not actually present in the locked criterion.
+- Make DOD-08 harness-owned: synthesize the canonical final completion summary from authoritative verdicts, including every DOD label and the exact full-suite command/result, instead of relying on model prose.
+- Reuse the already-observed DOD-01 full-suite evidence when formatting the canonical summary, avoiding redundant suite executions.
+- Add dev13 regressions proving the exact dev12 evidence shape completes with zero semantic completion calls and that deterministic failure cannot be semantically overridden.
+- Preserve dev12 zero-turn native completion, stop-nudge suppression, session-end skip, terminal authority fences, and fail-closed behavior.
 
-- Fix **BUG-001**: make the deferred `jev_assess` schema mechanically constructible from `tool_describe`, including explicit `choice.criteria` map/`minProperties: 2`, `score.criteria` array/`minItems: 2`, and noul semantics.
-- Fix **BUG-002**: make every `jev_*` post-tool result/failure an internal nervous-system boundary. Internal Jev observations are logged/counted locally and cannot recursively trigger a remote Jev nervous assessment.
-- Add origin telemetry for nervous provider calls and decisions so provider traffic can be attributed to the originating tool/event.
-- Fix **BUG-003**: remote `jev_decide`, `jev_rank`, `jev_assess`, and `jev_verify` results now carry a persisted content-bound `receipt_id`, normalized provenance block, and reporting-safe `provenance_status`.
-- Mark local-only results as `LOCAL_ONLY` and handler failures as `ERROR`; results without remote/receipt evidence cannot be represented structurally as `VERIFIED`.
-- Expand the offline suite from 66 to 74 tests with focused regressions for the three supplied P1 reports.
-- Preserve the 0.2.1 loop breaker, control leases, bounded stats, 8 tools / 7 hook names / 8 callbacks, and 1,119-requirement trace.
+## 0.2.2.dev12 — zero-turn terminal unwind
 
-## 0.2.1 — recovery/control hardening
+- Reproduce the dev11 live release smoke: the frozen fixture reached 24/24 tests, `completion_pre_verify allow=true`, and `completion_native_dispatch ok=true`, but Hermes emitted one post-PASS provider turn because its kanban stop guard could not see the hook-owned native completion in conversation message history.
+- After an explicit successful native `kanban_complete` dispatch, set the worker-local `HERMES_KANBAN_STOP_NUDGE=0` marker so Hermes' text-stop guard does not synthesize a redundant completion nudge.
+- Suppression is armed only after explicit native success. Ambiguous/error dispatches remain fail-closed with `COMPLETE_READY` active and the native terminal path still required.
+- Record `completion_stop_nudge_suppressed` diagnostics for live release forensics.
+- Preserve dev11 deterministic completion evidence, authority fences, harness-owned native dispatch, and session-end skip behavior.
 
-- Fix **JEV-001**: repeated identical failures now have an enforceable pre-tool control path. A confident remote `REPLAN`/`GATHER_EVIDENCE`/`ESCALATE` can prevent the exact failed action from running again, while `RETRY` explicitly permits one retry.
-- Add a provider-independent third-strike local `REPLAN` loop breaker so late/quiet Jev responses cannot allow an unbounded identical failure loop.
-- Fix **JEV-002**: add stable decision IDs and control lifecycle receipts covering decision creation, delivery, next-action attribution, enforcement/following, expiry, and outcomes. Define the decision-correction denominator explicitly.
-- Fix **JEV-003** telemetry ambiguity: the legacy pre-tool gate records correlated hook observations even when `gate_mode=off`, including turn/session/tool-call IDs.
-- Fix **JEV-004**: `jev_stats` is compact and sectioned by default, recent arrays are opt-in, and bounded tool-result protection prevents accidental ~30 KB telemetry injections.
-- Clarify **JEV-005**: rehydration is explicit/demand-driven; add a regression proving anchored evidence can be rehydrated and counted as recovery demand.
-- Fix **JEV-006**: stable repeated-failure fingerprints deduplicate equivalent failure assessments after the first provider evaluation; later exact repeats stay local until state/evidence changes.
-- Fix **JEV-007**: semantic decision-lease fingerprints no longer include monotonic state/decision counters, enabling real lease reuse and reasoned invalidation.
-- Improve **JEV-008** plugin-side startup diagnostics by logging the loaded version and source path. Hermes pre-discovery `unknown toolset`/context-engine warnings, if present, remain host-level behavior.
-- Compose local nervous control and the optional legacy gate into one `pre_tool_call` callback so a locally blocked retry does not unnecessarily fall through to a synchronous Jev gate call.
-- Add `nervous_repeated_failure_local_replan_at` (default `3`, range 2–20).
-- Expand the offline suite with repeated-failure dedup, local loop-breaking, remote REPLAN enforcement, RETRY allowance, control attribution, gate-off observation, bounded stats, fingerprint normalization, and rehydration-demand regressions.
+## 0.2.2.dev11 — harness-owned verified completion
 
-## 0.2.0
+- Reproduce the dev10 forensic failure: the worker reached 24/24 passing tests and machine-checkable 8/8 DoD evidence, but Jev still ended on `allow=false / ESCALATE`; the model then bypassed lifecycle authority with a worker-authored SQLite mutation and accumulated 80 worker API calls / 174 tool calls before exit.
+- Use Hermes' supported `PluginContext.dispatch_tool()` from the `pre_verify` hook. A PASS now arms `COMPLETE_READY` and immediately dispatches the native `kanban_complete` tool with the owning worker's task/run/claim context; no extra model turn is required.
+- Keep `COMPLETE_READY` durable before native dispatch so a native completion error leaves only the directly-listed `kanban_complete` exit available; repeated pre-verify attempts retry native dispatch without another Jev verification call.
+- Fail closed on every non-PASS completion verdict, including `ESCALATE`; completion cannot be converted into a human-approval escape path.
+- Add a worker authority fence that blocks terminal/CLI lifecycle mutation and worker-authored direct Kanban SQLite completion scripts while preserving the registered native Kanban tools.
+- Expand deterministic completion evidence: regression-test counts, public Python signature parity against the frozen Git baseline, focused retry/dead-letter idempotency test clauses, and final-summary command/result/per-DoD evidence are machine-verified before semantic fallback.
+- Skip session-end semantic re-verification after a terminal-ready PASS, preventing an already-verified run from spending another completion-batch call while unwinding.
+- Add frozen-fixture integration coverage proving all eight benchmark DoD criteria reach `VERIFIED_PASS` deterministically and trigger one harness-owned native completion dispatch with zero semantic completion calls.
 
-- Added asynchronous OFF/WATCH/ON turn admission so Hermes begins work without waiting for Jev.
-- Added structured Jev nervous-system events and `jev_nervous_event`.
-- Added adaptive local semantic routing, hysteresis, decision leases, and in-flight event batching.
-- Added confidence-gated decision challenges delivered through `transform_tool_result`.
-- Added state-version staleness protection and SHADOW/CORRECT_NEXT/PRECOMMIT authority modes.
-- Added local outcome store and optional historical relevance calibration.
-- Expanded `jev_stats` with nervous-system decision-quality and provider-avoidance telemetry.
-- Added direct TypeSafe System One transport alongside OpenRouter.
-- Preserved the existing seven tools, selective legacy gate, evidence ledger, rehydration, and ContextEngine.
-- Added adversarial offline tests for async non-blocking admission, batching, WATCH promotion, stale challenges, confidence gating, provider budget, and direct TypeSafe wire behavior.
+## 0.2.2.dev10 — terminal-ready fence after verified completion
 
-## 0.1.5.5 — profile-aware telemetry + shadow-safe community defaults
+- Reproduce the dev9 live lifecycle failure: all visible and hidden acceptance gates pass, completion is independently verified, yet the worker remains running and accumulates post-DoD Solar calls because the model misroutes `kanban_complete` through generic tool wrappers/searches and falls back toward direct DB mutation.
+- Convert a passing dispatcher-owned `pre_verify` verdict into a durable `COMPLETE_READY` run control instead of returning silently to a free-form worker loop.
+- While `COMPLETE_READY` is active, block every non-`kanban_complete` tool call with an explicit instruction to invoke the directly-listed native `kanban_complete` tool; this fences generic `tool_call`, `tool_search`, terminal/shell, file writes, and direct Kanban DB workarounds.
+- Repeated finish attempts reuse the durable PASS latch and do not spend another Jev semantic-completion call.
+- A direct `kanban_complete` remains the sole allowed terminal exit and is handed back to Hermes' native implementation; Hermes Kanban remains the sole canonical lifecycle authority.
+- Preserve dev9 provider prompts, routing thresholds, completion batching, token accounting, child completion fencing, and zero model-visible Jev tools unchanged.
 
-- Fix pre-tool gate latency discovered in live telemetry: 106/106 sampled `hermes/pre-tool-gate/v1` calls returned `ALLOW`, so `gate_scope=selective` now bypasses conservative read-only calls locally instead of paying a Jev network round trip for every introspection.
-- Add `gate_scope=all` compatibility mode to restore evaluate-every-call behavior.
-- Add local gate event telemetry (`bypassed`, `evaluated`, provider failures, provider latency, and avoided provider-call count) to `jev_stats`.
-- Keep the selective bypass intentionally narrow: shell composition, unknown tools, and potentially mutating command families still go to Jev.
-- Fix named-profile telemetry resolution: receipts and evidence ledgers now prefer Hermes' own active `HERMES_HOME` resolver, including context-local profile overrides.
-- Fix `scripts/context_shadow_report.py` so launching it from a named-profile plugin directory reads that profile instead of silently falling back to `~/.hermes`.
-- Add `scripts/jev_report.py` for combined decision receipt + context telemetry.
-- Add local-only `jev_stats` tool (7th tool) for exact active-profile cost/token/latency and context-ledger statistics.
-- Add receipt aggregation by contract/model with totals for provider calls, tokens, cost, and average latency.
-- Change fresh-install `context_curation_mode` and `context_engine_mode` defaults to `shadow`; applying context changes is now explicitly opt-in.
-- Add harvested live test notes from the 2026-09-17 Muna/TypeSafe run.
+## 0.2.2.dev9 — fence completion authority and repair terminal handoff
 
-## 0.1.5.4 — context-value governor
+- Fence semantic `pre_verify`, session-end completion auditing, and `kanban_complete` authorization to the dispatcher-owned Kanban worker. Delegate-task children may inherit Kanban environment variables, but they cannot spend Jev completion calls or mutate the parent's supervisory completion state.
+- Evaluate a fresh locked-DoD completion verdict before applying outstanding trajectory control to `kanban_complete`. A stale WATCH/REPLAN/BLOCK can no longer prevent current completion evidence from being considered forever.
+- When completion is verified, acknowledge older run control and return authority to Hermes' native `kanban_complete`; canonical task/run state remains exclusively owned by Hermes Kanban.
+- Prefer canonical `HERMES_KANBAN_TASK_ID` / `HERMES_KANBAN_TASK` over hook-local task/session identifiers during fallback auto-binding, eliminating the observed `autobind_task_missing` identity noise.
+- Add regression coverage for delegated-child completion fencing, child session-end isolation, child terminal denial, fresh completion superseding stale REPLAN, ordinary-tool control enforcement, and canonical fallback binding.
+- Preserve dev8 routing thresholds, provider prompts, completion batching, token accounting, headless zero-tool worker surface, and A/B-tuned supervision behavior unchanged.
 
-- Replace direct KEEP/STUB/DROP confidence gating with four Jev semantic estimates: future need, exactness need, supersession, and unresolved conflict.
-- Add deterministic `KEEP_EXACT`, `PIN`, `ANCHOR`, and `DROP` policy plus local `REHYDRATE`.
-- Add `jev_context_rehydrate`; public surface is now six tools.
-- Add explicit execution provenance to distinguish real OpenRouter/TypeSafe calls from main-model simulation.
-- Add lifecycle leases; nonrecoverable failure evidence stays pinned until a real `jev_verify` PASS.
-- Add a privacy-minimized evidence ledger, shadow plans, and `scripts/context_shadow_report.py`.
-- Add `post_tool_call` observation hook; plugin now exposes two hooks.
-- Add opt-in `JevContextEngine` using Hermes' public ContextEngine API. Automatic DROP proposals become anchors to preserve tool-call/result protocol.
-- Add optional fallback to Hermes' built-in ContextCompressor when Jev has no eligible evidence or makes no safe progress.
-- Preserve `model_id` as a migration alias while using `jev_model` as the canonical non-reserved setting.
-- 36 offline tests pass.
+## 0.2.2.dev8 — activate headless Jev decisions and completion verification
 
-## 0.1.5.2
+- Fix the production decision-router bug proven by the Solar Pro 4 dev7 run: `SupervisionStore.events()` returns parsed event payloads under `row["payload"]`, while dev7's router looked for the removed `payload_json` field, so every failure fingerprint list was empty and repeated failures could never trigger Jev.
+- Preserve failure memory across normal work: select the last N `TEST_FAILED` events rather than the last N general work events.
+- Record per-test failure fingerprints for the complete failing-test set, so a persistent test can be recognized even as pytest failure order/cardinality changes.
+- Mark an exact locked deterministic test criterion `FAIL` when its command fails, allowing the 40% checkpoint to see real negative progress instead of a falsely healthy UNKNOWN state.
+- Wire Hermes' native `pre_verify` hook to the deterministic-first completion verifier and batched Jev semantic completion decision.
+- Add `on_session_end` as a last-resort completion audit for lifecycle paths that bypass `pre_verify`.
+- Enforce the worker-token decision cooldown after a trajectory call so repeated pytest failures do not cause one Jev spend per test run. Blocker/plan-change triggers remain urgent.
+- Retain dev7's deterministic startup binding, exact run/claim fencing, package-relative imports, and zero model-visible Jev tools for headless workers.
+- Add regression coverage reproducing the exact dev7 failure mode: interleaved events, changing pytest failure sets, checkpoint FAIL state, real trajectory provider invocation, cooldown suppression, semantic pre-verify provider invocation, and session-end completion fallback.
 
-- Fix Hermes registration on current builds by renaming the plugin setting `model` to `jev_model`. Hermes reserves `model` as a core config root and rejects `ctx.get_config("model", ...)` before tool registration.
-- Add a regression test context that enforces Hermes plugin-relative config-key restrictions so reserved-root mistakes fail offline.
-- No Jev decision semantics changed from 0.1.5.1.
+## 0.2.2.dev7 — deterministic headless Kanban binding
 
-## v0.1.5.1 — explicit Jev context curation
+- Fix the production bootstrap failure discovered by the Solar Pro 4 A/B run: Hermes v0.21.3 moved DB connection helpers to `hermes_cli.kanban_db_connect`, while dev6 called the removed `kanban_db.connect()` symbol.
+- Prefer the dispatcher-pinned `HERMES_KANBAN_DB` / `HERMES_KANBAN_BOARD` when reading the canonical task so another controller's selected board cannot redirect supervision.
+- Bind the locked DoD and exact run locally during plugin startup, before the worker's first provider call; later hooks only refresh run/session context.
+- Validate canonical `current_run_id` and `claim_lock` against dispatcher env before accepting a binding.
+- Keep headless workers at zero model-visible `jev_*` schemas.
+- Include the dev6 runtime relative-import hotfix in the packaged source.
+- Add a split-Kanban compatibility regression test and startup-binding integration test.
 
-- Add `jev_context_curate`, an original Hermes-native evidence-retention utility inspired by the general Jev-as-retention-judge pattern in `tamaratran/fast-jev-compaction` without copying its code or internal design.
-- Preserve user/assistant text, pinned evidence, and a configurable recent tail exactly.
-- Classify eligible evidence into `KEEP`, deterministic-prefix `STUB`, or `DROP`.
-- Fail conservative: low-confidence/malformed answers become `KEEP`; unrecoverable evidence is never dropped.
-- Send bounded evidence previews to Jev, aggregate request usage/cost/latency, and preserve retained item order.
-- Keep Hermes' native compaction untouched; this release exposes an explicit tool rather than depending on private compaction internals.
-- Add `context-curation/v1`, context policy settings, documentation, and live-suite coverage.
-- 22 offline tests pass.
+## 0.2.2.dev6 — headless token-saving Kanban supervision
 
-## v0.1.5 — usefulness + observability pass
+Dev6 is the A/B-tuned follow-up to dev5. It changes supervised Kanban from a worker-visible Jev toolkit into a headless decision coprocessor.
 
-- Add `jev_assess` for up to 16 native `noul`, `choice`, and `score` questions in one request.
-- Return OpenRouter/TypeSafe request id, provider, usage, and cost metadata from decision results and receipts.
-- Expose `model` and `timeout_seconds` through Hermes plugin settings.
-- Keep the normal Hermes plugin transport pinned to OpenRouter instead of allowing settings to redirect the API credential.
-- Add a synthetic live regression suite covering decide, rank, verify, multi-question assessment, and advisory gating.
-- Record successful live validation through OpenRouter with TypeSafe Jev 1.13.
-- 16 offline tests pass.
+- Ordinary Kanban workers register **zero Jev tools**; controller/admin sessions retain all 16 public Jev tools.
+- Work supervision is enabled by default for Jev-enabled profiles and defaults to advisory mode.
+- A structured `## Definition of Done` is automatically compiled, locked, budgeted, and bound to the exact Kanban run before useful work begins.
+- Budget accounting now runs per provider API request (`post_api_request`) and records input/output/reasoning/cache tokens idempotently by request ID.
+- Default budget checkpoints are sparse: 40% and 70%.
+- Deterministic evidence gets first refusal; safe tests/files/git invariants can reach VERIFIED_PASS without a Jev provider call.
+- Completion batches any remaining semantic criteria into one Jev verification instead of one call per criterion plus another terminal call.
+- A local ROI router suppresses Jev calls on healthy/low-signal work and enforces a supervisor token allowance.
+- Repeated equivalent pytest failures use stable test-identity fingerprints and can trigger one hidden trajectory assessment.
+- A live trajectory assessment asks Jev for both trajectory (`CONTINUE/WATCH/REPLAN/BLOCK`) and bounded next action in one System One call.
+- High-confidence guidance is injected once, compactly, into the next tool result; the worker does not spend a separate turn deciding whether to ask Jev.
+- Jev provider tokens are recorded separately from worker tokens, and status includes combined/economic telemetry.
+- Exact-run fencing, canonical Kanban review/replan, remote execution, Git result refs, and the single-authority invariant are preserved.
 
-## v0.1.4
+## 0.2.2.dev5 — evidence-backed distributed work supervision
 
-- Route Jev calls through OpenRouter Decisions API (`/api/alpha/decisions`).
-- Use `OPENROUTER_API_KEY` and model `typesafe/jev-1.13`.
-- Preserve the existing Hermes tool/hook contracts.
+- Add immutable/versioned Definition of Done contracts with Jev preflight review.
+- Add run-scoped work events, controller-observed evidence, independent criterion verification, deterministic progress/frontier projection, and terminal completion verification.
+- Carry verified facts across successor runs while the locked DoD hash is unchanged.
+- Add token allocations, explicit usage provenance, one-shot budget checkpoints, trajectory predictions, calibration telemetry, and shadow/advisory/enforce control modes.
+- Add safe checkpoint packets and canonical Kanban review handoff for WATCH/REPLAN/BLOCK controls.
+- Add durable admin-aliased SSH Hermes execution based on the Outpost security model.
+- Preserve canonical run/claim identity end to end and fence stale remote workers/results.
+- Preserve exit code 75 rate-limit semantics so canonical Kanban can requeue without charging a failure.
+- Add remote run-control files over a second ordinary SSH invocation; no daemon or reverse tunnel.
+- Add Git-native exact-HEAD + dirty/untracked workspace transport and result refs without modifying the controller checkout.
+- Preserve the existing Jev typed decision, context, provenance, nervous-system, and gate surfaces in the unified plugin.
+- Add North-Star recovery, Git isolation, remote execution, registration, trajectory, and supervision regression suites.
 
-## v0.1.3 — first public release candidate
+## 0.2.2.dev4
 
-- Three typed Hermes tools: `jev_decide`, `jev_rank`, and `jev_verify`.
-- Optional `pre_tool_call` decision gate with `off`, `advisory`, and `enforce` modes.
-- Hermes plugin settings drive gate mode, confidence threshold, and receipt detail through `PluginContext.get_config()`.
-- Privacy redaction and hash-only decision receipts by default.
-- Dependency-free decision HTTP client with bounded output-contract validation.
-- Scanner-safe offline test fixtures.
+Upstream fixed point: paid OpenCode Zen provider plus runtime/repository hardening. See source provenance for the exact commit used as the dev5 baseline.
