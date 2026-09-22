@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Live synthetic regression suite for Hermes-Jev through the selected Jev provider.
+"""Live synthetic regression suite for Nerve through the selected Jev provider.
 
-Supports HERMES_JEV_PROVIDER=openrouter, typesafe, or opencode. No local project data is sent. The script exercises
+Supports HERMES_NERVE_PROVIDER=openrouter, typesafe, or opencode. No local project data is sent. The script exercises
 all public decision modes plus the advisory-gate classifier and prints a compact
 cost/latency summary.
 """
@@ -18,10 +18,10 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from hermes_jev import gate, ledger
-from hermes_jev.client import PROVIDER_API_KEY_ENV
-from hermes_jev.context import curate_context
-from hermes_jev.engine import DecisionEngine
+from hermes_nerve import gate, ledger
+from hermes_nerve.client import PROVIDER_API_KEY_ENV
+from hermes_nerve.context import curate_context
+from hermes_nerve.engine import DecisionEngine
 
 
 def _cost(result: dict) -> float | None:
@@ -35,18 +35,18 @@ def _cost(result: dict) -> float | None:
 
 
 def main() -> int:
-    provider = os.getenv("HERMES_JEV_PROVIDER", "openrouter").strip().lower() or "openrouter"
+    provider = os.getenv("HERMES_NERVE_PROVIDER", "openrouter").strip().lower() or "openrouter"
     required = PROVIDER_API_KEY_ENV.get(provider)
     if required is None:
-        print("HERMES_JEV_PROVIDER must be openrouter, typesafe, or opencode.", file=sys.stderr)
+        print("HERMES_NERVE_PROVIDER must be openrouter, typesafe, or opencode.", file=sys.stderr)
         return 2
     if not os.getenv(required, "").strip():
         print(f"{required} is not set; live suite skipped.", file=sys.stderr)
         return 2
 
     with tempfile.TemporaryDirectory() as td:
-        os.environ["HERMES_JEV_RECEIPTS"] = str(Path(td) / "receipts.jsonl")
-        os.environ["HERMES_JEV_CONTEXT_LEDGER"] = str(Path(td) / "context-ledger.jsonl")
+        os.environ["HERMES_NERVE_RECEIPTS"] = str(Path(td) / "receipts.jsonl")
+        os.environ["HERMES_NERVE_CONTEXT_LEDGER"] = str(Path(td) / "context-ledger.jsonl")
         ledger.configure(enabled=True, detail="sanitized")
         e = DecisionEngine()
         outputs: dict[str, dict] = {}
@@ -132,7 +132,7 @@ def main() -> int:
             "provider_cost_reported_cases": len(reported_costs),
             "provider_cost_missing_cases": missing_cost_cases,
             "total_latency_ms": round(sum(latencies), 3),
-            "receipt_count": len(Path(os.environ["HERMES_JEV_RECEIPTS"]).read_text().splitlines()),
+            "receipt_count": len(Path(os.environ["HERMES_NERVE_RECEIPTS"]).read_text().splitlines()),
             "context_ledger": ledger.report(),
         }
         print(json.dumps(summary, indent=2, sort_keys=True))

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Opt-in live Jev smoke test through the selected Jev provider.
 
-Supports HERMES_JEV_PROVIDER=openrouter, typesafe, or opencode. It sends only synthetic test state and prints the
+Supports HERMES_NERVE_PROVIDER=openrouter, typesafe, or opencode. It sends only synthetic test state and prints the
 returned decision metadata; it never reads local Hermes state or receipts.
 """
 
@@ -16,15 +16,15 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from hermes_jev.client import PROVIDER_API_KEY_ENV
-from hermes_jev.engine import DecisionEngine
+from hermes_nerve.client import PROVIDER_API_KEY_ENV
+from hermes_nerve.engine import DecisionEngine
 
 
 def main() -> int:
-    provider = os.getenv("HERMES_JEV_PROVIDER", "openrouter").strip().lower() or "openrouter"
+    provider = os.getenv("HERMES_NERVE_PROVIDER", "openrouter").strip().lower() or "openrouter"
     required = PROVIDER_API_KEY_ENV.get(provider)
     if required is None:
-        print("HERMES_JEV_PROVIDER must be openrouter, typesafe, or opencode.", file=sys.stderr)
+        print("HERMES_NERVE_PROVIDER must be openrouter, typesafe, or opencode.", file=sys.stderr)
         return 2
     if not os.getenv(required, "").strip():
         print(f"{required} is not set; live API smoke skipped.", file=sys.stderr)

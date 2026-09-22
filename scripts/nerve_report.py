@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Print combined Hermes-Jev decision + context telemetry for the active/inferred profile."""
+"""Print combined Nerve decision + context telemetry for the active/inferred profile."""
 
 from __future__ import annotations
 
@@ -12,8 +12,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from hermes_jev import ledger, receipts, nervous
-from hermes_jev.paths import default_hermes_root, report_home
+from hermes_nerve import ledger, receipts, nervous
+from hermes_nerve.paths import default_hermes_root, report_home
 
 
 def main() -> int:
