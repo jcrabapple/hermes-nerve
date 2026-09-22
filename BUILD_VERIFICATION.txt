@@ -1,39 +1,81 @@
-HISTORICAL STABLE-RELEASE EVIDENCE ONLY — this file verifies v0.2.1.2, not the current development checkout.
-Hermes-Jev v0.2.1.2 release verification
-Date: 2026-09-19
-Baseline: 4feea5ef45aeb301622f18175ed4cf2e068b99bd (v0.2.1.1)
+Hermes-Jev v0.2.2.dev17 build verification
+==========================================
 
-Local exact-candidate verification:
-- python3 -m unittest discover -s tests -v: PASS (83 tests)
-- python3 -m compileall -q .: PASS
-- release-equivalent assertions: PASS
-  version=0.2.1.2 tools=8 hook_names=7 hook_callbacks=8 requirements=1119
-- scripts/verify_release.py: not directly runnable in the minimal MegaMCP audit runner because PyYAML is absent; its version/registration/schema/trace assertions were executed independently without changing the verifier.
+Scope
+-----
+Dev17 freezes the dev16 controller-completion / token-budget / Nerve runtime policy and adds release-hardening plus Laya/OpenJev open-model validation paths.
 
-Focused 0.2.1.2 regressions:
-- 48 candidates stay within the public context contract: PASS
-- 49 / 60 / 851 candidates select only 48 per boundary: PASS
-- excess candidates remain deferred: PASS
-- curation exception -> built-in fallback: PASS
-- curation exception + fallback exception -> original messages, no host-turn exception: PASS
-- existing Jev anchors are not re-curated or nested: PASS
-- automatic engine skips unrecoverable evidence for remote semantic assessment: PASS
-- shadow proposal does not count as applied compaction: PASS
-- shadow failure is observable while remaining fail-open: PASS
-- 48-item semantic fan-out <= 12 provider assessments: PASS
+Verified in the build container
+-------------------------------
+PASS  release structural verifier:
+      version=0.2.2.dev17
+      single_authority=PASS
+      controller_completion=PASS
+      reflex_laya=PASS
+      reflex_openjev=PASS
 
-Preserved 0.2.1 / 0.2.1.1 invariants:
-- loop breaker and control-lease behavior: PASS in full unit suite
-- bounded/sectioned jev_stats: PASS in full unit suite
-- deferred jev_assess schema: PASS in full unit suite
-- Jev self-observation suppression: PASS in full unit suite
-- receipt-backed provenance: PASS in full unit suite
-- direct TypeSafe wire-contract tests: PASS in full unit suite
-- 8 tools / 7 hook names / 8 callbacks: PASS
-- 1,119 traced requirements: PASS
+PASS  targeted dev17/open-backend/runtime tests:
+      37 passed
+      - tests/test_reflex_laya_dev15b.py
+      - tests/test_reflex_openjev_dev17.py
+      - tests/test_dev17_matrix_qol.py
+      - tests/test_dev16_nerve_budget.py
+      - tests/test_dev15_controller_completion.py
 
-External provider evidence:
-- issue #1 independently live-smoked direct TypeSafe on v0.2.1.1 successfully
-- v0.2.1.2 does not claim a new credentialed direct-account run unless separately executed
+PASS  deterministic authority + remote execution regressions:
+      7 passed
 
-GitHub Actions Python 3.10 / 3.11 / 3.12 / 3.13 remain the publication-side exact-branch gate.
+PASS  DOD-07 behavioral probe methods when run independently:
+      3/3 passed
+
+PASS  plugin registration/version test after dev17 version bump.
+
+PASS  shell/Python syntax checks for dev17 operator scripts and matrix runner.
+
+Live dev16 baseline carried into dev17
+---------------------------------------
+Treatment 1: valid, 29 calls, 719,634 combined tokens, WATCH, no kill.
+Treatment 2: valid, 22 calls, 495,493 combined tokens, CONTINUE, no kill.
+Treatment 3: valid, 28 calls, 588,465 combined tokens, CONTINUE, no kill.
+Control 1: successful after terminal-state reclassification, 55 calls, 2,355,073 primary tokens, lingering worker reaped.
+Control 2: failed/runaway, 60 calls, 2,432,921 primary tokens, external emergency stop.
+Control 3: failed/runaway, 52 calls, 2,420,438 primary tokens, external emergency stop.
+
+Known validation boundary
+-------------------------
+Laya is intended for local live validation on the RTX 4060 lane. OpenJev is wired and structurally tested, but the published 27B serving path requires a substantially larger GPU than the available 8GB RTX 4060. A live OpenJev A/B is therefore a release gate to run on a >=30GB remote GPU; the dev17 package must not claim that live OpenJev inference passed until that gate is executed.
+
+Live Laya dev17 sidecar validation
+----------------------------------
+PASS  host: win4060 / WSL2 / NVIDIA GeForce RTX 4060 / 8,188 MiB VRAM.
+PASS  isolated user-space runtime: Python 3.12.14 via uv; laya==0.3.3; torch 2.14.0+cu130; CUDA available.
+PASS  model: convaiinnovations/laya-typed-decisions loaded on CUDA.
+PASS  direct typed decision: WATCH=0.7113, REPLAN=0.2887; 68 input tokens.
+PASS  exact packaged laya_service.py SHA256: 03ed601964007d76d50937763b643221212d4a8d06d2897b6a479304076923d1.
+PASS  exact sidecar /healthz.
+PASS  exact sidecar /v1/systemone: WATCH=0.6436, REPLAN=0.3564; 46 input tokens; ~900.856 ms measured sidecar inference latency.
+PASS  installed as enabled systemd --user service on win4060 using loopback port 8766.
+NOTE  port 8765 was already occupied by CrowdPulse; dev17 validation used 8766 without disrupting it.
+NOTE  Tailscale Serve is disabled for this tailnet, so cross-host validation uses SSH port forwarding rather than plaintext network exposure.
+
+OpenJev hardware gate
+---------------------
+PASS  hardware preflight evidence: win4060 has 8,188 MiB VRAM, below the dev17 >=30,000 MiB guard.
+PASS  dev17 setup script now detects WSL's /usr/lib/wsl/lib/nvidia-smi path and fails before model download on undersized/no-probe hosts.
+PENDING  live OpenJev /v1/systemone + matrix A/B on a suitable >=30 GB GPU (80 GB recommended for the published primary recipe).
+
+DEV17 RC2 ORCHESTRATOR-AUTHORITY VERIFICATION
+=============================================
+- Nerve/Reflex economic kill authority removed from the RC policy.
+- DOD-BUDGET is non-required telemetry/execution policy.
+- 80% budget forecast asks YES / NO / MAYBE whether +25% likely finishes.
+- confident YES grants exactly one bounded +25% extension.
+- MAYBE routes immediately to canonical kanban_request_review.
+- NO receives only a bounded checkpoint window and reviews by 90% base target.
+- extension exhaustion and 1.75x emergency fence route to canonical review, never economic kanban_block.
+- final COMPLETE / MORE WORK / CHANGES / BLOCK authority remains with the main Hermes orchestrator/reviewer.
+- OpenJev is included but real-model live validation is explicitly deferred to repository issue #10.
+- release verifier: PASS.
+- focused RC2 release suite: 46 passed.
+- compileall: PASS.
+- full monolithic pytest was not used as release evidence because the known legacy DOD-07 file-level harness can fail to unwind; targeted DOD-07 methods remain the accepted regression path from dev17 verification.

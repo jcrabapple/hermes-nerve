@@ -27,13 +27,14 @@ class DecisionResult:
     request_id: str = ""
     provider: str = ""
     transport: str = "openrouter-decisions"
+    live_provider_call: bool = True
     receipt_id: str = ""
     provenance_status: str = "UNVERIFIED"
     provenance: dict[str, Any] = field(default_factory=dict)
 
     def as_dict(self) -> dict[str, Any]:
         provenance = self.provenance or result_provenance(
-            live_provider_call=True,
+            live_provider_call=self.live_provider_call,
             request_id=self.request_id,
             receipt_id=self.receipt_id,
             provider=self.provider,
@@ -56,7 +57,7 @@ class DecisionResult:
             "provenance_status": status,
             "provenance": provenance,
             "execution": execution_provenance(
-                live_provider_call=True,
+                live_provider_call=self.live_provider_call,
                 transport=self.transport,
                 request_id=self.request_id,
                 receipt_id=self.receipt_id,
@@ -66,7 +67,10 @@ class DecisionResult:
 
 class DecisionEngine:
     def __init__(self, provider: DecisionProvider | None = None) -> None:
-        self.provider = provider or JevClient()
+        if provider is None:
+            from .reflex.config import get_provider
+            provider = get_provider()
+        self.provider = provider
 
     @staticmethod
     def _validate_questions(questions: dict[str, Any]) -> dict[str, dict[str, Any]]:
@@ -118,6 +122,7 @@ class DecisionEngine:
         if missing:
             raise ValueError(f"provider response is missing answers for: {', '.join(missing)}")
         transport = getattr(response, "transport", "openrouter-decisions")
+        live_provider_call = bool(getattr(response, "live_provider_call", True))
         result = {
             "answers": response.answers,
             "model": response.model,
@@ -127,7 +132,7 @@ class DecisionEngine:
             "request_id": response.request_id,
             "provider": response.provider,
             "execution": execution_provenance(
-                live_provider_call=True,
+                live_provider_call=live_provider_call,
                 transport=transport,
                 request_id=response.request_id,
             ),
@@ -170,6 +175,7 @@ class DecisionEngine:
             request_id=response.request_id,
             provider=response.provider,
             transport=getattr(response, "transport", "openrouter-decisions"),
+            live_provider_call=bool(getattr(response, "live_provider_call", True)),
         )
         receipt = write_receipt(contract=contract, state=safe_state, result=result.as_dict(), model=response.model, latency_ms=response.latency_ms)
         stored = receipt["result"]
