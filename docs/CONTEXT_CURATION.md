@@ -43,7 +43,7 @@ Built-in lease behavior:
 - nonrecoverable failure evidence: `until_verification_pass`
 - caller override: `metadata.lease`
 
-A real `jev_verify` result updates the lifecycle state. `PASS` releases `until_verification_pass` for later curation.
+A real `nerve_verify` result updates the lifecycle state. `PASS` releases `until_verification_pass` for later curation.
 
 ### ANCHOR
 
@@ -62,13 +62,13 @@ No model-generated summary is inserted.
 
 ### DROP
 
-Explicit `jev_context_curate` may omit an item only when local code already marks it recoverable and policy thresholds indicate low future need, low exactness need, high supersession, and no material unresolved conflict.
+Explicit `nerve_context_curate` may omit an item only when local code already marks it recoverable and policy thresholds indicate low future need, low exactness need, high supersession, and no material unresolved conflict.
 
-The automatic `JevContextEngine` does **not** physically remove tool-result messages. A DROP proposal becomes a minimal anchor so OpenAI-format assistant tool calls retain their required tool-result partner.
+The automatic `NerveContextEngine` does **not** physically remove tool-result messages. A DROP proposal becomes a minimal anchor so OpenAI-format assistant tool calls retain their required tool-result partner.
 
 ### REHYDRATE
 
-`jev_context_rehydrate` looks up the evidence id in the local evidence ledger. It does not call Jev or OpenRouter.
+`nerve_context_rehydrate` looks up the evidence id in the local evidence ledger. It does not call Jev or OpenRouter.
 
 Rehydration works only when `context_ledger_detail=sanitized`; hash mode intentionally lacks content to restore.
 
@@ -93,7 +93,7 @@ Recovery demand is not automatically a failure: an anchor can be working correct
 
 ## ContextEngine integration
 
-Current Hermes exposes a public `ContextEngine` ABC and `ctx.register_context_engine()`. Hermes-Jev registers an engine named `jev`, but Hermes does not activate plugin engines automatically.
+Current Hermes exposes a public `ContextEngine` ABC and `ctx.register_context_engine()`. Nerve registers an engine named `jev`, but Hermes does not activate plugin engines automatically.
 
 Activation is explicit:
 
@@ -115,7 +115,7 @@ If no eligible tool-result evidence exists, or Jev safely decides to reclaim not
 Disable only for experiments:
 
 ```bash
-hermes config set plugins.entries.hermes-jev.settings.context_engine_fallback_builtin false --force
+hermes config set plugins.entries.hermes-nerve.settings.context_engine_fallback_builtin false --force
 ```
 
 ## Policy defaults
@@ -143,4 +143,4 @@ These are policy defaults, not claims of calibrated optimality. Shadow telemetry
 
 ## Profile-aware telemetry (0.1.5.5)
 
-Named Hermes profiles run with a profile-scoped `HERMES_HOME`. The reporters now infer the profile when launched from its plugin directory, and runtime storage resolves through Hermes' own home resolver when available. For the least ambiguous check, ask the running agent to call `jev_stats`.
+Named Hermes profiles run with a profile-scoped `HERMES_HOME`. The reporters now infer the profile when launched from its plugin directory, and runtime storage resolves through Hermes' own home resolver when available. For the least ambiguous check, ask the running agent to call `nerve_stats`.

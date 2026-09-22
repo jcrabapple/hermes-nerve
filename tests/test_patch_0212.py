@@ -6,8 +6,8 @@ import unittest
 from unittest import mock
 from pathlib import Path
 
-from hermes_jev import context, ledger
-from hermes_jev.context_engine import JevContextEngine
+from hermes_nerve import context, ledger
+from hermes_nerve.context_engine import NerveContextEngine
 
 
 def long_messages(count: int) -> list[dict]:
@@ -34,7 +34,7 @@ def long_messages(count: int) -> list[dict]:
 class Patch0212Tests(unittest.TestCase):
     def test_engine_bounds_49_and_851_candidates_to_48(self):
         for count in (49, 60, 851):
-            e = JevContextEngine(mode="apply", protect_first_n=0, protect_last_n=1, fallback_builtin=False)
+            e = NerveContextEngine(mode="apply", protect_first_n=0, protect_last_n=1, fallback_builtin=False)
             seen: list[int] = []
             original = context.curate_context
 
@@ -46,7 +46,7 @@ class Patch0212Tests(unittest.TestCase):
                         for item in kwargs["items"]
                     ],
                     "curated_items": [
-                        {"id": item["id"], "content": f"[JEV_CONTEXT_ANCHOR id={item['id']}]"}
+                        {"id": item["id"], "content": f"[NERVE_CONTEXT_ANCHOR id={item['id']}]"}
                         for item in kwargs["items"]
                     ],
                     "stats": {},
@@ -64,11 +64,11 @@ class Patch0212Tests(unittest.TestCase):
             self.assertEqual(sum(
                 1 for msg in out if isinstance(msg, dict)
                 and msg.get("role") == "tool"
-                and str(msg.get("content", "")).startswith("[JEV_CONTEXT_ANCHOR")
+                and str(msg.get("content", "")).startswith("[NERVE_CONTEXT_ANCHOR")
             ), 48)
 
     def test_exact_48_is_not_truncated(self):
-        e = JevContextEngine(mode="apply", protect_first_n=0, protect_last_n=1, fallback_builtin=False)
+        e = NerveContextEngine(mode="apply", protect_first_n=0, protect_last_n=1, fallback_builtin=False)
         seen: list[int] = []
         original = context.curate_context
         context.curate_context = lambda **kwargs: (
@@ -87,7 +87,7 @@ class Patch0212Tests(unittest.TestCase):
             def compress(self, messages, **kwargs):
                 return [messages[0], {"role": "assistant", "content": "fallback"}]
 
-        e = JevContextEngine(mode="apply", protect_first_n=0, protect_last_n=1, fallback_builtin=True)
+        e = NerveContextEngine(mode="apply", protect_first_n=0, protect_last_n=1, fallback_builtin=True)
         e._fallback = Fallback()
         original = context.curate_context
 
@@ -103,7 +103,7 @@ class Patch0212Tests(unittest.TestCase):
         self.assertEqual(out[-1]["content"], "fallback")
         status = e.get_status()
         self.assertEqual(status["fail_open"]["curation_fail_open_count"], 1)
-        self.assertEqual(status["fail_open"]["last_failure_stage"], "jev-curation")
+        self.assertEqual(status["fail_open"]["last_failure_stage"], "nerve-curation")
 
     def test_curation_and_fallback_failure_returns_original_messages(self):
         class BadFallback:
@@ -111,7 +111,7 @@ class Patch0212Tests(unittest.TestCase):
                 raise RuntimeError("fallback exploded")
 
         messages = long_messages(1)
-        e = JevContextEngine(mode="apply", protect_first_n=0, protect_last_n=1, fallback_builtin=True)
+        e = NerveContextEngine(mode="apply", protect_first_n=0, protect_last_n=1, fallback_builtin=True)
         e._fallback = BadFallback()
         original = context.curate_context
         context.curate_context = lambda **kwargs: (_ for _ in ()).throw(ValueError("curation exploded"))
@@ -126,7 +126,7 @@ class Patch0212Tests(unittest.TestCase):
         self.assertEqual(status["fail_open"]["last_failure_stage"], "fallback")
 
     def test_existing_anchor_is_not_recurated_or_nested(self):
-        e = JevContextEngine(mode="apply", protect_first_n=0, protect_last_n=1, fallback_builtin=False)
+        e = NerveContextEngine(mode="apply", protect_first_n=0, protect_last_n=1, fallback_builtin=False)
         original = context.curate_context
         batches: list[list[str]] = []
 
@@ -153,14 +153,14 @@ class Patch0212Tests(unittest.TestCase):
             str(msg.get("content", ""))
             for msg in second if isinstance(msg, dict) and msg.get("role") == "tool"
         ]
-        self.assertTrue(all(value.count("JEV_CONTEXT_ANCHOR") == 1 for value in anchors))
+        self.assertTrue(all(value.count("NERVE_CONTEXT_ANCHOR") == 1 for value in anchors))
 
     def test_unrecoverable_evidence_consumes_no_jev_candidate_capacity(self):
         class ForbiddenFallback:
             def compress(self, *args, **kwargs):
                 raise AssertionError("unrecoverable evidence must not reach generic fallback")
 
-        e = JevContextEngine(mode="apply", protect_first_n=0, protect_last_n=1, fallback_builtin=True)
+        e = NerveContextEngine(mode="apply", protect_first_n=0, protect_last_n=1, fallback_builtin=True)
         e._fallback = ForbiddenFallback()
         messages = [
             {"role": "assistant", "content": "", "tool_calls": [{
@@ -201,7 +201,7 @@ class Patch0212Tests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as td:
             with mock.patch.dict(os.environ, {
-                "HERMES_JEV_CONTEXT_LEDGER": str(Path(td) / "ledger.jsonl"),
+                "HERMES_NERVE_CONTEXT_LEDGER": str(Path(td) / "ledger.jsonl"),
             }, clear=False):
                 ledger.configure(enabled=True, detail="sanitized")
                 context.curate_context(
@@ -218,7 +218,7 @@ class Patch0212Tests(unittest.TestCase):
         ledger.configure(enabled=False, detail="sanitized")
 
     def test_shadow_failure_is_observable_and_fail_open(self):
-        e = JevContextEngine(
+        e = NerveContextEngine(
             mode="shadow", protect_first_n=0, protect_last_n=1,
             fallback_builtin=False, shadow_trigger_percent=0.2,
         )

@@ -28,13 +28,13 @@ All seven existing tools and both hooks still register; existing context fallbac
 
 | Point | Requirement | Verification ID |
 |---:|---|---|
-| 668 | jev_decide. | `T17-R0668` |
-| 669 | jev_rank. | `T17-R0669` |
-| 670 | jev_verify. | `T17-R0670` |
-| 671 | jev_assess. | `T17-R0671` |
-| 672 | jev_context_curate. | `T17-R0672` |
-| 673 | jev_context_rehydrate. | `T17-R0673` |
-| 674 | jev_stats. | `T17-R0674` |
+| 668 | nerve_decide. | `T17-R0668` |
+| 669 | nerve_rank. | `T17-R0669` |
+| 670 | nerve_verify. | `T17-R0670` |
+| 671 | nerve_assess. | `T17-R0671` |
+| 672 | nerve_context_curate. | `T17-R0672` |
+| 673 | nerve_context_rehydrate. | `T17-R0673` |
+| 674 | nerve_stats. | `T17-R0674` |
 | 675 | Existing tools remain available manually. | `T17-R0675` |
 | 676 | New nervous-system architecture sits above these primitives. | `T17-R0676` |
 | 677 | Existing direct tool APIs remain useful for explicit debugging/testing. | `T17-R0677` |

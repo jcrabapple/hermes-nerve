@@ -1,4 +1,4 @@
-# Hermes-Jev v0.2.1.2 stabilization
+# Nerve v0.2.1.2 stabilization
 
 ## Scope
 
@@ -10,7 +10,7 @@ This patch fixes the long-session ContextEngine failure reported in issue #2 and
 | --- | --- | --- |
 | Apply mode crashes above 48 evidence items | The automatic engine built an unbounded evidence list and passed it into the public curation seam, which intentionally caps input at 48 | Select at most 48 recoverable raw candidates per boundary, oldest first; defer the rest unchanged |
 | Fallback can still kill a turn | `_fallback_compress()` only handled signature `TypeError`; arbitrary compressor failures escaped | Contain all fallback exceptions and return the original messages |
-| Existing anchors are re-curated | Tool-result scanning treated `[JEV_CONTEXT_ANCHOR ...]` as raw evidence | Treat Jev anchors as terminal compacted artifacts and skip them |
+| Existing anchors are re-curated | Tool-result scanning treated `[NERVE_CONTEXT_ANCHOR ...]` as raw evidence | Treat Jev anchors as terminal compacted artifacts and skip them |
 | Shadow mode inflates compaction metrics | Proposed shadow ANCHOR/DROP actions were written as evidence actions later counted as applied | Record proposals only in the shadow-plan ledger; applied compaction is recorded only in apply mode |
 | Unrecoverable evidence consumes provider capacity | Semantic assessment ran before deterministic `KEEP_EXACT` policy | Automatic engine selection excludes unrecoverable evidence from remote curation and does not delegate safety-rejected tool evidence to the generic fallback |
 | Shadow failure is invisible | `on_turn_complete()` swallowed every exception | Preserve fail-open behavior while exposing failure counts/type/stage in engine status |

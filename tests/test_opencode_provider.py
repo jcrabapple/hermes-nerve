@@ -3,7 +3,7 @@ import os
 import unittest
 from unittest.mock import patch
 
-from hermes_jev import client
+from hermes_nerve import client
 
 
 class OpenCodeProviderTests(unittest.TestCase):

@@ -9,16 +9,16 @@ The invariant is simple:
 
 ## What this package adds
 
-- provider-neutral `DecisionEngine` construction through `hermes_jev.reflex`;
+- provider-neutral `DecisionEngine` construction through `hermes_nerve.reflex`;
 - three backend modes: `jev`, `laya`, and `shadow`;
 - dependency-free `LayaClient` using the same `system_one(state, questions)` contract as the existing Jev provider seam;
-- a fixed-model, preloaded Laya HTTP sidecar (`python -m hermes_jev.reflex.laya_service`);
+- a fixed-model, preloaded Laya HTTP sidecar (`python -m hermes_nerve.reflex.laya_service`);
 - Jev-authoritative / Laya-shadow paired telemetry;
 - fail-open shadow behavior;
 - correct `LOCAL_ONLY` provenance for Laya decisions;
 - exact sidecar-model identity checking;
 - optional `laya==0.3.5` dependency extra without adding torch/transformers to the core Hermes plugin;
-- `jev_stats section=reflex` diagnostics;
+- `nerve_stats section=reflex` diagnostics;
 - compatibility aliasing for `work_estimated_jev_call_tokens` while introducing the provider-neutral `work_estimated_decision_call_tokens` key.
 
 ## Architecture
@@ -59,7 +59,7 @@ Existing behavior. This is the default so merging dev15b does not silently alter
 ```yaml
 plugins:
   entries:
-    hermes-jev:
+    hermes-nerve:
       settings:
         reflex_backend: jev
 ```
@@ -72,7 +72,7 @@ Laya failures never change the returned Jev result.
 ```yaml
 plugins:
   entries:
-    hermes-jev:
+    hermes-nerve:
       settings:
         reflex_backend: shadow
         reflex_laya_base_url: http://127.0.0.1:8765
@@ -101,7 +101,7 @@ Laya is authoritative for semantic `DecisionEngine` calls.
 ```yaml
 plugins:
   entries:
-    hermes-jev:
+    hermes-nerve:
       settings:
         reflex_backend: laya
         reflex_laya_base_url: http://127.0.0.1:8765
@@ -123,8 +123,8 @@ python3 -m venv ~/.venvs/hermes-reflex-laya
 Start the preloaded typed-decisions checkpoint:
 
 ```bash
-cd /path/to/hermes-jev-v0.2.2.dev15-final
-~/.venvs/hermes-reflex-laya/bin/python -m hermes_jev.reflex.laya_service \
+cd /path/to/hermes-nerve-v0.2.2.dev15-final
+~/.venvs/hermes-reflex-laya/bin/python -m hermes_nerve.reflex.laya_service \
   --device cuda \
   --host 127.0.0.1 \
   --port 8765 \
@@ -211,7 +211,7 @@ The semantic backend is only used where the existing `DecisionEngine` was alread
 Inspect from Hermes:
 
 ```text
-jev_stats {"section":"reflex","include_recent":true,"recent_limit":5}
+nerve_stats {"section":"reflex","include_recent":true,"recent_limit":5}
 ```
 
 The report includes:

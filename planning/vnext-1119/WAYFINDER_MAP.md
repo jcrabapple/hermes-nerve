@@ -1,8 +1,8 @@
-# Wayfinder Map — Hermes-Jev vNext
+# Wayfinder Map — Nerve vNext
 
 ## Destination
 
-A production-ready implementation graph that turns Hermes-Jev into an asynchronous, adaptive decision nervous system while preserving all 1,119 requirements and avoiding synchronous ~500 ms overhead on ordinary work.
+A production-ready implementation graph that turns Nerve into an asynchronous, adaptive decision nervous system while preserving all 1,119 requirements and avoiding synchronous ~500 ms overhead on ordinary work.
 
 ## Notes
 

@@ -7,9 +7,9 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from hermes_jev.work import hooks, runtime
-from hermes_jev.work.models import RunIdentity, utc_now
-from hermes_jev.work.supervisor import CardSupervisor
+from hermes_nerve.work import hooks, runtime
+from hermes_nerve.work.models import RunIdentity, utc_now
+from hermes_nerve.work.supervisor import CardSupervisor
 
 
 class Accept:
@@ -73,7 +73,7 @@ class Dev9TerminalHandoffTests(unittest.TestCase):
             "HERMES_KANBAN_RUN_ID": str(ident.run_id),
             "HERMES_KANBAN_CLAIM_LOCK": ident.claim_identity,
             "HERMES_KANBAN_WORKER_ID": ident.worker_id or "worker",
-            "HERMES_JEV_DOD_HASH": ident.contract_hash,
+            "HERMES_NERVE_DOD_HASH": ident.contract_hash,
         }
         if child:
             env["HERMES_DELEGATED_CHILD_CONTEXT"] = "/tmp/fenced-kanban-root"

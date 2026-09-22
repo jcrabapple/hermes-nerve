@@ -1,6 +1,6 @@
 # Jev Nervous System (v0.2.1.2)
 
-Hermes-Jev v0.2.1.2 keeps Jev off Hermes' normal critical path. Hermes remains the reasoning and execution engine; Jev is an asynchronous decision supervisor.
+Nerve v0.2.1.2 keeps Jev off Hermes' normal critical path. Hermes remains the reasoning and execution engine; Jev is an asynchronous decision supervisor.
 
 ## Turn lifecycle
 
@@ -42,7 +42,7 @@ A hard per-turn provider-call budget exists only as a safety valve.
 
 ## Decision events
 
-For the strongest supervision, emit `jev_nervous_event` with bounded alternatives and Hermes' proposed answer in the original event:
+For the strongest supervision, emit `nerve_nervous_event` with bounded alternatives and Hermes' proposed answer in the original event:
 
 ```json
 {

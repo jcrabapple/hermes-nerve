@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from hermes_jev.remote.git_workspace import GitWorkspaceManager
+from hermes_nerve.remote.git_workspace import GitWorkspaceManager
 
 
 def git(repo: Path, *args: str) -> str:

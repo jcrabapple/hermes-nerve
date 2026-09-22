@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Print profile-aware Hermes-Jev context shadow/rehydration telemetry as JSON."""
+"""Print profile-aware Nerve context shadow/rehydration telemetry as JSON."""
 
 from __future__ import annotations
 
@@ -12,8 +12,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from hermes_jev import ledger
-from hermes_jev.paths import default_hermes_root, report_home
+from hermes_nerve import ledger
+from hermes_nerve.paths import default_hermes_root, report_home
 
 
 def _profile_home(name: str) -> Path:

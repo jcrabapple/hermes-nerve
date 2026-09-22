@@ -1,4 +1,4 @@
-# Hermes-Jev v0.2.2.dev16 — nerve observer + token-budget DoD
+# Nerve v0.2.2.dev16 — nerve observer + token-budget DoD
 
 Dev16 starts from the finalized dev15 controller-completion build and incorporates the failure modes and quality-of-life issues exposed by the dev14 Solar Pro 4 A/B sessions.
 
@@ -105,7 +105,7 @@ For initial deployment on unknown workloads, set `work_nerve_auto_kill: false` t
 ## Install
 
 ```bash
-cd hermes-jev-v0.2.2.dev16-final
+cd hermes-nerve-v0.2.2.dev16-final
 bash scripts/install_dev16_profile.sh abtest-jev-dev16
 ```
 

@@ -7,13 +7,13 @@ import threading
 import unittest
 from pathlib import Path
 
-from hermes_jev.engine import DecisionEngine
-from hermes_jev.receipts import report as receipt_report
-from hermes_jev.reflex import config as reflex_config
-from hermes_jev.reflex.laya import LayaClient, LayaError
-from hermes_jev.reflex.laya_service import Handler, LayaServer
-from hermes_jev.reflex.shadow import ShadowProvider
-from hermes_jev.reflex.telemetry import report as shadow_report
+from hermes_nerve.engine import DecisionEngine
+from hermes_nerve.receipts import report as receipt_report
+from hermes_nerve.reflex import config as reflex_config
+from hermes_nerve.reflex.laya import LayaClient, LayaError
+from hermes_nerve.reflex.laya_service import Handler, LayaServer
+from hermes_nerve.reflex.shadow import ShadowProvider
+from hermes_nerve.reflex.telemetry import report as shadow_report
 
 
 class FakeAgent:

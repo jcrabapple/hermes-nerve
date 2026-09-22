@@ -54,6 +54,6 @@ PY
 echo "LAYA_SETUP=PASS venv=$VENV model=$MODEL installer=$INSTALLER"
 echo "Start with:"
 echo "  cd '$ROOT'"
-echo "  USE_TF=0 '$VENV/bin/python' -m hermes_jev.reflex.laya_service --device '$DEVICE' --host 127.0.0.1 --port '$PORT' --model '$MODEL'"
+echo "  USE_TF=0 '$VENV/bin/python' -m hermes_nerve.reflex.laya_service --device '$DEVICE' --host 127.0.0.1 --port '$PORT' --model '$MODEL'"
 echo "Then smoke with:"
 echo "  HERMES_REFLEX_LAYA_BASE_URL=http://127.0.0.1:$PORT python3 scripts/check_laya_sidecar.py"

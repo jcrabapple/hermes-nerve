@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Patch one Hermes profile's hermes-jev Reflex settings reproducibly."""
+"""Patch one Hermes profile's hermes-nerve Reflex settings reproducibly."""
 from __future__ import annotations
 import argparse, os
 from pathlib import Path
@@ -28,7 +28,7 @@ def main() -> int:
     data=yaml.safe_load(path.read_text()) or {}
     plugins=data.setdefault('plugins',{})
     entries=plugins.setdefault('entries',{})
-    entry=entries.setdefault('hermes-jev',{})
+    entry=entries.setdefault('hermes-nerve',{})
     settings=entry.setdefault('settings',{})
     settings.update({
         'reflex_backend':a.backend,
