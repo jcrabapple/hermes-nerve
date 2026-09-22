@@ -1,12 +1,12 @@
 # Nerve transition
 
-This document defines the source-repository transition from **Hermes-Jev** to **Nerve** and records the dev17 release-candidate authority model.
+This document defines the source-repository transition from **Nerve** to **Nerve** and records the dev17 release-candidate authority model.
 
 Nerve is a provider-neutral supervisory layer for Hermes Agent. Hermes remains the primary reasoning/orchestration authority. Nerve observes, verifies, forecasts, redirects, and coordinates execution around it; Reflex backends do **not** own irreversible task-stop authority.
 
 ## Current dev17 release scope
 
-Dev17 ships the Nerve architecture under the existing `hermes-jev` plugin/repository identity so the proven runtime is not destabilized by a simultaneous rename. The public Nerve rename/migration remains a follow-up after the release candidate is proven.
+Dev17 ships the Nerve architecture under the existing `hermes-nerve` plugin/repository identity so the proven runtime is not destabilized by a simultaneous rename. The public Nerve rename/migration remains a follow-up after the release candidate is proven.
 
 Implemented in dev17:
 
