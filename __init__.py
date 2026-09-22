@@ -179,13 +179,13 @@ def register(ctx):
         ("nerve_remote_worker_cancel", schemas.NERVE_REMOTE_WORKER_CANCEL, remote_tools.nerve_remote_worker_cancel),
         ("nerve_remote_worker_control", schemas.NERVE_REMOTE_WORKER_CONTROL, remote_tools.nerve_remote_worker_control),
     ]
-    # Controller/admin sessions retain the full Jev surface. Ordinary Kanban
+    # Controller/admin sessions retain the full Nerve surface. Ordinary Kanban
     # workers are deliberately headless: exposing these schemas was the largest
     # fixed token cost in the first A/B benchmark and encouraged the worker to
     # spend turns operating its own supervisor.
     if not headless_worker:
         for name, schema, handler in registrations:
-            ctx.register_tool(name=name, toolset="jev", schema=schema, handler=handler)
+            ctx.register_tool(name=name, toolset="nerve", schema=schema, handler=handler)
 
     def _pre_tool_control(**kwargs):
         callbacks = (remote_control.pre_tool_call, work_hooks.pre_tool_call)
@@ -258,7 +258,7 @@ def register(ctx):
         else:
             message = (
                 "Nerve headless supervision did not bind at startup; inspect supervision_diagnostics "
-                "before treating this run as a valid Jev-supervised measurement"
+                "before treating this run as a valid Nerve-supervised measurement"
             )
             if os.getenv("HERMES_NERVE_OFFLINE_VERIFY") == "1":
                 logger.info("%s (offline verifier: not applicable)", message)

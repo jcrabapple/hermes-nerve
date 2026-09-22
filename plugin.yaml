@@ -4,7 +4,7 @@ description: "Nerve supervisory nervous system for Hermes Agent with Jev, Laya, 
 author: "KeelTrace community"
 license: MIT
 homepage: https://github.com/keeltrace/hermes-nerve
-tags: [jev, openjev, laya, reflex, system-one, decisions, kanban, definition-of-done, evidence, remote-worker, ssh, distributed, verification]
+tags: [nerve, jev, openjev, laya, reflex, system-one, decisions, kanban, definition-of-done, evidence, remote-worker, ssh, distributed, verification]
 provides_tools:
   - nerve_decide
   - nerve_rank
@@ -88,7 +88,7 @@ config_schema:
   work_control_confidence: {type: float, default: 0.86}
   work_reviewer: {type: str, default: ""}
   work_auto_bind_kanban: {type: bool, default: true}
-  work_headless_workers: {type: bool, default: true, description: "Hide Jev tool schemas from ordinary Kanban workers; supervision runs through hooks."}
+  work_headless_workers: {type: bool, default: true, description: "Hide Nerve tool schemas from ordinary Kanban workers; supervision runs through hooks."}
   work_default_task_budget_tokens: {type: int, default: 70000}
   work_checkpoint_fractions: {type: str, default: "0.40,0.70"}
   work_supervisor_budget_fraction: {type: float, default: 0.03}
