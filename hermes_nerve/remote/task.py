@@ -12,6 +12,6 @@ def build_task_envelope(goal:object,context:object=None,*,supervision:dict[str,A
  sections=["You are a remote Hermes sub-worker delegated by another Hermes agent.","","GOAL",goal_text]
  if context_text:sections += ["","CONTEXT",context_text]
  if supervision:
-  sections += ["","LOCKED DEFINITION OF DONE / SUPERVISION","The following success contract is controller-owned. Do not weaken or rewrite it. Emit jev_work_event as criteria start/pass/fail and when checkpointing.",json.dumps(supervision,sort_keys=True,ensure_ascii=False,default=str)]
+  sections += ["","LOCKED DEFINITION OF DONE / SUPERVISION","The following success contract is controller-owned. Do not weaken or rewrite it. Emit nerve_work_event as criteria start/pass/fail and when checkpointing.",json.dumps(supervision,sort_keys=True,ensure_ascii=False,default=str)]
  sections += ["","COMPLETION REPORT","When complete, report work performed, files changed, tests/checks and results, commit/ref if any, and unresolved blockers.","Do not claim work, tests, commits, or artifacts that you did not actually produce.",""]
  return "\n".join(sections)

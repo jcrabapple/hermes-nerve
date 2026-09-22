@@ -83,7 +83,7 @@ class RemoteEventBridge:
 
     def consume(self, event: dict[str, Any]) -> None:
         event_type = str(event.get("type") or "")
-        if event_type == "tool_use" and str(event.get("name") or "") == "jev_work_event":
+        if event_type == "tool_use" and str(event.get("name") or "") == "nerve_work_event":
             raw = (
                 event.get("input") if isinstance(event.get("input"), dict)
                 else event.get("args") if isinstance(event.get("args"), dict)
@@ -93,7 +93,7 @@ class RemoteEventBridge:
                 self.rejected += 1
                 return
             work_event = WorkEvent(
-                event_id=str(raw.get("event_id") or "jevremote-" + uuid.uuid4().hex),
+                event_id=str(raw.get("event_id") or "nerveremote-" + uuid.uuid4().hex),
                 event_type=str(raw.get("event_type") or raw.get("type") or "").upper(),
                 criterion_id=str(raw.get("criterion_id") or "").strip() or None,
                 payload=dict(raw.get("payload") or {}),
@@ -115,7 +115,7 @@ class RemoteEventBridge:
 
         if event_type == "tool_result":
             name = str(event.get("name") or "unknown")
-            if name.startswith("jev_"):
+            if name.startswith(("nerve_", "jev_")):
                 return
             value = event.get("output") if "output" in event else event
             try:

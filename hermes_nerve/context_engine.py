@@ -121,7 +121,7 @@ def _goal(messages: list[dict[str, Any]], focus_topic: str | None = None) -> str
 
 def _is_jev_anchor(content: Any) -> bool:
     """Return True for anchors already emitted by this context engine."""
-    return _content_text(content).lstrip().startswith("[JEV_CONTEXT_ANCHOR ")
+    return _content_text(content).lstrip().startswith("[NERVE_CONTEXT_ANCHOR ")
 
 
 class NerveContextEngine(ContextEngine):

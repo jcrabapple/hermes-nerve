@@ -258,9 +258,9 @@ def _noul(answer: Any, default: float = 0.5) -> float:
 def _anchor(item: EvidenceItem, anchor_chars: int) -> str:
     prefix = item.content[:anchor_chars].replace("\x00", "")
     tool_name = str(item.metadata.get("tool_name") or "")
-    pointer = str(item.metadata.get("recovery_pointer") or f"jev_context_rehydrate:{item.id}")
+    pointer = str(item.metadata.get("recovery_pointer") or f"nerve_context_rehydrate:{item.id}")
     header = (
-        f"[JEV_CONTEXT_ANCHOR id={item.id} kind={item.kind} chars={len(item.content)} "
+        f"[NERVE_CONTEXT_ANCHOR id={item.id} kind={item.kind} chars={len(item.content)} "
         f"sha256={canonical_hash(item.content)[:16]} recoverable={str(item.recoverable).lower()}"
         + (f" tool={tool_name}" if tool_name else "")
         + f" recovery={pointer}]"
@@ -268,7 +268,7 @@ def _anchor(item: EvidenceItem, anchor_chars: int) -> str:
     if not prefix:
         return header
     omitted = max(0, len(item.content) - len(prefix))
-    return f"{header}\n{prefix}\n[… {omitted} original chars omitted; use jev_context_rehydrate with evidence_id={item.id!r} …]"
+    return f"{header}\n{prefix}\n[… {omitted} original chars omitted; use nerve_context_rehydrate with evidence_id={item.id!r} …]"
 
 
 def _policy(overrides: dict[str, Any] | None = None) -> dict[str, float]:

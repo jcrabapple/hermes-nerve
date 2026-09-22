@@ -23,7 +23,7 @@ def _error(exc: Exception) -> str:
     )
 
 
-def jev_remote_delegate_task(args: dict, **kwargs) -> str:
+def nerve_remote_delegate_task(args: dict, **kwargs) -> str:
     try:
         task_id = str(args.get("task_id") or "").strip()
         identity = runtime_identity_from_env(task_id or None)
@@ -59,7 +59,7 @@ def jev_remote_delegate_task(args: dict, **kwargs) -> str:
         return _error(exc)
 
 
-def jev_remote_worker_status(args: dict, **kwargs) -> str:
+def nerve_remote_worker_status(args: dict, **kwargs) -> str:
     try:
         job = RemoteManager().execution(str(args.get("job_id") or "")).status()
         return _ok(job=job)
@@ -67,7 +67,7 @@ def jev_remote_worker_status(args: dict, **kwargs) -> str:
         return _error(exc)
 
 
-def jev_remote_worker_result(args: dict, **kwargs) -> str:
+def nerve_remote_worker_result(args: dict, **kwargs) -> str:
     try:
         execution = RemoteManager().execution(str(args.get("job_id") or ""))
         timeout = args.get("wait_seconds")
@@ -78,14 +78,14 @@ def jev_remote_worker_result(args: dict, **kwargs) -> str:
         return _error(exc)
 
 
-def jev_remote_worker_cancel(args: dict, **kwargs) -> str:
+def nerve_remote_worker_cancel(args: dict, **kwargs) -> str:
     try:
         return _ok(job=RemoteManager().execution(str(args.get("job_id") or "")).cancel())
     except Exception as exc:
         return _error(exc)
 
 
-def jev_remote_worker_control(args: dict, **kwargs) -> str:
+def nerve_remote_worker_control(args: dict, **kwargs) -> str:
     try:
         control = str(args.get("control") or "STOP_REQUESTED").strip().upper()
         if control not in {"WATCH", "REPLAN", "BLOCK", "STOP_REQUESTED"}:
