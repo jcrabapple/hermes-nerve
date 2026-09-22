@@ -577,7 +577,7 @@ class RegistrationTests(unittest.TestCase):
         module.register(ctx)
         self.assertEqual(
             {x["name"] for x in ctx.tools},
-            {"jev_decide", "jev_rank", "jev_verify", "jev_assess", "jev_context_curate", "jev_context_rehydrate", "jev_stats", "jev_nervous_event"},
+            {"jev_decide", "jev_rank", "jev_verify", "jev_assess", "jev_context_curate", "jev_context_rehydrate", "jev_stats", "jev_nervous_event", "jev_supervise_card", "jev_work_event", "jev_work_status", "jev_remote_delegate_task", "jev_remote_worker_status", "jev_remote_worker_result", "jev_remote_worker_cancel", "jev_remote_worker_control"},
         )
         self.assertEqual([x[0] for x in ctx.hooks], ["pre_tool_call", "post_tool_call", "pre_llm_call", "post_tool_call", "transform_tool_result", "pre_verify", "post_llm_call", "on_session_end"])
         self.assertTrue(all(callable(x[1]) for x in ctx.hooks))
@@ -650,7 +650,7 @@ class ProvenanceAndLedgerTests(unittest.TestCase):
                 state={}, instructions="choose", choices=["A", "B"]
             ).as_dict()
         self.assertEqual(result["execution"]["engine"], "hermes-jev")
-        self.assertEqual(result["execution"]["version"], "0.2.2.dev4")
+        self.assertEqual(result["execution"]["version"], "0.2.2.dev17")
         self.assertEqual(result["execution"]["transport"], "openrouter-decisions")
         self.assertTrue(result["execution"]["live_provider_call"])
 
