@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "pyproject.toml"
+      - ".github/workflows/release.yml"
   workflow_dispatch:
     inputs:
       version:
@@ -92,19 +93,19 @@ jobs:
           git archive --format=zip --prefix="hermes-jev-v${VERSION}/" -o "dist/hermes-jev-v${VERSION}.zip" HEAD
           git archive --format=tar.gz --prefix="hermes-jev-v${VERSION}/" -o "dist/hermes-jev-v${VERSION}.tar.gz" HEAD
           (cd dist && sha256sum hermes-jev-v${VERSION}.zip hermes-jev-v${VERSION}.tar.gz > SHA256SUMS.txt)
-          cat > dist/RELEASE_NOTES.md <<'EOF'
-## Hermes-Jev v0.2.2
-
-This release promotes the validated dev17 RC and lands the Nerve supervisory architecture from PR #9.
-
-- Nerve/Reflex is the watchdog and forecaster; the main Hermes orchestrator/reviewer retains the final COMPLETE / MORE WORK / CHANGES / BLOCK authority.
-- Hosted Jev and self-hosted Laya are live-validated on the RC path, including the SSH transport and orchestrator-review handoff.
-- OpenJev integration is included and covered by unit/interface tests, setup guards, identity pinning, and LOCAL_ONLY provenance.
-
-### OpenJev validation status
-
-Real OpenJev 27B model inference and hosted-Jev vs OpenJev A/B testing have **not** been performed on suitable large-GPU hardware. This is intentionally tracked as follow-up issue #10 and is not claimed as tested by v0.2.2.
-EOF
+          printf '%s\n' \
+            '## Hermes-Jev v0.2.2' \
+            '' \
+            'This release promotes the validated dev17 RC and lands the Nerve supervisory architecture from PR #9.' \
+            '' \
+            '- Nerve/Reflex is the watchdog and forecaster; the main Hermes orchestrator/reviewer retains the final COMPLETE / MORE WORK / CHANGES / BLOCK authority.' \
+            '- Hosted Jev and self-hosted Laya are live-validated on the RC path, including the SSH transport and orchestrator-review handoff.' \
+            '- OpenJev integration is included and covered by unit/interface tests, setup guards, identity pinning, and LOCAL_ONLY provenance.' \
+            '' \
+            '### OpenJev validation status' \
+            '' \
+            'Real OpenJev 27B model inference and hosted-Jev vs OpenJev A/B testing have **not** been performed on suitable large-GPU hardware. This is intentionally tracked as follow-up issue #10 and is not claimed as tested by v0.2.2.' \
+            > dist/RELEASE_NOTES.md
 
       - name: Create GitHub release
         if: env.RELEASE_EXISTS != '1'
