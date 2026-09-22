@@ -34,3 +34,11 @@ def test_laya_service_accepts_predict_only_sdk_shape():
     out=evaluate(Agent(),state='x',questions={'q':{'type':'noul','instructions':'yes?'}},model_name='laya-test')
     assert out['model']=='laya-test'
     assert out['answers']['q']['noul']==0.8
+
+
+def test_review_is_not_whole_task_terminal():
+    assert _matrix.lifecycle_terminal("review","review") is False
+    assert _matrix.lifecycle_terminal("review","done") is False
+    assert _matrix.lifecycle_terminal("ready","done") is False
+    assert _matrix.lifecycle_terminal("done","done") is True
+    assert _matrix.lifecycle_terminal("blocked","blocked") is True
