@@ -1,6 +1,6 @@
 # Live test notes — 2026-09-17
 
-These observations came from an interactive Hermes/Muna session using a free primary model (`solar-pro4:free`) while Hermes-Jev made real TypeSafe Jev calls through OpenRouter Decisions.
+These observations came from an interactive Hermes/Muna session using a free primary model (`solar-pro4:free`) while Nerve made real TypeSafe Jev calls through OpenRouter Decisions.
 
 ## Verified provider chain
 
@@ -37,14 +37,14 @@ Running `python3 scripts/context_shadow_report.py` directly from a named profile
 - resolving paths through Hermes' own `get_hermes_home()` when available,
 - inferring the named profile from the plugin path for standalone reporting,
 - adding `scripts/jev_report.py` for combined decision/context telemetry,
-- adding the local `jev_stats` tool so a running Hermes session can report the exact active-profile telemetry without shell-path ambiguity.
+- adding the local `nerve_stats` tool so a running Hermes session can report the exact active-profile telemetry without shell-path ambiguity.
 
 ## Release posture
 
 Context curation and the Jev context engine default to **shadow** in 0.1.5.5. The bounded decision/assessment/verification tools remain usable normally. Automatic application should be enabled only after a user reviews their own telemetry and continuation behavior.
 ## Extended live telemetry — selective gate finding
 
-After the longer Muna run, `jev_stats` reported:
+After the longer Muna run, `nerve_stats` reported:
 
 - 119 total receipts
 - 109 live provider calls
