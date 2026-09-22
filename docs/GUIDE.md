@@ -1,4 +1,4 @@
-# Hermes-Jev v0.2.1.2 guide
+# Nerve v0.2.1.2 guide
 
 ## What changed
 
@@ -15,13 +15,13 @@ Jev is no longer primarily a synchronous gate. The recommended architecture is a
 
 ## When to emit an explicit decision event
 
-Use `jev_nervous_event` for accountable choices that can alter trajectory, completion, risk, cost, or external state. Do not emit it for ordinary reads, status checks, conversational turns, or fictional actor-plane choices.
+Use `nerve_nervous_event` for accountable choices that can alter trajectory, completion, risk, cost, or external state. Do not emit it for ordinary reads, status checks, conversational turns, or fictional actor-plane choices.
 
 Useful types include `DECISION`, `STRATEGY_CHANGE`, `RECOVERY`, `COMPLETION_CANDIDATE`, `CONSEQUENTIAL_ACTION`, `HUMAN_ESCALATION`, and `IRREVERSIBLE_ACTION`.
 
 ## Existing tools remain
 
-`jev_decide`, `jev_rank`, `jev_verify`, `jev_assess`, `jev_context_curate`, `jev_context_rehydrate`, and `jev_stats` remain supported. `jev_nervous_event` is the eighth tool.
+`nerve_decide`, `nerve_rank`, `nerve_verify`, `nerve_assess`, `nerve_context_curate`, `nerve_context_rehydrate`, and `nerve_stats` remain supported. `nerve_nervous_event` is the eighth tool.
 
 ## Context governor
 

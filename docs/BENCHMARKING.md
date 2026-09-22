@@ -1,6 +1,6 @@
 # Benchmarking policy — context governor
 
-Hermes-Jev should not publish context-quality claims from compression ratio alone.
+Nerve should not publish context-quality claims from compression ratio alone.
 
 ## Primary objective
 
@@ -10,7 +10,7 @@ For a checkpointed real session, compare at least:
 
 - A: full uncompressed context
 - B: Hermes built-in context compressor
-- C: Hermes-Jev context governor
+- C: Nerve context governor
 
 Give each branch the same next task and main model. Over the following turns measure:
 
@@ -51,7 +51,7 @@ Use these observations to tune action thresholds rather than selecting a global 
 Record:
 
 - exact Hermes version/commit
-- exact Hermes-Jev version/commit
+- exact Nerve version/commit
 - exact Jev model string
 - corpus derivation/privacy treatment
 - curation thresholds and engine settings
