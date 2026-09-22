@@ -5,11 +5,11 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
-from hermes_jev.work import hooks, runtime
-from hermes_jev.work.models import RunIdentity
-from hermes_jev.work.deterministic import _evaluate_criterion
-from hermes_jev.work.nerve import budget_criterion, estimate_task_budget, evaluate
-from hermes_jev.work.supervisor import CardSupervisor
+from hermes_nerve.work import hooks, runtime
+from hermes_nerve.work.models import RunIdentity
+from hermes_nerve.work.deterministic import _evaluate_criterion
+from hermes_nerve.work.nerve import budget_criterion, estimate_task_budget, evaluate
+from hermes_nerve.work.supervisor import CardSupervisor
 
 
 class Accept:
@@ -63,7 +63,7 @@ def _env(ident: RunIdentity):
         "HERMES_KANBAN_RUN_ID": str(ident.run_id),
         "HERMES_KANBAN_CLAIM_LOCK": ident.claim_identity,
         "HERMES_KANBAN_WORKER_ID": ident.worker_id or "worker",
-        "HERMES_JEV_DOD_HASH": ident.contract_hash,
+        "HERMES_NERVE_DOD_HASH": ident.contract_hash,
     }
 
 
@@ -113,7 +113,7 @@ def test_nerve_hard_ceiling_returns_authority_to_orchestrator_not_kill():
 
 def test_frozen_delivery_benchmark_estimates_to_960k():
     body = (Path(__file__).resolve().parents[1] / "benchmarks/dev6_event_delivery/task-body.md").read_text()
-    from hermes_jev.work.autobind import extract_dod_lines
+    from hermes_nerve.work.autobind import extract_dod_lines
     assert estimate_task_budget(body, len(extract_dod_lines(body)), floor_tokens=70000) == 960_000
 
 
