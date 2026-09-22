@@ -7,8 +7,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from hermes_jev import client, context, engine, gate, ledger, lifecycle, paths, privacy, receipts, tools
-from hermes_jev.context_engine import JevContextEngine
+from hermes_nerve import client, context, engine, gate, ledger, lifecycle, paths, privacy, receipts, tools
+from hermes_nerve.context_engine import NerveContextEngine
 
 
 class FakeProvider:
@@ -115,7 +115,7 @@ class EngineTests(unittest.TestCase):
             client.JevClient(api_key="secret", base_url="http://router.example")
 
     def test_decision_receipt_omits_raw_state_by_default(self):
-        with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {"HERMES_JEV_RECEIPTS": str(Path(td) / "r.jsonl")}, clear=False):
+        with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {"HERMES_NERVE_RECEIPTS": str(Path(td) / "r.jsonl")}, clear=False):
             result = engine.DecisionEngine(FakeProvider()).decide(
                 state={"secret": "raw-value", "task": "x"}, instructions="choose", choices=["ALLOW", "APPROVAL", "BLOCK"], contract="test/v1"
             )
@@ -130,7 +130,7 @@ class EngineTests(unittest.TestCase):
             self.assertEqual(record["result"]["request_id"], "req-test")
 
     def test_rank_orders_probabilities(self):
-        with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {"HERMES_JEV_RECEIPTS": str(Path(td) / "r.jsonl")}, clear=False):
+        with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {"HERMES_NERVE_RECEIPTS": str(Path(td) / "r.jsonl")}, clear=False):
             provider = FakeProvider(choice="b", confidence=0.6, probabilities={"a": 0.3, "b": 0.6, "c": 0.1})
             result = engine.DecisionEngine(provider).rank(state={}, instructions="rank", items={"a": None, "b": None, "c": None})
             self.assertEqual([x["label"] for x in result["ranking"]], ["b", "a", "c"])
@@ -142,7 +142,7 @@ class EngineTests(unittest.TestCase):
             "team": {"type": "choice", "choice": "technical", "probabilities": {"technical": 0.9, "billing": 0.1}, "confidence": 0.9},
             "severity": {"type": "score", "score": 2, "probabilities": [0.05, 0.15, 0.8]},
         }
-        with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {"HERMES_JEV_RECEIPTS": str(Path(td) / "r.jsonl")}, clear=False):
+        with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {"HERMES_NERVE_RECEIPTS": str(Path(td) / "r.jsonl")}, clear=False):
             result = engine.DecisionEngine(FakeProvider(answers=answers)).assess(
                 state={"ticket": "service unavailable"},
                 questions={
@@ -168,7 +168,7 @@ class EngineTests(unittest.TestCase):
             e.assess(state={}, questions={"x": {"type": "unknown"}})
 
     def test_out_of_contract_choice_rejected(self):
-        with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {"HERMES_JEV_RECEIPTS": str(Path(td) / "r.jsonl")}, clear=False):
+        with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {"HERMES_NERVE_RECEIPTS": str(Path(td) / "r.jsonl")}, clear=False):
             with self.assertRaises(ValueError):
                 engine.DecisionEngine(FakeProvider(choice="MAYBE", probabilities={"MAYBE": 1.0})).decide(
                     state={}, instructions="x", choices=["YES", "NO"]
@@ -276,7 +276,7 @@ class ContextCurationTests(unittest.TestCase):
         self.assertEqual(ids, ["keep", "anchor", "unrecoverable", "conflict"])
         anchored = next(x for x in result["curated_items"] if x["id"] == "anchor")
         self.assertIn("JEV_CONTEXT_ANCHOR", anchored["content"])
-        self.assertIn("jev_context_rehydrate", anchored["content"])
+        self.assertIn("nerve_context_rehydrate", anchored["content"])
         self.assertGreater(result["stats"]["applied_reduction_ratio"], 0)
         self.assertEqual(result["stats"]["applied"]["drop"], 1)
         self.assertEqual(result["stats"]["applied"]["anchor"], 1)
@@ -348,19 +348,19 @@ class ToolTests(unittest.TestCase):
         original = tools.curate_context
         tools.curate_context = lambda **kwargs: {"contract": "context-curation/v2", "stats": {"mode": "apply"}}
         try:
-            payload = json.loads(tools.jev_context_curate({"goal": "g", "items": [{"id": "x", "content": "y"}]}))
+            payload = json.loads(tools.nerve_context_curate({"goal": "g", "items": [{"id": "x", "content": "y"}]}))
         finally:
             tools.curate_context = original
         self.assertTrue(payload["ok"])
         self.assertEqual(payload["stats"]["mode"], "apply")
-        self.assertEqual(payload["execution"]["engine"], "hermes-jev")
+        self.assertEqual(payload["execution"]["engine"], "nerve")
 
     def test_assess_handler_returns_structured_result(self):
         original = tools._engine_factory
         tools._engine_factory = lambda: engine.DecisionEngine(FakeProvider(answers={"q": {"type": "noul", "noul": 0.8}}))
         try:
-            with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {"HERMES_JEV_RECEIPTS": str(Path(td) / "r.jsonl")}, clear=False):
-                payload = json.loads(tools.jev_assess({"state": "x", "questions": {"q": {"type": "noul"}}}))
+            with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {"HERMES_NERVE_RECEIPTS": str(Path(td) / "r.jsonl")}, clear=False):
+                payload = json.loads(tools.nerve_assess({"state": "x", "questions": {"q": {"type": "noul"}}}))
         finally:
             tools._engine_factory = original
         self.assertTrue(payload["ok"])
@@ -372,18 +372,18 @@ class ToolTests(unittest.TestCase):
         original = tools._engine_factory
         tools._engine_factory = lambda: engine.DecisionEngine(FakeProvider(choice="PASS", confidence=0.99, probabilities={"PASS": 0.99, "RETRY": 0.01, "REPLAN": 0.0, "ESCALATE": 0.0}))
         try:
-            with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {"HERMES_JEV_RECEIPTS": str(Path(td) / "r.jsonl")}, clear=False):
-                payload = json.loads(tools.jev_verify({"state": {}, "instructions": "verify"}))
+            with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {"HERMES_NERVE_RECEIPTS": str(Path(td) / "r.jsonl")}, clear=False):
+                payload = json.loads(tools.nerve_verify({"state": {}, "instructions": "verify"}))
         finally:
             tools._engine_factory = original
         self.assertTrue(payload["ok"])
         self.assertTrue(lifecycle.verification_passed())
 
     def test_rehydrate_is_local_and_uses_ledger(self):
-        with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {"HERMES_JEV_CONTEXT_LEDGER": str(Path(td) / "ledger.jsonl")}, clear=False):
+        with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {"HERMES_NERVE_CONTEXT_LEDGER": str(Path(td) / "ledger.jsonl")}, clear=False):
             ledger.configure(enabled=True, detail="sanitized")
             ledger.record_evidence(evidence_id="e1", content="Bearer abcdefghijklmnop useful", kind="tool_result", recoverable=True)
-            payload = json.loads(tools.jev_context_rehydrate({"evidence_id": "e1"}))
+            payload = json.loads(tools.nerve_context_rehydrate({"evidence_id": "e1"}))
             self.assertTrue(payload["ok"])
             self.assertIn("[REDACTED]", payload["rehydrated"]["content"])
             self.assertFalse(payload["execution"]["live_provider_call"])
@@ -400,8 +400,8 @@ class GateTests(unittest.TestCase):
     def test_gate_observations_remain_complete_under_parallel_writes(self):
         from concurrent.futures import ThreadPoolExecutor
         with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {
-            "HERMES_JEV_GATE_MODE": "off",
-            "HERMES_JEV_GATE_EVENTS": str(Path(td) / "gate.jsonl"),
+            "HERMES_NERVE_GATE_MODE": "off",
+            "HERMES_NERVE_GATE_EVENTS": str(Path(td) / "gate.jsonl"),
         }, clear=False):
             with ThreadPoolExecutor(max_workers=8) as pool:
                 list(pool.map(
@@ -417,8 +417,8 @@ class GateTests(unittest.TestCase):
 
     def test_gate_off_never_calls_provider(self):
         with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {
-            "HERMES_JEV_GATE_MODE": "off",
-            "HERMES_JEV_GATE_EVENTS": str(Path(td) / "gate.jsonl"),
+            "HERMES_NERVE_GATE_MODE": "off",
+            "HERMES_NERVE_GATE_EVENTS": str(Path(td) / "gate.jsonl"),
         }, clear=False):
             self.assertIsNone(gate.evaluate_tool_call(tool_name="terminal", args={}, task_id="t", engine_factory=lambda: (_ for _ in ()).throw(AssertionError())))
             self.assertIsNone(gate.pre_tool_call(
@@ -435,9 +435,9 @@ class GateTests(unittest.TestCase):
 
     def test_selective_scope_bypasses_known_read_only_tools_without_provider(self):
         with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {
-            "HERMES_JEV_GATE_MODE": "advisory",
-            "HERMES_JEV_GATE_SCOPE": "selective",
-            "HERMES_JEV_GATE_EVENTS": str(Path(td) / "gate.jsonl"),
+            "HERMES_NERVE_GATE_MODE": "advisory",
+            "HERMES_NERVE_GATE_SCOPE": "selective",
+            "HERMES_NERVE_GATE_EVENTS": str(Path(td) / "gate.jsonl"),
         }, clear=False):
             original = gate.evaluate_tool_call
             gate.evaluate_tool_call = lambda **kwargs: (_ for _ in ()).throw(AssertionError("provider should not run"))
@@ -453,7 +453,7 @@ class GateTests(unittest.TestCase):
             self.assertEqual(report["estimated_provider_calls_avoided"], 3)
 
     def test_selective_terminal_bypass_is_conservative(self):
-        with patch.dict(os.environ, {"HERMES_JEV_GATE_SCOPE": "selective"}, clear=False):
+        with patch.dict(os.environ, {"HERMES_NERVE_GATE_SCOPE": "selective"}, clear=False):
             self.assertEqual(gate.bypass_reason("terminal", {"command": "pwd"}), "read-only-terminal")
             self.assertEqual(gate.bypass_reason("terminal", {"command": "git diff -- README.md"}), "read-only-terminal")
             for command in (
@@ -472,9 +472,9 @@ class GateTests(unittest.TestCase):
 
     def test_gate_scope_all_preserves_evaluate_everything_compatibility(self):
         with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {
-            "HERMES_JEV_GATE_MODE": "advisory",
-            "HERMES_JEV_GATE_SCOPE": "all",
-            "HERMES_JEV_GATE_EVENTS": str(Path(td) / "gate.jsonl"),
+            "HERMES_NERVE_GATE_MODE": "advisory",
+            "HERMES_NERVE_GATE_SCOPE": "all",
+            "HERMES_NERVE_GATE_EVENTS": str(Path(td) / "gate.jsonl"),
         }, clear=False):
             calls = []
             original = gate.evaluate_tool_call
@@ -491,12 +491,12 @@ class GateTests(unittest.TestCase):
             self.assertEqual(report["provider_calls"], 1)
             self.assertEqual(report["provider_latency_ms"], 123.0)
 
-    def test_jev_internal_tools_never_recurse_even_in_all_scope(self):
-        with patch.dict(os.environ, {"HERMES_JEV_GATE_SCOPE": "all"}, clear=False):
-            self.assertEqual(gate.bypass_reason("jev_verify", {}), "jev-internal")
+    def test_nerve_internal_tools_never_recurse_even_in_all_scope(self):
+        with patch.dict(os.environ, {"HERMES_NERVE_GATE_SCOPE": "all"}, clear=False):
+            self.assertEqual(gate.bypass_reason("nerve_verify", {}), "nerve-internal")
 
     def test_enforce_block(self):
-        with patch.dict(os.environ, {"HERMES_JEV_GATE_MODE": "enforce"}, clear=False):
+        with patch.dict(os.environ, {"HERMES_NERVE_GATE_MODE": "enforce"}, clear=False):
             original = gate.evaluate_tool_call
             gate.evaluate_tool_call = lambda **kwargs: engine.DecisionResult("BLOCK", 0.95, {"BLOCK": 0.95}, "jev-test", 1.0, "x")
             try:
@@ -506,7 +506,7 @@ class GateTests(unittest.TestCase):
             self.assertEqual(decision["action"], "block")
 
     def test_enforce_low_confidence_goes_to_human(self):
-        with patch.dict(os.environ, {"HERMES_JEV_GATE_MODE": "enforce", "HERMES_JEV_MIN_CONFIDENCE": "0.80"}, clear=False):
+        with patch.dict(os.environ, {"HERMES_NERVE_GATE_MODE": "enforce", "HERMES_NERVE_MIN_CONFIDENCE": "0.80"}, clear=False):
             original = gate.evaluate_tool_call
             gate.evaluate_tool_call = lambda **kwargs: engine.DecisionResult("ALLOW", 0.51, {"ALLOW": 0.51}, "jev-test", 1.0, "x")
             try:
@@ -516,7 +516,7 @@ class GateTests(unittest.TestCase):
             self.assertEqual(decision["action"], "approve")
 
     def test_provider_failure_fails_to_human_in_enforce(self):
-        with patch.dict(os.environ, {"HERMES_JEV_GATE_MODE": "enforce"}, clear=False):
+        with patch.dict(os.environ, {"HERMES_NERVE_GATE_MODE": "enforce"}, clear=False):
             original = gate.evaluate_tool_call
             gate.evaluate_tool_call = lambda **kwargs: (_ for _ in ()).throw(RuntimeError("down"))
             try:
@@ -529,7 +529,7 @@ class GateTests(unittest.TestCase):
 class RegistrationTests(unittest.TestCase):
     def test_registers_vnext_tools_hooks_context_engine_and_config(self):
         root = Path(__file__).resolve().parents[1]
-        spec = importlib.util.spec_from_file_location("hermes_jev_plugin", root / "__init__.py", submodule_search_locations=[str(root)])
+        spec = importlib.util.spec_from_file_location("hermes_nerve_plugin", root / "__init__.py", submodule_search_locations=[str(root)])
         module = importlib.util.module_from_spec(spec)
         sys.modules[spec.name] = module
         spec.loader.exec_module(module)
@@ -577,7 +577,7 @@ class RegistrationTests(unittest.TestCase):
         module.register(ctx)
         self.assertEqual(
             {x["name"] for x in ctx.tools},
-            {"jev_decide", "jev_rank", "jev_verify", "jev_assess", "jev_context_curate", "jev_context_rehydrate", "jev_stats", "jev_nervous_event", "jev_supervise_card", "jev_work_event", "jev_work_status", "jev_remote_delegate_task", "jev_remote_worker_status", "jev_remote_worker_result", "jev_remote_worker_cancel", "jev_remote_worker_control"},
+            {"nerve_decide", "nerve_rank", "nerve_verify", "nerve_assess", "nerve_context_curate", "nerve_context_rehydrate", "nerve_stats", "nerve_event", "nerve_supervise_card", "nerve_work_event", "nerve_work_status", "nerve_remote_delegate_task", "nerve_remote_worker_status", "nerve_remote_worker_result", "nerve_remote_worker_cancel", "nerve_remote_worker_control"},
         )
         self.assertEqual([x[0] for x in ctx.hooks], ["pre_tool_call", "post_tool_call", "post_tool_call", "post_tool_call", "pre_llm_call", "transform_tool_result", "pre_verify", "post_api_request", "api_request_error", "post_llm_call", "on_session_end"])
         self.assertTrue(all(callable(x[1]) for x in ctx.hooks))
@@ -593,14 +593,14 @@ class RegistrationTests(unittest.TestCase):
         self.assertEqual(module.context._configured_preserve_tail, 2)
         self.assertEqual(module.context._configured_mode, "shadow")
         self.assertAlmostEqual(module.context._configured_drop_max_needed, 0.11)
-        self.assertEqual(type(ctx.context_engine).__name__, "JevContextEngine")
+        self.assertEqual(type(ctx.context_engine).__name__, "NerveContextEngine")
         self.assertEqual(ctx.context_engine.name, "jev")
         self.assertAlmostEqual(ctx.context_engine.threshold_percent, 0.68)
         self.assertFalse(ctx.context_engine.fallback_builtin)
 
     def test_fresh_install_context_defaults_are_shadow(self):
         root = Path(__file__).resolve().parents[1]
-        spec = importlib.util.spec_from_file_location("hermes_jev_plugin_defaults", root / "__init__.py", submodule_search_locations=[str(root)])
+        spec = importlib.util.spec_from_file_location("hermes_nerve_plugin_defaults", root / "__init__.py", submodule_search_locations=[str(root)])
         module = importlib.util.module_from_spec(spec)
         sys.modules[spec.name] = module
         spec.loader.exec_module(module)
@@ -626,7 +626,7 @@ class RegistrationTests(unittest.TestCase):
 
     def test_legacy_model_id_is_still_accepted(self):
         root = Path(__file__).resolve().parents[1]
-        spec = importlib.util.spec_from_file_location("hermes_jev_plugin_legacy", root / "__init__.py", submodule_search_locations=[str(root)])
+        spec = importlib.util.spec_from_file_location("hermes_nerve_plugin_legacy", root / "__init__.py", submodule_search_locations=[str(root)])
         module = importlib.util.module_from_spec(spec)
         sys.modules[spec.name] = module
         spec.loader.exec_module(module)
@@ -645,17 +645,17 @@ class RegistrationTests(unittest.TestCase):
 
 class ProvenanceAndLedgerTests(unittest.TestCase):
     def test_decision_result_has_unmistakable_live_provenance(self):
-        with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {"HERMES_JEV_RECEIPTS": str(Path(td) / "r.jsonl")}, clear=False):
+        with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {"HERMES_NERVE_RECEIPTS": str(Path(td) / "r.jsonl")}, clear=False):
             result = engine.DecisionEngine(FakeProvider(choice="A", confidence=0.9, probabilities={"A": 0.9, "B": 0.1})).decide(
                 state={}, instructions="choose", choices=["A", "B"]
             ).as_dict()
-        self.assertEqual(result["execution"]["engine"], "hermes-jev")
+        self.assertEqual(result["execution"]["engine"], "nerve")
         self.assertEqual(result["execution"]["version"], "0.2.2")
         self.assertEqual(result["execution"]["transport"], "openrouter-decisions")
         self.assertTrue(result["execution"]["live_provider_call"])
 
     def test_post_tool_observer_records_sanitized_recoverable_evidence(self):
-        with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {"HERMES_JEV_CONTEXT_LEDGER": str(Path(td) / "ledger.jsonl")}, clear=False):
+        with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {"HERMES_NERVE_CONTEXT_LEDGER": str(Path(td) / "ledger.jsonl")}, clear=False):
             ledger.configure(enabled=True, detail="sanitized")
             ledger.observe_tool_call(
                 tool_name="terminal",
@@ -664,7 +664,7 @@ class ProvenanceAndLedgerTests(unittest.TestCase):
                 task_id="t1",
                 duration_ms=12,
             )
-            rows = [json.loads(x) for x in Path(os.environ["HERMES_JEV_CONTEXT_LEDGER"]).read_text().splitlines()]
+            rows = [json.loads(x) for x in Path(os.environ["HERMES_NERVE_CONTEXT_LEDGER"]).read_text().splitlines()]
             self.assertEqual(len(rows), 1)
             self.assertTrue(rows[0]["recoverable"])
             self.assertIn("[REDACTED]", rows[0]["content"])
@@ -674,7 +674,7 @@ class ProvenanceAndLedgerTests(unittest.TestCase):
 
     def test_profile_report_home_infers_named_profile_from_plugin_path(self):
         with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {}, clear=True):
-            plugin = Path(td) / ".hermes" / "profiles" / "muna" / "plugins" / "hermes-jev"
+            plugin = Path(td) / ".hermes" / "profiles" / "muna" / "plugins" / "nerve"
             plugin.mkdir(parents=True)
             inferred = paths.report_home(plugin)
             self.assertEqual(inferred, Path(td) / ".hermes" / "profiles" / "muna")
@@ -731,8 +731,8 @@ class ProvenanceAndLedgerTests(unittest.TestCase):
 
     def test_stats_tool_is_local_and_combines_receipts_and_context(self):
         with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {
-            "HERMES_JEV_RECEIPTS": str(Path(td) / "receipts.jsonl"),
-            "HERMES_JEV_CONTEXT_LEDGER": str(Path(td) / "ledger.jsonl"),
+            "HERMES_NERVE_RECEIPTS": str(Path(td) / "receipts.jsonl"),
+            "HERMES_NERVE_CONTEXT_LEDGER": str(Path(td) / "ledger.jsonl"),
         }, clear=False):
             ledger.configure(enabled=True, detail="sanitized")
             receipts.write_receipt(
@@ -745,7 +745,7 @@ class ProvenanceAndLedgerTests(unittest.TestCase):
                 model="jev-test", latency_ms=12.5,
             )
             ledger.record_evidence(evidence_id="e1", content="status", kind="tool_result", recoverable=True)
-            payload = json.loads(tools.jev_stats({"recent_limit": 2}))
+            payload = json.loads(tools.nerve_stats({"recent_limit": 2}))
             self.assertTrue(payload["ok"])
             self.assertEqual(payload["receipts"]["receipt_count"], 1)
             self.assertEqual(payload["context"]["evidence_events"], 1)
@@ -754,11 +754,11 @@ class ProvenanceAndLedgerTests(unittest.TestCase):
         ledger.configure(enabled=False, detail="sanitized")
     def test_stats_default_is_bounded_and_recent_is_opt_in(self):
         with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {
-            "HERMES_JEV_RECEIPTS": str(Path(td) / "receipts.jsonl"),
-            "HERMES_JEV_GATE_EVENTS": str(Path(td) / "gate.jsonl"),
-            "HERMES_JEV_CONTEXT_LEDGER": str(Path(td) / "ledger.jsonl"),
-            "HERMES_JEV_NERVOUS_EVENTS": str(Path(td) / "nervous.jsonl"),
-            "HERMES_JEV_OUTCOMES": str(Path(td) / "outcomes.jsonl"),
+            "HERMES_NERVE_RECEIPTS": str(Path(td) / "receipts.jsonl"),
+            "HERMES_NERVE_GATE_EVENTS": str(Path(td) / "gate.jsonl"),
+            "HERMES_NERVE_CONTEXT_LEDGER": str(Path(td) / "ledger.jsonl"),
+            "HERMES_NERVE_NERVOUS_EVENTS": str(Path(td) / "nervous.jsonl"),
+            "HERMES_NERVE_OUTCOMES": str(Path(td) / "outcomes.jsonl"),
         }, clear=False):
             ledger.configure(enabled=True, detail="sanitized")
             for idx in range(80):
@@ -766,7 +766,7 @@ class ProvenanceAndLedgerTests(unittest.TestCase):
                     evidence_id=f"e{idx}", content=("x" * 400), kind="tool_result",
                     recoverable=True, action="OBSERVED",
                 )
-            raw = tools.jev_stats({})
+            raw = tools.nerve_stats({})
             payload = json.loads(raw)
             self.assertTrue(payload["ok"])
             self.assertEqual(payload["contract"], "stats/v2")
@@ -774,14 +774,14 @@ class ProvenanceAndLedgerTests(unittest.TestCase):
             self.assertLess(len(raw), 12000)
             self.assertNotIn("recent", payload["gate"])
             self.assertNotIn("recent_router", payload["nervous"])
-            detailed = json.loads(tools.jev_stats({"section": "gate", "include_recent": True, "recent_limit": 2}))
+            detailed = json.loads(tools.nerve_stats({"section": "gate", "include_recent": True, "recent_limit": 2}))
             self.assertEqual(detailed["section"], "gate")
             self.assertLessEqual(len(detailed["gate"]["recent"]), 2)
         ledger.configure(enabled=False, detail="sanitized")
 
     def test_explicit_rehydration_after_anchor_is_counted_as_recovery_demand(self):
         with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {
-            "HERMES_JEV_CONTEXT_LEDGER": str(Path(td) / "ledger.jsonl"),
+            "HERMES_NERVE_CONTEXT_LEDGER": str(Path(td) / "ledger.jsonl"),
         }, clear=False):
             ledger.configure(enabled=True, detail="sanitized")
             ledger.record_evidence(
@@ -798,7 +798,7 @@ class ProvenanceAndLedgerTests(unittest.TestCase):
         ledger.configure(enabled=False, detail="sanitized")
 
     def test_ledger_hash_mode_refuses_fake_rehydration(self):
-        with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {"HERMES_JEV_CONTEXT_LEDGER": str(Path(td) / "ledger.jsonl")}, clear=False):
+        with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {"HERMES_NERVE_CONTEXT_LEDGER": str(Path(td) / "ledger.jsonl")}, clear=False):
             ledger.configure(enabled=True, detail="hash")
             ledger.record_evidence(evidence_id="e-hash", content="exact data", kind="tool_result", recoverable=True)
             with self.assertRaises(ValueError):
@@ -809,7 +809,7 @@ class ProvenanceAndLedgerTests(unittest.TestCase):
 class JsonlDurabilityTests(unittest.TestCase):
     def test_parallel_appends_remain_parseable(self):
         from concurrent.futures import ThreadPoolExecutor
-        from hermes_jev.jsonl import append_jsonl, read_jsonl
+        from hermes_nerve.jsonl import append_jsonl, read_jsonl
 
         with tempfile.TemporaryDirectory() as td:
             path = Path(td) / "parallel.jsonl"
@@ -831,7 +831,7 @@ class ContextEngineTests(unittest.TestCase):
             def compress(self, messages, **kwargs):
                 return [messages[0], {"role": "assistant", "content": "fallback summary"}]
 
-        e = JevContextEngine(mode="shadow", threshold_percent=0.5, fallback_builtin=True)
+        e = NerveContextEngine(mode="shadow", threshold_percent=0.5, fallback_builtin=True)
         e.context_length = 1000
         e.threshold_tokens = 500
         e.last_prompt_tokens = 900
@@ -841,7 +841,7 @@ class ContextEngineTests(unittest.TestCase):
         self.assertEqual(out[-1]["content"], "fallback summary")
 
     def test_shadow_engine_without_fallback_does_not_claim_noop_compression(self):
-        e = JevContextEngine(mode="shadow", threshold_percent=0.5, fallback_builtin=False)
+        e = NerveContextEngine(mode="shadow", threshold_percent=0.5, fallback_builtin=False)
         e.context_length = 1000
         e.threshold_tokens = 500
         e.last_prompt_tokens = 900
@@ -849,7 +849,7 @@ class ContextEngineTests(unittest.TestCase):
         self.assertFalse(e.should_compress())
 
     def test_apply_engine_preserves_tool_protocol_by_anchoring_drop(self):
-        e = JevContextEngine(mode="apply", threshold_percent=0.5, protect_first_n=0, protect_last_n=1)
+        e = NerveContextEngine(mode="apply", threshold_percent=0.5, protect_first_n=0, protect_last_n=1)
         e.update_model("model", 1000)
         messages = [
             {"role": "user", "content": "debug"},
@@ -877,7 +877,7 @@ class ContextEngineTests(unittest.TestCase):
 
     def test_context_engine_status_exposes_ledger_and_plan(self):
         ledger.configure(enabled=False, detail="sanitized")
-        e = JevContextEngine(mode="apply")
+        e = NerveContextEngine(mode="apply")
         e.update_model("model", 2000)
         status = e.get_status()
         self.assertEqual(status["engine"], "jev")
@@ -891,7 +891,7 @@ class ContextEngineTests(unittest.TestCase):
                 self.calls += 1
                 return [messages[0], {"role": "assistant", "content": "fallback summary"}]
 
-        e = JevContextEngine(mode="apply", protect_first_n=3, protect_last_n=6, fallback_builtin=True)
+        e = NerveContextEngine(mode="apply", protect_first_n=3, protect_last_n=6, fallback_builtin=True)
         e.context_length = 1000
         e.threshold_tokens = 500
         fb = Fallback()
@@ -904,7 +904,7 @@ class ContextEngineTests(unittest.TestCase):
         self.assertEqual(e.compression_count, 1)
 
     def test_context_engine_fallback_can_be_disabled(self):
-        e = JevContextEngine(mode="apply", fallback_builtin=False)
+        e = NerveContextEngine(mode="apply", fallback_builtin=False)
         e._model = "m"
         e._build_fallback()
         self.assertIsNone(e._fallback)
@@ -914,7 +914,7 @@ class LiveSmokeTests(unittest.TestCase):
     def test_live_smoke_requires_explicit_api_key(self):
         root = Path(__file__).resolve().parents[1]
         smoke_path = root / "scripts" / "live_api_smoke.py"
-        spec = importlib.util.spec_from_file_location("hermes_jev_live_smoke", smoke_path)
+        spec = importlib.util.spec_from_file_location("hermes_nerve_live_smoke", smoke_path)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         with patch.dict(os.environ, {}, clear=True):
@@ -923,7 +923,7 @@ class LiveSmokeTests(unittest.TestCase):
     def test_live_suite_requires_explicit_api_key(self):
         root = Path(__file__).resolve().parents[1]
         suite_path = root / "scripts" / "live_api_suite.py"
-        spec = importlib.util.spec_from_file_location("hermes_jev_live_suite", suite_path)
+        spec = importlib.util.spec_from_file_location("hermes_nerve_live_suite", suite_path)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         with patch.dict(os.environ, {}, clear=True):

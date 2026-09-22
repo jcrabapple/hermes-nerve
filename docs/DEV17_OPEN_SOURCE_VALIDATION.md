@@ -35,7 +35,7 @@ The Hermes plugin remains dependency-free. The sidecar venv pins the current pub
 
 ```bash
 bash scripts/setup_laya_dev17.sh
-USE_TF=0 ~/.venvs/hermes-reflex-laya/bin/python -m hermes_jev.reflex.laya_service \
+USE_TF=0 ~/.venvs/hermes-reflex-laya/bin/python -m hermes_nerve.reflex.laya_service \
   --device cuda --host 127.0.0.1 --port 8765 --model convaiinnovations/laya-typed-decisions
 python3 scripts/check_laya_sidecar.py
 ```
@@ -78,7 +78,7 @@ python3 scripts/check_openjev_sidecar.py
 
 If the remote helper itself is intentionally exposed rather than tunneled, use its `SHIM_TOKEN` and TLS; do not expose the unauthenticated vLLM backend.
 
-OpenJev weights are CC BY-NC 4.0. The helper/serve code is Apache-2.0. Hermes-Jev dev17 ships integration code only, not model weights.
+OpenJev weights are CC BY-NC 4.0. The helper/serve code is Apache-2.0. Nerve dev17 ships integration code only, not model weights.
 
 ## Configure a profile
 

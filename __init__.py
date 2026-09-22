@@ -1,4 +1,4 @@
-"""Hermes-Jev plugin registration — v0.2.2 Nerve supervision and open Reflex backends."""
+"""Nerve plugin registration — v0.2.2 Nerve supervision and open Reflex backends."""
 from __future__ import annotations
 
 import logging
@@ -8,32 +8,32 @@ from pathlib import Path
 try:
     # Hermes plugin loader imports the plugin as a package. Relative imports are
     # required there because the plugin root itself is not added to sys.path.
-    from .hermes_jev import client, context, gate, ledger, nervous, receipts, schemas, tools
-    from .hermes_jev import reflex
-    from .hermes_jev.context_engine import JevContextEngine
-    from .hermes_jev.provenance import VERSION
-    from .hermes_jev.remote import control as remote_control
-    from .hermes_jev.remote import runtime as remote_runtime
-    from .hermes_jev.remote import tools as remote_tools
-    from .hermes_jev.work import hooks as work_hooks
-    from .hermes_jev.work import runtime as work_runtime
-    from .hermes_jev.work import tools as work_tools
+    from .hermes_nerve import client, context, gate, ledger, nervous, receipts, schemas, tools
+    from .hermes_nerve import reflex
+    from .hermes_nerve.context_engine import NerveContextEngine
+    from .hermes_nerve.provenance import VERSION
+    from .hermes_nerve.remote import control as remote_control
+    from .hermes_nerve.remote import runtime as remote_runtime
+    from .hermes_nerve.remote import tools as remote_tools
+    from .hermes_nerve.work import hooks as work_hooks
+    from .hermes_nerve.work import runtime as work_runtime
+    from .hermes_nerve.work import tools as work_tools
 except ImportError:
     # Pytest and direct offline verification may import this file as bare
     # ``__init__``. Preserve that source-tree workflow without regressing the
     # real Hermes package-loader fix above.
-    from hermes_jev import client, context, gate, ledger, nervous, receipts, schemas, tools
-    from hermes_jev import reflex
-    from hermes_jev.context_engine import JevContextEngine
-    from hermes_jev.provenance import VERSION
-    from hermes_jev.remote import control as remote_control
-    from hermes_jev.remote import runtime as remote_runtime
-    from hermes_jev.remote import tools as remote_tools
-    from hermes_jev.work import hooks as work_hooks
-    from hermes_jev.work import runtime as work_runtime
-    from hermes_jev.work import tools as work_tools
+    from hermes_nerve import client, context, gate, ledger, nervous, receipts, schemas, tools
+    from hermes_nerve import reflex
+    from hermes_nerve.context_engine import NerveContextEngine
+    from hermes_nerve.provenance import VERSION
+    from hermes_nerve.remote import control as remote_control
+    from hermes_nerve.remote import runtime as remote_runtime
+    from hermes_nerve.remote import tools as remote_tools
+    from hermes_nerve.work import hooks as work_hooks
+    from hermes_nerve.work import runtime as work_runtime
+    from hermes_nerve.work import tools as work_tools
 
-logger = logging.getLogger("hermes_jev")
+logger = logging.getLogger("nerve")
 
 
 def register(ctx):
@@ -162,22 +162,22 @@ def register(ctx):
     )
 
     registrations = [
-        ("jev_decide", schemas.JEV_DECIDE, tools.jev_decide),
-        ("jev_rank", schemas.JEV_RANK, tools.jev_rank),
-        ("jev_verify", schemas.JEV_VERIFY, tools.jev_verify),
-        ("jev_assess", schemas.JEV_ASSESS, tools.jev_assess),
-        ("jev_context_curate", schemas.JEV_CONTEXT_CURATE, tools.jev_context_curate),
-        ("jev_context_rehydrate", schemas.JEV_CONTEXT_REHYDRATE, tools.jev_context_rehydrate),
-        ("jev_stats", schemas.JEV_STATS, tools.jev_stats),
-        ("jev_nervous_event", schemas.JEV_NERVOUS_EVENT, tools.jev_nervous_event),
-        ("jev_supervise_card", schemas.JEV_SUPERVISE_CARD, work_tools.jev_supervise_card),
-        ("jev_work_event", schemas.JEV_WORK_EVENT, work_tools.jev_work_event),
-        ("jev_work_status", schemas.JEV_WORK_STATUS, work_tools.jev_work_status),
-        ("jev_remote_delegate_task", schemas.JEV_REMOTE_DELEGATE_TASK, remote_tools.jev_remote_delegate_task),
-        ("jev_remote_worker_status", schemas.JEV_REMOTE_WORKER_STATUS, remote_tools.jev_remote_worker_status),
-        ("jev_remote_worker_result", schemas.JEV_REMOTE_WORKER_RESULT, remote_tools.jev_remote_worker_result),
-        ("jev_remote_worker_cancel", schemas.JEV_REMOTE_WORKER_CANCEL, remote_tools.jev_remote_worker_cancel),
-        ("jev_remote_worker_control", schemas.JEV_REMOTE_WORKER_CONTROL, remote_tools.jev_remote_worker_control),
+        ("nerve_decide", schemas.NERVE_DECIDE, tools.nerve_decide),
+        ("nerve_rank", schemas.NERVE_RANK, tools.nerve_rank),
+        ("nerve_verify", schemas.NERVE_VERIFY, tools.nerve_verify),
+        ("nerve_assess", schemas.NERVE_ASSESS, tools.nerve_assess),
+        ("nerve_context_curate", schemas.NERVE_CONTEXT_CURATE, tools.nerve_context_curate),
+        ("nerve_context_rehydrate", schemas.NERVE_CONTEXT_REHYDRATE, tools.nerve_context_rehydrate),
+        ("nerve_stats", schemas.NERVE_STATS, tools.nerve_stats),
+        ("nerve_event", schemas.NERVE_EVENT, tools.nerve_event),
+        ("nerve_supervise_card", schemas.NERVE_SUPERVISE_CARD, work_tools.nerve_supervise_card),
+        ("nerve_work_event", schemas.NERVE_WORK_EVENT, work_tools.nerve_work_event),
+        ("nerve_work_status", schemas.NERVE_WORK_STATUS, work_tools.nerve_work_status),
+        ("nerve_remote_delegate_task", schemas.NERVE_REMOTE_DELEGATE_TASK, remote_tools.nerve_remote_delegate_task),
+        ("nerve_remote_worker_status", schemas.NERVE_REMOTE_WORKER_STATUS, remote_tools.nerve_remote_worker_status),
+        ("nerve_remote_worker_result", schemas.NERVE_REMOTE_WORKER_RESULT, remote_tools.nerve_remote_worker_result),
+        ("nerve_remote_worker_cancel", schemas.NERVE_REMOTE_WORKER_CANCEL, remote_tools.nerve_remote_worker_cancel),
+        ("nerve_remote_worker_control", schemas.NERVE_REMOTE_WORKER_CONTROL, remote_tools.nerve_remote_worker_control),
     ]
     # Controller/admin sessions retain the full Jev surface. Ordinary Kanban
     # workers are deliberately headless: exposing these schemas was the largest
@@ -236,7 +236,7 @@ def register(ctx):
     ctx.register_hook("on_session_end", _session_end)
 
     if not headless_worker and bool(ctx.get_config("context_engine_register", True)) and hasattr(ctx, "register_context_engine"):
-        ctx.register_context_engine(JevContextEngine(
+        ctx.register_context_engine(NerveContextEngine(
             mode=ctx.get_config("context_engine_mode", "shadow"),
             threshold_percent=ctx.get_config("context_engine_threshold_percent", 0.72),
             protect_first_n=ctx.get_config("context_engine_protect_first_n", 3),
@@ -245,22 +245,22 @@ def register(ctx):
             fallback_builtin=ctx.get_config("context_engine_fallback_builtin", True),
         ))
     logger.info(
-        "Hermes-Jev %s loaded from %s; tools=%d headless_worker=%s work_supervision=%s",
+        "Nerve %s loaded from %s; tools=%d headless_worker=%s work_supervision=%s",
         VERSION, Path(__file__).resolve().parent, 0 if headless_worker else len(registrations), headless_worker,
         ctx.get_config("work_supervision_enabled", True),
     )
     if headless_worker:
         if startup_identity is not None:
             logger.info(
-                "Hermes-Jev headless supervision bound at startup: task=%s run=%s contract=%s",
+                "Nerve headless supervision bound at startup: task=%s run=%s contract=%s",
                 startup_identity.task_id, startup_identity.run_id, startup_identity.contract_hash[:12],
             )
         else:
             message = (
-                "Hermes-Jev headless supervision did not bind at startup; inspect supervision_diagnostics "
+                "Nerve headless supervision did not bind at startup; inspect supervision_diagnostics "
                 "before treating this run as a valid Jev-supervised measurement"
             )
-            if os.getenv("HERMES_JEV_OFFLINE_VERIFY") == "1":
+            if os.getenv("HERMES_NERVE_OFFLINE_VERIFY") == "1":
                 logger.info("%s (offline verifier: not applicable)", message)
             else:
                 logger.warning(message)

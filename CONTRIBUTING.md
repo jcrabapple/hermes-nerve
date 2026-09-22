@@ -1,10 +1,10 @@
 # Contributing
 
-Hermes-Jev is contract-first. Changes should preserve bounded provider work, deterministic host behavior, fail-open integration semantics, and explicit provenance.
+Nerve is contract-first. Changes should preserve bounded provider work, deterministic host behavior, fail-open integration semantics, and explicit provenance.
 
 ## Development setup
 
-Hermes-Jev has no required runtime Python dependencies beyond the standard library. Release verification additionally uses PyYAML:
+Nerve has no required runtime Python dependencies beyond the standard library. Release verification additionally uses PyYAML:
 
 ```bash
 python -m pip install "PyYAML>=6,<7" "tomli>=2,<3; python_version < '3.11'"
@@ -47,7 +47,7 @@ Use synthetic state for live provider checks. Never include API keys, bearer tok
 
 When reporting a live check, identify:
 
-- Hermes-Jev version / full commit SHA;
+- Nerve version / full commit SHA;
 - Hermes Agent version;
 - provider / transport;
 - returned provider/model identifiers;

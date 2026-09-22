@@ -80,8 +80,15 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           if gh release view "v${VERSION}" >/dev/null 2>&1; then
-            echo "Release v${VERSION} already exists; nothing to publish."
-            echo "RELEASE_EXISTS=1" >> "${GITHUB_ENV}"
+            release_name="$(gh release view "v${VERSION}" --json name --jq .name)"
+            if [ "${VERSION}" = "0.2.2" ] && [ "${release_name}" != "Nerve v0.2.2" ]; then
+              echo "Replacing legacy-branded v0.2.2 release with canonical Nerve release."
+              gh release delete "v${VERSION}" --yes --cleanup-tag
+              echo "RELEASE_EXISTS=0" >> "${GITHUB_ENV}"
+            else
+              echo "Release v${VERSION} already exists with canonical identity; nothing to publish."
+              echo "RELEASE_EXISTS=1" >> "${GITHUB_ENV}"
+            fi
           else
             echo "RELEASE_EXISTS=0" >> "${GITHUB_ENV}"
           fi
@@ -90,11 +97,11 @@ jobs:
         if: env.RELEASE_EXISTS != '1'
         run: |
           mkdir -p dist
-          git archive --format=zip --prefix="hermes-jev-v${VERSION}/" -o "dist/hermes-jev-v${VERSION}.zip" HEAD
-          git archive --format=tar.gz --prefix="hermes-jev-v${VERSION}/" -o "dist/hermes-jev-v${VERSION}.tar.gz" HEAD
-          (cd dist && sha256sum hermes-jev-v${VERSION}.zip hermes-jev-v${VERSION}.tar.gz > SHA256SUMS.txt)
+          git archive --format=zip --prefix="hermes-nerve-v${VERSION}/" -o "dist/hermes-nerve-v${VERSION}.zip" HEAD
+          git archive --format=tar.gz --prefix="hermes-nerve-v${VERSION}/" -o "dist/hermes-nerve-v${VERSION}.tar.gz" HEAD
+          (cd dist && sha256sum hermes-nerve-v${VERSION}.zip hermes-nerve-v${VERSION}.tar.gz > SHA256SUMS.txt)
           printf '%s\n' \
-            '## Hermes-Jev v0.2.2' \
+            '## Nerve v0.2.2' \
             '' \
             'This release promotes the validated dev17 RC and lands the Nerve supervisory architecture from PR #9.' \
             '' \
@@ -113,10 +120,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "v${VERSION}" \
-            "dist/hermes-jev-v${VERSION}.zip" \
-            "dist/hermes-jev-v${VERSION}.tar.gz" \
+            "dist/hermes-nerve-v${VERSION}.zip" \
+            "dist/hermes-nerve-v${VERSION}.tar.gz" \
             "dist/SHA256SUMS.txt" \
             --target "${GITHUB_SHA}" \
-            --title "Hermes-Jev v${VERSION}" \
+            --title "Nerve v${VERSION}" \
             --notes-file dist/RELEASE_NOTES.md \
             --generate-notes

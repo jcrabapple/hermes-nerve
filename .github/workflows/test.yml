@@ -37,7 +37,7 @@ jobs:
         run: |
           version="$(python -c 'import yaml; print(yaml.safe_load(open("plugin.yaml"))["version"])')"
           if [[ "$version" == *".dev"* ]]; then
-            git diff --exit-code "${{ github.event.pull_request.base.sha }}" HEAD -- packaging/hermes-catalog/jev.yaml
+            git diff --exit-code "${{ github.event.pull_request.base.sha }}" HEAD -- packaging/hermes-catalog/nerve.yaml
           fi
 
       - name: Unit tests

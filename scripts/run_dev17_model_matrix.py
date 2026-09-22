@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Hermes-Jev dev17 backend matrix: hosted Jev vs Laya vs OpenJev.
+"""Nerve dev17 backend matrix: hosted Jev vs Laya vs OpenJev.
 
 The worker model, fixture, DoD, Nerve thresholds, and Hermes profile baseline are
 held constant. Only ``reflex_backend`` changes. Results are flushed after every
@@ -116,10 +116,10 @@ def install_profile(profile: str, backend: str, args) -> None:
     hermes("profile","create",profile,"--clone-from",args.source_profile,"--no-alias")
     shared=Path.home()/".hermes/shared/nous_auth.json"
     if shared.exists(): hermes("-p",profile,"auth","add","nous","--type","oauth",check=False,input_text="\n")
-    dest=Path.home()/".hermes/profiles"/profile/"plugins/hermes-jev"
+    dest=Path.home()/".hermes/profiles"/profile/"plugins/nerve"
     if dest.exists(): shutil.rmtree(dest)
     shutil.copytree(ROOT,dest,ignore=shutil.ignore_patterns(".pytest_cache","__pycache__","*.pyc","PACKAGE_SHA256SUMS.txt"))
-    hermes("-p",profile,"plugins","enable","hermes-jev")
+    hermes("-p",profile,"plugins","enable","hermes-nerve")
     patch_profile(profile,backend,args)
 
 
@@ -174,7 +174,7 @@ def classification(status,run_status,tests_rc,hidden_rc,git_clean,external,nerve
 def run_arm(pair: int, backend: str, args, out: Path) -> dict[str, Any]:
     stamp=args.stamp; profile=f"ab17-{backend}-{stamp}-p{pair}"; board=f"jev-dev17-{stamp}-p{pair}-{backend}"; repo=out/f"pair{pair}-{backend}-repo"
     sidecar_preflight(backend,args); install_profile(profile,backend,args); make_repo(repo)
-    hermes("kanban","boards","create",board,"--name",f"Dev17 matrix {stamp} p{pair} {backend}","--description","Hermes-Jev dev17 open-source Reflex matrix")
+    hermes("kanban","boards","create",board,"--name",f"Dev17 matrix {stamp} p{pair} {backend}","--description","Nerve dev17 open-source Reflex matrix")
     task_json=json.loads(hermes("kanban","--board",board,"create",f"DEV17 matrix pair {pair} {backend}: repair frozen event delivery fixture","--body",task_body(),"--assignee",profile,"--workspace",f"dir:{repo}","--max-runtime",str(args.max_runtime),"--max-retries","1","--json"))
     task=task_json["id"]; CURRENT.update(pid=0,board=board,task=task)
     deadline=time.time()+args.spawn_wait; run_id=None; pid=0
