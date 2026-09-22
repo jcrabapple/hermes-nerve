@@ -1,4 +1,4 @@
-# Hermes-Jev vNext Implementation Plan
+# Nerve vNext Implementation Plan
 
 ## Destination
 
@@ -174,13 +174,13 @@ Start with `P00` to falsify the state model cheaply. Then work the task graph fr
 - **Seam:** MetricsSink interface; calibration aggregators.
 - **Verification focus:** Metrics cover every listed counter/distribution and explicitly surface false PASS and useful-disagreement quality.
 
-### T20 — Receipts and jev_stats nervous-system expansion
+### T20 — Receipts and nerve_stats nervous-system expansion
 
 - **Blocked by:** T19
 - **Owns:** 817–862 (46 points)
-- **Outcome:** Create structured receipts for every supervisory transition and extend local-only jev_stats with admission/router/challenge/staleness/lease/metric summaries.
+- **Outcome:** Create structured receipts for every supervisory transition and extend local-only nerve_stats with admission/router/challenge/staleness/lease/metric summaries.
 - **Seam:** ReceiptStore public seam; JevStats projection.
-- **Verification focus:** Every listed receipt exists; jev_stats makes no provider call and reports the required nervous-system sections.
+- **Verification focus:** Every listed receipt exists; nerve_stats makes no provider call and reports the required nervous-system sections.
 
 ## Phase 8 — provider hardening
 

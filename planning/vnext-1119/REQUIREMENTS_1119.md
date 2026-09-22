@@ -1,4 +1,4 @@
-# Canonical 1,119-point Hermes-Jev vNext requirement inventory
+# Canonical 1,119-point Nerve vNext requirement inventory
 
 
 ## 1. Core architecture
@@ -24,7 +24,7 @@
 19. Jev controls important forks while touching only a small fraction of individual Hermes operations.
 20. Jev calls concentrated around decision epochs rather than tool-call epochs.
 21. When appropriate, one Jev call can combine verification, next-state selection, uncertainty assessment, and completion assessment.
-22. Existing jev_assess primitive reused/expanded for multi-question control assessments.
+22. Existing nerve_assess primitive reused/expanded for multi-question control assessments.
 23. New higher-level control assessment contract.
 24. New higher-level decision epoch contract.
 25. Decision supervision separate from ordinary assistant dialogue generation.
@@ -796,13 +796,13 @@
 
 ## 43. Existing tools retained
 
-668. jev_decide.
-669. jev_rank.
-670. jev_verify.
-671. jev_assess.
-672. jev_context_curate.
-673. jev_context_rehydrate.
-674. jev_stats.
+668. nerve_decide.
+669. nerve_rank.
+670. nerve_verify.
+671. nerve_assess.
+672. nerve_context_curate.
+673. nerve_context_rehydrate.
+674. nerve_stats.
 675. Existing tools remain available manually.
 676. New nervous-system architecture sits above these primitives.
 677. Existing direct tool APIs remain useful for explicit debugging/testing.
@@ -992,7 +992,7 @@
 837. Provider provenance preserved.
 838. State/version provenance preserved.
 
-## 52. jev_stats expansion
+## 52. nerve_stats expansion
 
 839. Turn admission section.
 840. Nervous-system section.
@@ -1017,7 +1017,7 @@
 859. Recent high-confidence disagreements.
 860. Recent stale responses.
 861. Recent challenge outcomes.
-862. Local-only jev_stats behavior retained.
+862. Local-only nerve_stats behavior retained.
 
 ## 53. Provider architecture retained
 
