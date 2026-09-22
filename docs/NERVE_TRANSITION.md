@@ -1,91 +1,62 @@
 # Nerve transition
 
-This document defines the source-repository transition from **Hermes-Jev** to **Nerve**.
+This document defines the source-repository transition from **Hermes-Jev** to **Nerve** and records the dev17 release-candidate authority model.
 
-Nerve is a provider-neutral supervisory layer for Hermes Agent. Hermes remains the primary reasoning agent; Nerve observes, verifies, redirects, and coordinates execution around it.
+Nerve is a provider-neutral supervisory layer for Hermes Agent. Hermes remains the primary reasoning/orchestration authority. Nerve observes, verifies, forecasts, redirects, and coordinates execution around it; Reflex backends do **not** own irreversible task-stop authority.
 
-## Scope
+## Current dev17 release scope
 
-The transition groups the existing and planned functionality into four subsystems:
+Dev17 ships the Nerve architecture under the existing `hermes-jev` plugin/repository identity so the proven runtime is not destabilized by a simultaneous rename. The public Nerve rename/migration remains a follow-up after the release candidate is proven.
 
-- **Nerve Reflex** — typed System-1 decisions through Jev, Laya, and future compatible backends.
-- **Nerve Core** — trajectory supervision, recovery control, and context/token governance.
-- **Nerve Kanban** — Definition-of-Done verification and worker lifecycle supervision.
-- **Nerve Remote** — durable delegation to independent Hermes workers over SSH.
+Implemented in dev17:
+
+- provider-neutral Reflex backend selection;
+- hosted Jev compatibility;
+- local/self-hosted Laya support;
+- OpenJev integration and setup/matrix tooling;
+- Nerve token-trajectory supervision;
+- controller-owned verified completion;
+- canonical orchestrator review handoff for budget escalation;
+- Nerve Remote / Hermes Outpost-derived SSH worker implementation;
+- deterministic DoD authority and parent/child completion isolation;
+- crash-safe live model matrix telemetry.
+
+OpenJev is **included but live-model untested** in dev17. Unit/interface/setup coverage is present, but real OpenJev inference and hosted-Jev vs OpenJev A/B validation require suitable GPU hardware and are tracked in issue #10.
+
+## Architecture
 
 ```text
 Nerve
 ├── Reflex
 │   ├── Jev
 │   ├── Laya
-│   └── future compatible decision backends
+│   └── OpenJev
 ├── Core
 ├── Kanban
 └── Remote
 ```
 
-## Provider-neutral Reflex layer
+### Nerve Reflex
 
-The implementation should introduce a common decision-backend interface so supervisory code does not depend directly on a Jev-specific response shape.
+Reflex backends provide typed System-1 judgments and normalized provenance. Results carry typed answers, probabilities, confidence, backend/model identity, latency, usage metadata, and local/remote provenance where available.
 
-Normalized results should carry:
+Reflex is advisory for spending/lifecycle escalation. A model decision may grant a bounded policy-defined extension, but Reflex cannot permanently fail or block a task merely because its budget estimate was exceeded.
 
-- typed answer;
-- probabilities;
-- confidence;
-- backend/model provenance;
-- latency;
-- usage metadata where available;
-- local/remote execution provenance.
+### Nerve Core
 
-### Jev
+Nerve Core observes decision-significant events: repeated failures, stalls, contradictions, completion proposals, verification state, child-worker transitions, and token trajectory. Its objective is continuation fidelity per context token while preserving the smallest sufficient working set.
 
-Existing supported Jev transports remain supported behind the generic Reflex interface.
+### Nerve Kanban
 
-### Laya
+Correctness and spending policy are deliberately separated.
 
-Laya is the first open-source/local Reflex backend. It supplies the typed primitives Nerve needs for supervision: `choice`, `score`, and `noul`, including probability/confidence output.
+- Locked deterministic DoD remains authoritative for correctness.
+- `DOD-BUDGET` is telemetry/execution policy, **not required correctness DoD**.
+- Verified completion is controller-owned and does not require another ordinary worker-model turn.
+- Parent/child completion authority remains isolated.
+- No direct database completion bypass is allowed.
 
-Laya-only operation must not require a Jev provider call.
-
-Because local decision models have bounded context, Nerve should build a compact decision state from relevant evidence rather than forwarding an entire Hermes transcript. Relevant state may include:
-
-- current goal;
-- task/run identity;
-- locked requirements;
-- deterministic verification state;
-- unresolved criteria;
-- recent decision-significant evidence;
-- repeated-failure fingerprints;
-- current trajectory state;
-- completion proposal.
-
-Deterministic verification remains authoritative where applicable.
-
-## Nerve Core
-
-Nerve Core generalizes the existing asynchronous nervous-system behavior.
-
-It should observe decision-significant events while avoiding unnecessary supervisory calls for routine state. Examples include significant failures, repeated equivalent failures, contradictions, stalled trajectories, completion proposals, verification results, and child-worker transitions.
-
-The objective remains **continuation fidelity per context token**: preserve the smallest sufficient working set needed for Hermes to continue correctly while avoiding redundant work and unnecessary model turns.
-
-## Nerve Kanban
-
-Nerve Kanban should preserve and extend the current Kanban supervision work:
-
-- exact task/run binding;
-- locked Definition-of-Done requirements;
-- deterministic criterion verification;
-- semantic assessment of unresolved criteria;
-- repeated-failure detection;
-- premature-completion rejection;
-- RETRY / REPLAN / ESCALATE / PASS control;
-- parent/child completion isolation;
-- durable terminal readiness;
-- canonical native completion.
-
-Target lifecycle:
+Target completion lifecycle:
 
 ```text
 worker
@@ -103,37 +74,60 @@ native kanban_complete
 worker exit
 ```
 
-A verified terminal state should not require another ordinary worker-model turn.
+## Budget escalation authority
+
+The first dev17 Jev/Laya live matrix exposed a policy trap: correct, test-green work could exceed required `DOD-BUDGET`, making successful completion impossible and eventually causing a model-owned Nerve kill. Dev17 RC2 removes that authority inversion.
+
+The release policy is:
+
+```text
+0–65% of base target   CONTINUE
+65%                    WATCH
+80%                    Reflex forecast: would +25% likely finish? YES / NO / MAYBE
+YES >= 0.60 confidence grant one +25% extension; no scope expansion
+MAYBE                  canonical kanban_request_review immediately
+NO                     checkpoint-only window; review by 90% of base target
+extension exhausted    canonical kanban_request_review immediately
+1.75x emergency fence  canonical review/pause, never Reflex-owned economic kill
+```
+
+The forecast question is explicitly about spending likelihood, not task authority:
+
+> Given the locked DoD, verified evidence, current agent status, token use, and remaining work, would granting the proposed additional token budget likely let this worker finish the task correctly?
+
+A confident `YES` may grant exactly one bounded extension. `NO`, `MAYBE`, extension exhaustion, or the emergency fence return authority through Hermes' native `kanban_request_review` path. The configured main LLM orchestrator/reviewer then chooses the canonical next action: complete, grant/replan additional work, request changes, or block/stop.
+
+Nerve does not dispatch `kanban_block` for economic reasons.
 
 ## Nerve Remote
 
-Nerve incorporates the remote-worker functionality developed in Hermes Outpost rather than creating a second SSH transport.
+Nerve incorporates the remote-worker functionality developed in Hermes Outpost rather than inventing another SSH transport. Preserve:
 
-The existing security boundaries should be preserved:
-
-- administrator-configured host aliases only;
+- administrator-configured host aliases;
 - normal OpenSSH host-key verification;
 - no private-key/password collection;
-- no forwarding of controller provider credentials;
-- task/context over stdin;
-- configured workspace containment;
-- physical-path/symlink validation;
+- no forwarding controller provider credentials;
+- stdin task/context transport;
+- workspace containment and physical-path/symlink validation;
 - allowlisted remote profile overrides;
-- bounded runtime and turn budgets;
+- bounded runtime/turn budgets;
 - durable job state;
 - cancellation and result/session retrieval.
 
 Remote workers remain independent Hermes processes with their own filesystem, profile, plugins, model, credentials, and session.
 
-Hermes Outpost catalog retirement is tracked independently in NousResearch/hermes-agent#118471. This source transition does not own that catalog change.
+The dev17 release-validation path has re-proven `j2 -> win4060` BatchMode OpenSSH, local forwarding, real Laya inference through the tunnel, and clean tunnel teardown. Broader Remote lifecycle regression coverage remains part of the release gate.
 
-## Execution-tree supervision
+## Privacy and provenance
 
-Supervision and completion authority must remain scoped to the correct session, task, run, worker, and parent.
-
-A child completion must never implicitly authorize its parent.
+- **Local Laya:** typed-decision inference occurs on the configured local/SSH-reached service.
+- **Remote Jev:** privacy-minimized decision state may be sent to the configured provider and may consume provider credits.
+- **OpenJev:** self-hosted integration is available; live model validation is pending issue #10.
+- **Remote Hermes:** delegated task/context is transmitted only to an administrator-configured SSH host; controller provider credentials are not forwarded.
 
 ## Public naming target
+
+After source/runtime migration is proven:
 
 ```text
 Product:      Nerve
@@ -141,159 +135,72 @@ Plugin:       nerve
 Repository:   hermes-nerve
 ```
 
-Subsystems:
+Expected future generic public tools remain `nerve_*`. Historical `jev_*` and `remote_worker_*` surfaces require an explicit compatibility/migration strategy; dev17 intentionally does not combine this rename with the runtime release.
 
-```text
-Nerve Reflex
-Nerve Core
-Nerve Kanban
-Nerve Remote
-```
-
-The repository itself should not be renamed until the migration has passed the release gates below.
-
-## API migration direction
-
-Expected generic public tool names:
-
-```text
-nerve_decide
-nerve_rank
-nerve_verify
-nerve_assess
-nerve_context_curate
-nerve_context_rehydrate
-nerve_stats
-nerve_event
-nerve_remote_delegate
-nerve_remote_status
-nerve_remote_result
-nerve_remote_cancel
-```
-
-Historical `jev_*` and Outpost `remote_worker_*` names require an explicit migration strategy. Avoid permanently duplicating the entire model-visible schema solely for compatibility.
-
-## Configuration migration
-
-Existing configuration under:
-
-```text
-plugins.entries.hermes-jev.settings
-```
-
-should migrate to:
-
-```text
-plugins.entries.nerve.settings
-```
-
-Applicable Outpost host configuration should migrate under a Nerve Remote namespace.
-
-Migration must preserve applicable provider settings, context settings, local evidence/receipts, and remote host definitions.
-
-## Privacy and provenance
-
-Nerve must make the execution boundary clear:
-
-- **Local Laya:** decision inference occurs locally once its runtime/model is available.
-- **Remote Jev:** privacy-minimized decision state may be sent to the configured provider and may consume provider credits.
-- **Remote Hermes:** delegated task/context is transmitted to an administrator-configured SSH host; controller provider credentials are not forwarded.
-
-## Repository migration
-
-Before final merge, review and update:
-
-- `plugin.yaml`;
-- package metadata;
-- README and architecture docs;
-- setup/provider/security docs;
-- migration guide;
-- configuration examples;
-- telemetry/provenance naming;
-- tests and fixtures;
-- release workflow;
-- package/archive names;
-- repository links.
-
-Historical changelog entries should retain historical names where appropriate.
-
-## Release strategy
-
-This source transition is intentionally separate from the Hermes community catalog.
-
-Sequence:
-
-1. Develop Nerve on this branch.
-2. Preserve existing Jev behavior.
-3. Add and evaluate Laya.
-4. Integrate Nerve Remote.
-5. Complete migration/rename testing.
-6. Pass all release gates.
-7. Merge the source PR.
-8. Produce an immutable Nerve release commit/tag.
-9. Rename the repository if approved by the release checklist.
-10. Only then prepare a separate Hermes catalog update.
-
-The existing Hermes-Jev catalog entry remains untouched during development and testing.
-
-## Release gates
+## Release gates for dev17 / PR #9
 
 ### Jev compatibility
 
 - existing Jev regression coverage passes;
-- supported Jev transport smoke tests pass;
-- existing configuration migration is tested;
-- context-governance regressions pass.
+- hosted Jev remains a supported Reflex backend;
+- context-governance and controller-completion regressions pass.
 
 ### Laya
 
-- local runtime/model loads successfully;
-- `choice`, `score`, and `noul` normalization is tested;
-- probability/confidence normalization is tested;
-- Laya-only mode performs no Jev decision calls;
-- CPU behavior is tested;
-- GPU path is smoke-tested;
-- representative supervision decisions are replayed and compared.
+- real checkpoint loads;
+- CUDA path is smoke-tested;
+- typed probability/confidence normalization passes;
+- Laya-only operation performs no Jev decision-provider call;
+- real inference through the packaged sidecar passes;
+- real inference through the OpenSSH forward passes;
+- hosted-Jev vs Laya matrix is rerun on the final orchestrator-authority RC.
 
-### Kanban
+### OpenJev
 
-- frozen lifecycle benchmark reproduces;
-- deterministic Definition-of-Done checks pass;
+- integration/unit/interface/setup coverage ships in dev17;
+- GPU guard fails closed on undersized hardware;
+- real-model inference and hosted-Jev vs OpenJev A/B are explicitly **not yet tested** and are tracked by issue #10.
+
+### Kanban / Nerve
+
+- deterministic DoD checks pass;
+- budget cannot invalidate otherwise-correct work;
 - premature completion is rejected;
 - parent/child completion isolation is verified;
 - verified PASS reaches canonical `kanban_complete`;
-- worker exits cleanly;
-- no unnecessary post-PASS decision turn remains;
+- no unnecessary post-PASS model turn remains;
+- Nerve budget escalation routes to `kanban_request_review`, not `kanban_block`;
+- `YES` grants only one bounded extension;
+- `NO`/`MAYBE`/extension exhaustion return authority to the main orchestrator;
 - no direct Kanban database completion bypass is used.
 
 ### Remote
 
-- existing Outpost regression coverage is preserved;
+- applicable Outpost regression coverage passes;
 - fake-SSH lifecycle passes;
 - workspace containment and symlink rejection pass;
 - cancellation and result retrieval pass;
-- real remote Hermes smoke test passes.
+- real SSH transport smoke passes.
 
 ### Plugin/release
 
-- full project tests pass;
+- release verifier passes;
+- focused dev17 regression suite passes;
 - compile checks pass;
 - `git diff --check` passes;
-- `hermes plugins validate --install-deps .` passes;
-- `hermes plugins doctor . --ci` passes;
+- `hermes plugins validate --install-deps .` passes on final PR SHA;
+- `hermes plugins doctor . --ci` passes on final PR SHA;
 - declared capabilities match runtime registration;
-- security scanner findings are reviewed;
-- release CI passes at the final immutable release commit.
+- security findings are reviewed;
+- GitHub CI passes on the exact final immutable PR SHA.
 
-Final counts and live-test evidence should be recorded from the release candidate.
+## Repository/catalog sequence
 
-## Non-goals
+1. Finish and validate dev17 / PR #9.
+2. Merge the tested source implementation.
+3. Produce an immutable release commit/tag.
+4. Keep OpenJev live-validation gap visible through issue #10.
+5. Rename repository/plugin to Nerve only after migration testing.
+6. Handle any Hermes community-catalog update separately after the source release is proven.
 
-Nerve is not:
-
-- a replacement for Hermes' primary reasoning model;
-- a second unrestricted autonomous planner;
-- arbitrary remote shell access;
-- a mechanism for forwarding controller credentials;
-- semantic-model authority over failed deterministic checks;
-- a claim that Laya and Jev behave identically.
+The community catalog is intentionally not modified by this source PR.
