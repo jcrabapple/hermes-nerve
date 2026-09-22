@@ -1,6 +1,6 @@
 """v0.1.5.5 context-governor example. Requires OPENROUTER_API_KEY."""
 
-from hermes_jev.context import curate_context
+from hermes_nerve.context import curate_context
 
 result = curate_context(
     goal="Fix the failing test without changing generated code.",

@@ -1,4 +1,4 @@
-Hermes-Jev v0.2.2 build verification (promoted from dev17 RC)
+Nerve v0.2.2 build verification (promoted from dev17 RC)
 ==========================================
 
 Scope

@@ -1,6 +1,6 @@
-# Hermes-Jev v0.2.2
+# Nerve
 
-Hermes-Jev is an asynchronous System-1 supervisory layer for Hermes Agent. `0.2.2` promotes the validated dev17 RC and preserves dev16 controller-completion while correcting budget authority from live release evidence: Nerve/Reflex is a watchdog and forecaster, while the main Hermes orchestrator/reviewer owns the final stop/continue decision. Dev17 validates that architecture across hosted Jev plus self-hosted Laya and OpenJev Reflex backends. The core plugin remains dependency-free; model runtimes stay in sidecars. After verified PASS, the worker no longer owns Kanban completion: the hook/controller performs the native transition and lifecycle retries without another model-solving loop.
+Nerve is an asynchronous System-1 supervisory layer for Hermes Agent. `0.2.2` promotes the validated dev17 RC and preserves dev16 controller-completion while correcting budget authority from live release evidence: Nerve/Reflex is a watchdog and forecaster, while the main Hermes orchestrator/reviewer owns the final stop/continue decision. Dev17 validates that architecture across hosted Jev plus self-hosted Laya and OpenJev Reflex backends. The core plugin remains dependency-free; model runtimes stay in sidecars. After verified PASS, the worker no longer owns Kanban completion: the hook/controller performs the native transition and lifecycle retries without another model-solving loop.
 
 
 ## Dev17 — open backend release matrix
@@ -11,7 +11,7 @@ Dev17 adds first-class `reflex_backend=openjev`, generalizes Jev-authoritative s
 
 Dev15b introduces a provider-neutral backend seam below `DecisionEngine` without changing the existing Kanban authority model. `reflex_backend=jev` preserves current behavior, `reflex_backend=shadow` keeps Jev authoritative while logging paired Laya decisions, and `reflex_backend=laya` selects the local Laya sidecar for semantic decisions. Laya receipts are correctly marked `LOCAL_ONLY`, and shadow failures never change the authoritative result.
 
-The plugin does not import torch or transformers. The optional Laya runtime lives in a separate process started with `python -m hermes_jev.reflex.laya_service`, preloading `convaiinnovations/laya` / `typed-decisions` once. See [`docs/DEV15B_LAYA_INTEGRATION.md`](docs/DEV15B_LAYA_INTEGRATION.md) for installation, SSH tunneling, configuration, telemetry, and live-acceptance gates.
+The plugin does not import torch or transformers. The optional Laya runtime lives in a separate process started with `python -m hermes_nerve.reflex.laya_service`, preloading `convaiinnovations/laya` / `typed-decisions` once. See [`docs/DEV15B_LAYA_INTEGRATION.md`](docs/DEV15B_LAYA_INTEGRATION.md) for installation, SSH tunneling, configuration, telemetry, and live-acceptance gates.
 
 ## Dev14 controller-owned DOD-07 proof
 
@@ -42,7 +42,7 @@ For the frozen event-delivery benchmark, dev11 also machine-verifies public sign
 
 ## Dev9 token-saving Kanban path
 
-For a Kanban worker with Hermes-Jev enabled:
+For a Kanban worker with Nerve enabled:
 
 ```text
 card claim
@@ -59,7 +59,7 @@ card claim
   -> completion proves deterministic remainder locally and batches semantic remainder
 ```
 
-Design invariant: **Jev must earn every token it spends.** `jev_work_status` exposes worker tokens, supervisor tokens, combined tokens, estimated avoided tokens, and estimated net savings for controller/debug sessions.
+Design invariant: **Jev must earn every token it spends.** `nerve_work_status` exposes worker tokens, supervisor tokens, combined tokens, estimated avoided tokens, and estimated net savings for controller/debug sessions.
 
 The permanent healthy-run benchmark target is <=2% fixed overhead versus plain Hermes, with <=0.5% as the stretch target. A second benchmark class measures savings when a plausible wrong path causes repeated failures/replanning.
 
@@ -94,24 +94,24 @@ Hermes Kanban             canonical cards / dependencies / runs / claims / revie
       |
       +-- exact task_id + run_id + claim_lock
       |
-Hermes-Jev CardSupervisor DoD / evidence / verified progress / budgets / Jev decisions
+Nerve CardSupervisor DoD / evidence / verified progress / budgets / Jev decisions
       |
       +-- local Hermes worker
       +-- SSH Hermes worker
 ```
 
-Hermes-Jev deliberately does **not** own canonical task status, dependencies, retries, queues, or completion state. Those remain in Hermes Kanban.
+Nerve deliberately does **not** own canonical task status, dependencies, retries, queues, or completion state. Those remain in Hermes Kanban.
 
 ## Install
 
 From the extracted final package:
 
 ```bash
-cd hermes-jev-v0.2.2
+cd hermes-nerve-v0.2.2
 bash scripts/install_dev17_profile.sh abtest-jev-dev17
 ```
 
-The installer preserves an existing `hermes-jev` directory as a timestamped backup, installs this package into the selected profile, and enables the plugin.
+The installer preserves an existing `hermes-nerve` directory as a timestamped backup, installs this package into the selected profile, and enables the plugin.
 
 Dev17 keeps economical headless supervision and auto-estimates a task token target, records it as non-blocking `DOD-BUDGET` telemetry, and observes token trajectory after every provider call. Budget pressure cannot invalidate correct work: Nerve may grant one bounded extension after a YES forecast or hand the run to canonical review, but only the orchestrator/reviewer may decide to stop/block it. The 70k setting remains a floor rather than the typical final estimate. Controller/admin sessions still expose the public Jev tools; dispatcher-spawned Kanban workers do not.
 
@@ -139,14 +139,14 @@ Remote task text is sent over stdin. Controller provider credentials are not for
 
 ## New tools
 
-- `jev_supervise_card` — bind/amend DoD, bind run, status, verify criteria, record budget, assess trajectory, checkpoint, label outcomes, request canonical review.
-- `jev_work_event` — worker progress/checkpoint events.
-- `jev_work_status` — compact progress/frontier/control view.
-- `jev_remote_delegate_task` — durable SSH delegation.
-- `jev_remote_worker_status`
-- `jev_remote_worker_result`
-- `jev_remote_worker_cancel`
-- `jev_remote_worker_control`
+- `nerve_supervise_card` — bind/amend DoD, bind run, status, verify criteria, record budget, assess trajectory, checkpoint, label outcomes, request canonical review.
+- `nerve_work_event` — worker progress/checkpoint events.
+- `nerve_work_status` — compact progress/frontier/control view.
+- `nerve_remote_delegate_task` — durable SSH delegation.
+- `nerve_remote_worker_status`
+- `nerve_remote_worker_result`
+- `nerve_remote_worker_cancel`
+- `nerve_remote_worker_control`
 
 The original eight dev4 Jev tools remain registered.
 
@@ -163,7 +163,7 @@ The North-Star regression deliberately proves: locked DoD → partial verified p
 
 ## Development provenance
 
-The dev5 foundation started from the last publicly verifiable Hermes-Jev development fixed point, `0.2.2.dev4` commit `a3aeedc0006797c244ef29d7e085616a5253e627`, and incorporates behavior derived from:
+The dev5 foundation started from the last publicly verifiable Nerve development fixed point, `0.2.2.dev4` commit `a3aeedc0006797c244ef29d7e085616a5253e627`, and incorporates behavior derived from:
 
 - Hermes Outpost `9764b4fd0fb7f7923b8c5796b0e17036046858f0`
 - Hermes Kanban Labs `acf73737673c6639ac59991d61e349456738b132`

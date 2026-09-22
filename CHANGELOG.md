@@ -38,7 +38,7 @@
 - Prefers controller-owned `kanban_complete` over kill when a late provider call is observed after verified PASS.
 - Prevents watchdog state from overwriting an already COMPLETED run.
 - Makes auto-budget splitting exact instead of losing rounding tokens.
-- Exposes live nerve state through `jev_work_status`.
+- Exposes live nerve state through `nerve_work_status`.
 - Adds dev16 regression coverage for conservative estimation, false-positive guards, hard-runaway kill, canonical kill dispatch, and post-PASS completion recovery.
 
 ## 0.2.2.dev15 — controller-owned completion + Reflex/Laya integration

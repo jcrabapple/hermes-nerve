@@ -1,4 +1,4 @@
-from hermes_jev.engine import DecisionEngine
+from hermes_nerve.engine import DecisionEngine
 
 engine = DecisionEngine()
 result = engine.decide(
