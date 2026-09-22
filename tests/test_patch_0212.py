@@ -46,7 +46,7 @@ class Patch0212Tests(unittest.TestCase):
                         for item in kwargs["items"]
                     ],
                     "curated_items": [
-                        {"id": item["id"], "content": f"[JEV_CONTEXT_ANCHOR id={item['id']}]"}
+                        {"id": item["id"], "content": f"[NERVE_CONTEXT_ANCHOR id={item['id']}]"}
                         for item in kwargs["items"]
                     ],
                     "stats": {},
@@ -64,7 +64,7 @@ class Patch0212Tests(unittest.TestCase):
             self.assertEqual(sum(
                 1 for msg in out if isinstance(msg, dict)
                 and msg.get("role") == "tool"
-                and str(msg.get("content", "")).startswith("[JEV_CONTEXT_ANCHOR")
+                and str(msg.get("content", "")).startswith("[NERVE_CONTEXT_ANCHOR")
             ), 48)
 
     def test_exact_48_is_not_truncated(self):
@@ -103,7 +103,7 @@ class Patch0212Tests(unittest.TestCase):
         self.assertEqual(out[-1]["content"], "fallback")
         status = e.get_status()
         self.assertEqual(status["fail_open"]["curation_fail_open_count"], 1)
-        self.assertEqual(status["fail_open"]["last_failure_stage"], "jev-curation")
+        self.assertEqual(status["fail_open"]["last_failure_stage"], "nerve-curation")
 
     def test_curation_and_fallback_failure_returns_original_messages(self):
         class BadFallback:
@@ -153,7 +153,7 @@ class Patch0212Tests(unittest.TestCase):
             str(msg.get("content", ""))
             for msg in second if isinstance(msg, dict) and msg.get("role") == "tool"
         ]
-        self.assertTrue(all(value.count("JEV_CONTEXT_ANCHOR") == 1 for value in anchors))
+        self.assertTrue(all(value.count("NERVE_CONTEXT_ANCHOR") == 1 for value in anchors))
 
     def test_unrecoverable_evidence_consumes_no_jev_candidate_capacity(self):
         class ForbiddenFallback:

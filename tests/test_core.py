@@ -275,7 +275,7 @@ class ContextCurationTests(unittest.TestCase):
         ids = [x["id"] for x in result["curated_items"]]
         self.assertEqual(ids, ["keep", "anchor", "unrecoverable", "conflict"])
         anchored = next(x for x in result["curated_items"] if x["id"] == "anchor")
-        self.assertIn("JEV_CONTEXT_ANCHOR", anchored["content"])
+        self.assertIn("NERVE_CONTEXT_ANCHOR", anchored["content"])
         self.assertIn("nerve_context_rehydrate", anchored["content"])
         self.assertGreater(result["stats"]["applied_reduction_ratio"], 0)
         self.assertEqual(result["stats"]["applied"]["drop"], 1)
@@ -493,7 +493,7 @@ class GateTests(unittest.TestCase):
 
     def test_jev_internal_tools_never_recurse_even_in_all_scope(self):
         with patch.dict(os.environ, {"HERMES_NERVE_GATE_SCOPE": "all"}, clear=False):
-            self.assertEqual(gate.bypass_reason("nerve_verify", {}), "jev-internal")
+            self.assertEqual(gate.bypass_reason("nerve_verify", {}), "nerve-internal")
 
     def test_enforce_block(self):
         with patch.dict(os.environ, {"HERMES_NERVE_GATE_MODE": "enforce"}, clear=False):
@@ -871,7 +871,7 @@ class ContextEngineTests(unittest.TestCase):
         self.assertEqual(len(out), len(messages))
         self.assertEqual(out[1]["tool_calls"][0]["id"], "c1")
         self.assertEqual(out[2]["tool_call_id"], "c1")
-        self.assertIn("JEV_CONTEXT_ANCHOR", out[2]["content"])
+        self.assertIn("NERVE_CONTEXT_ANCHOR", out[2]["content"])
         self.assertEqual(e.compression_count, 1)
         self.assertEqual(e.last_prompt_tokens, -1)
 

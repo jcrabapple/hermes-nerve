@@ -119,13 +119,13 @@ class Patch0211Tests(unittest.TestCase):
                 turn_id="t1",
             )
             self.assertFalse(result["forwarded"])
-            self.assertEqual(result["reason"], "jev-internal")
+            self.assertEqual(result["reason"], "nerve-internal")
             self.assertEqual(NoopNervousEngine.calls, [])
             metrics = system.report()["metrics"]
-            self.assertEqual(metrics.get("jev_internal_seen"), 1)
-            self.assertEqual(metrics.get("jev_internal_suppressed"), 1)
+            self.assertEqual(metrics.get("nerve_internal_seen"), 1)
+            self.assertEqual(metrics.get("nerve_internal_suppressed"), 1)
             quality = system.quality_metrics()
-            self.assertEqual(quality["jev_internal_events_suppressed"], 1)
+            self.assertEqual(quality["nerve_internal_events_suppressed"], 1)
             self.assertNotIn("nerve_assess", quality["provider_calls_by_origin"])
 
     def test_valid_explicit_jev_call_does_not_self_amplify_after_post_tool_observation(self):

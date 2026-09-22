@@ -23,7 +23,7 @@
 - 49, 60, and 851 candidate sessions select only 48 per automatic boundary.
 - Jev curation failure falls back without escaping into the host turn.
 - Jev curation plus fallback failure returns the original messages.
-- Existing `JEV_CONTEXT_ANCHOR` results are not re-curated or nested.
+- Existing `NERVE_CONTEXT_ANCHOR` results are not re-curated or nested.
 - Unrecoverable evidence consumes no automatic semantic provider capacity.
 - Shadow proposals do not increment applied-compaction telemetry.
 - Shadow failures are observable while remaining fail-open.
