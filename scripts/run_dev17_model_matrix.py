@@ -217,7 +217,7 @@ def run_arm(pair: int, backend: str, args, out: Path) -> dict[str, Any]:
     if not git_clean: reasons.append("dirty_git")
     if external: reasons.append("external_stop")
     row={"pair":pair,"arm":backend,"profile":profile,"board":board,"task":task,"status":status,"run_status":run_status,"outcome":outcome,"classification":cls,"wall_s":wall,"calls":calls,"input":inp,"output":outp,"primary":primary,"cache_read":cache,"supervisor_tokens":m["supervisor"],"combined":combined,"nerve_worker_accounted":m["worker"],"token_target":m["target"],"nerve_level":m["level"],"nerve_kill":m["kill"],"nerve_orch_review":m["orch_review"],"forecast_value":m["forecast"],"extension_tokens":m["extension_tokens"],"watch_count":m["watch"],"replan_count":m["replan"],"post_pass_calls":m["post"],"native_completion":m["native"],"external_stop":external,"tests_rc":tests,"hidden_rc":hidden,"git_clean":int(git_clean),"valid":valid,"invalid_reason":",".join(reasons) if reasons else "-"}
-    print(f"PAIR={pair} ARM={backend} valid={valid} class={cls} wall={wall}s calls={calls} primary={primary} supervisor={m['supervisor']} combined={combined} nerve={m['level']} kill={m['kill']} orch_review={m['orch_review']} forecast={m['forecast'] or "-"} extension={m['extension_tokens']} target={m['target']} reason={row['invalid_reason']}",flush=True)
+    print(f"PAIR={pair} ARM={backend} valid={valid} class={cls} wall={wall}s calls={calls} primary={primary} supervisor={m['supervisor']} combined={combined} nerve={m['level']} kill={m['kill']} orch_review={m['orch_review']} forecast={m['forecast'] or '-'} extension={m['extension_tokens']} target={m['target']} reason={row['invalid_reason']}",flush=True)
     CURRENT.update(pid=0,board="",task=""); return row
 
 
