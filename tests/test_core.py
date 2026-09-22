@@ -579,7 +579,7 @@ class RegistrationTests(unittest.TestCase):
             {x["name"] for x in ctx.tools},
             {"jev_decide", "jev_rank", "jev_verify", "jev_assess", "jev_context_curate", "jev_context_rehydrate", "jev_stats", "jev_nervous_event", "jev_supervise_card", "jev_work_event", "jev_work_status", "jev_remote_delegate_task", "jev_remote_worker_status", "jev_remote_worker_result", "jev_remote_worker_cancel", "jev_remote_worker_control"},
         )
-        self.assertEqual([x[0] for x in ctx.hooks], ["pre_tool_call", "post_tool_call", "pre_llm_call", "post_tool_call", "transform_tool_result", "pre_verify", "post_llm_call", "on_session_end"])
+        self.assertEqual([x[0] for x in ctx.hooks], ["pre_tool_call", "post_tool_call", "post_tool_call", "post_tool_call", "pre_llm_call", "transform_tool_result", "pre_verify", "post_api_request", "api_request_error", "post_llm_call", "on_session_end"])
         self.assertTrue(all(callable(x[1]) for x in ctx.hooks))
         self.assertEqual(module.gate.gate_mode(), "advisory")
         self.assertEqual(module.gate.gate_scope(), "selective")
