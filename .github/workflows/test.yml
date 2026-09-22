@@ -56,3 +56,25 @@ jobs:
     if: ${{ always() && needs.test.result == 'success' }}
     steps:
       - run: echo "Required matrix compatibility check passed."
+
+  plugin-runtime-validation:
+    name: Hermes plugin validate + doctor
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Install Hermes and run upstream plugin validator
+        uses: NousResearch/hermes-agent/.github/actions/plugin-validate@ee8a919fd2769166d45ebf67f45ff5b1acec69fe
+        with:
+          path: .
+          hermes-ref: ee8a919fd2769166d45ebf67f45ff5b1acec69fe
+
+      - name: Validate with plugin dependencies
+        run: hermes plugins validate --install-deps .
+
+      - name: Runtime plugin doctor
+        run: hermes plugins doctor . --ci
+
