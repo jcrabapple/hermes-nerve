@@ -32,7 +32,7 @@ class RegistrationTests(unittest.TestCase):
     def test_version_and_tools_and_hooks(self):
         with tempfile.TemporaryDirectory() as td:
             mod=self.load_plugin();ctx=FakeCtx(Path(td));mod.register(ctx)
-            self.assertEqual(VERSION,"0.2.2.dev17")
+            self.assertEqual(VERSION,"0.2.2")
             self.assertEqual(len(ctx.tools),16)
             for name in ("jev_decide","jev_nervous_event","jev_supervise_card","jev_work_event","jev_remote_delegate_task","jev_remote_worker_control"):
                 self.assertIn(name,ctx.tools)

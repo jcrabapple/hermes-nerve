@@ -1,5 +1,5 @@
 name: hermes-jev
-version: "0.2.2.dev17"
+version: "0.2.2"
 description: "Hermes-Jev supervisory nervous system with hosted Jev plus open-source Laya/OpenJev Reflex backends, evidence-backed Kanban supervision, token-budget trajectory control, and durable SSH Hermes workers."
 author: "KeelTrace community"
 license: MIT

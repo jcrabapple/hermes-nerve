@@ -1,4 +1,4 @@
-Hermes-Jev v0.2.2.dev17 build verification
+Hermes-Jev v0.2.2 build verification (promoted from dev17 RC)
 ==========================================
 
 Scope
@@ -8,7 +8,7 @@ Dev17 freezes the dev16 controller-completion / token-budget / Nerve runtime pol
 Verified in the build container
 -------------------------------
 PASS  release structural verifier:
-      version=0.2.2.dev17
+      version=0.2.2
       single_authority=PASS
       controller_completion=PASS
       reflex_laya=PASS
@@ -43,7 +43,7 @@ Control 3: failed/runaway, 52 calls, 2,420,438 primary tokens, external emergenc
 
 Known validation boundary
 -------------------------
-Laya is intended for local live validation on the RTX 4060 lane. OpenJev is wired and structurally tested, but the published 27B serving path requires a substantially larger GPU than the available 8GB RTX 4060. A live OpenJev A/B is therefore a release gate to run on a >=30GB remote GPU; the dev17 package must not claim that live OpenJev inference passed until that gate is executed.
+Laya is intended for local live validation on the RTX 4060 lane. OpenJev is wired and structurally tested, but the published 27B serving path requires a substantially larger GPU than the available 8GB RTX 4060. A live OpenJev A/B therefore remains an explicit post-release validation tracked in issue #10 on a >=30GB remote GPU; v0.2.2 must not claim that live OpenJev inference passed until that gate is executed.
 
 Live Laya dev17 sidecar validation
 ----------------------------------

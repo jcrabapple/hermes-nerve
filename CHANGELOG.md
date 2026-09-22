@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.2 — stable Nerve/Open-Reflex release
+
+- Promote the validated dev17 RC to stable `0.2.2` after PR #9 release qualification.
+- Keep Nerve/Reflex as watchdog + forecaster; the main Hermes orchestrator/reviewer retains final completion/change/block authority.
+- Ship hosted Jev plus local/self-hosted Laya and OpenJev Reflex integrations, with Laya live-tested through the SSH transport path.
+- OpenJev integration is included and unit/interface tested, but real 27B model inference and hosted-Jev vs OpenJev A/B remain explicitly untested and tracked in issue #10.
+- Final RC evidence: 161-test suite green across Python 3.10–3.14, plugin validate/doctor pass, security scan safe, Remote regressions pass, and Jev/Laya live `ORCH_REVIEW` handoff without Nerve kill.
+
+
 ## 0.2.2.dev17 — release hardening + Laya/OpenJev validation
 
 - **RC authority correction from live matrix evidence:** Nerve/Reflex no longer owns economic kill authority. At budget pressure it acts as a watchdog/forecaster and returns the final stop/continue decision to the Hermes LLM orchestrator through canonical `kanban_request_review`.

@@ -1,6 +1,6 @@
-# Hermes-Jev v0.2.2.dev17
+# Hermes-Jev v0.2.2
 
-Hermes-Jev is an asynchronous System-1 supervisory layer for Hermes Agent. `0.2.2.dev17` preserves dev16 controller-completion while correcting budget authority from live release evidence: Nerve/Reflex is a watchdog and forecaster, while the main Hermes orchestrator/reviewer owns the final stop/continue decision. Dev17 validates that architecture across hosted Jev plus self-hosted Laya and OpenJev Reflex backends. The core plugin remains dependency-free; model runtimes stay in sidecars. After verified PASS, the worker no longer owns Kanban completion: the hook/controller performs the native transition and lifecycle retries without another model-solving loop.
+Hermes-Jev is an asynchronous System-1 supervisory layer for Hermes Agent. `0.2.2` promotes the validated dev17 RC and preserves dev16 controller-completion while correcting budget authority from live release evidence: Nerve/Reflex is a watchdog and forecaster, while the main Hermes orchestrator/reviewer owns the final stop/continue decision. Dev17 validates that architecture across hosted Jev plus self-hosted Laya and OpenJev Reflex backends. The core plugin remains dependency-free; model runtimes stay in sidecars. After verified PASS, the worker no longer owns Kanban completion: the hook/controller performs the native transition and lifecycle retries without another model-solving loop.
 
 
 ## Dev17 — open backend release matrix
@@ -107,7 +107,7 @@ Hermes-Jev deliberately does **not** own canonical task status, dependencies, re
 From the extracted final package:
 
 ```bash
-cd hermes-jev-v0.2.2.dev17-final
+cd hermes-jev-v0.2.2
 bash scripts/install_dev17_profile.sh abtest-jev-dev17
 ```
 
