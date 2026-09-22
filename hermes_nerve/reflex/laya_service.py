@@ -1,7 +1,7 @@
 """Small fixed-model HTTP sidecar for Laya.
 
 Run with:
-    python -m hermes_jev.reflex.laya_service --device cuda
+    python -m hermes_nerve.reflex.laya_service --device cuda
 
 The Hermes plugin itself remains dependency-free. This process is the only code
 path that imports the optional ``laya``/torch stack.
