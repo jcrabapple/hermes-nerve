@@ -35,7 +35,7 @@ jobs:
           python-version: "3.14"
 
       - name: Install verification dependency
-        run: python -m pip install "PyYAML>=6,<7" "tomli>=2,<3; python_version < '3.11'"
+        run: python -m pip install "PyYAML>=6,<7" "pytest>=8,<9" "tomli>=2,<3; python_version < '3.11'"
 
       - name: Resolve and verify release version
         env:
@@ -70,10 +70,7 @@ jobs:
           PY
 
       - name: Verify candidate
-        run: |
-          python -m unittest discover -s tests -v
-          python -m compileall -q .
-          python scripts/verify_release.py
+        run: bash scripts/verify_dev17.sh
 
       - name: Check existing release
         env:
@@ -81,11 +78,12 @@ jobs:
         run: |
           if gh release view "v${VERSION}" >/dev/null 2>&1; then
             current_name="$(gh release view "v${VERSION}" --json name --jq .name)"
-            if [ "$current_name" = "Nerve v${VERSION}" ]; then
-              echo "Release v${VERSION} is already Nerve; nothing to publish."
+            current_target="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/v${VERSION}" --jq .target_commitish)"
+            if [ "$current_name" = "Nerve v${VERSION}" ] && [ "$current_target" = "${GITHUB_SHA}" ]; then
+              echo "Release v${VERSION} already targets this exact commit; nothing to publish."
               echo "RELEASE_EXISTS=1" >> "${GITHUB_ENV}"
             else
-              echo "Replacing legacy-branded v${VERSION}: $current_name"
+              echo "Replacing existing v${VERSION}: name=$current_name target=$current_target new_target=${GITHUB_SHA}"
               gh release delete "v${VERSION}" --yes --cleanup-tag
               echo "RELEASE_EXISTS=0" >> "${GITHUB_ENV}"
             fi
@@ -108,6 +106,7 @@ jobs:
             '- Nerve/Reflex is the watchdog and forecaster; the main Hermes orchestrator/reviewer retains the final COMPLETE / MORE WORK / CHANGES / BLOCK authority.' \
             '- Hosted Jev and self-hosted Laya are live-validated on the RC path, including the SSH transport and orchestrator-review handoff.' \
             '- OpenJev integration is included and covered by unit/interface tests, setup guards, identity pinning, and LOCAL_ONLY provenance.' \
+            '- Source archives include the frozen dev6 benchmark fixture and the documented dev17 verification path is release-gated.' \
             '' \
             '### OpenJev validation status' \
             '' \
