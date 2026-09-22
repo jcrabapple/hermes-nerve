@@ -4,10 +4,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from hermes_jev.remote.bridge import RemoteEventBridge
-from hermes_jev.work.models import RunIdentity, WorkEvent
-from hermes_jev.work.store import SupervisionStore
-from hermes_jev.work.supervisor import CardSupervisor
+from hermes_nerve.remote.bridge import RemoteEventBridge
+from hermes_nerve.work.models import RunIdentity, WorkEvent
+from hermes_nerve.work.store import SupervisionStore
+from hermes_nerve.work.supervisor import CardSupervisor
 
 
 class Decision:
@@ -47,7 +47,7 @@ class NorthStarTests(unittest.TestCase):
             a=sup.assess_trajectory(run1,trigger="budget_checkpoint:0.2")
             self.assertEqual(a.control,"REPLAN")
             review=Review();bridge=RemoteEventBridge(sup,run1,kanban_adapter=review)
-            bridge.consume({"type":"tool_use","name":"jev_work_event","input":{"event_type":"CHECKPOINT_READY","task_id":"root/A","run_id":1,"contract_hash":h,"claim_identity":"claim-1","payload":{"current_plan":"preserve transport; redesign stale-run fence","test_summary":"transport green"}}})
+            bridge.consume({"type":"tool_use","name":"nerve_work_event","input":{"event_type":"CHECKPOINT_READY","task_id":"root/A","run_id":1,"contract_hash":h,"claim_identity":"claim-1","payload":{"current_plan":"preserve transport; redesign stale-run fence","test_summary":"transport green"}}})
             self.assertTrue(bridge.stop_requested)
             self.assertEqual(review.calls[0]["expected_run_id"],1)
 
