@@ -149,6 +149,18 @@ def stop_current(reason="interrupted"):
         hermes("kanban","--board",b,"block",t,f"dev17 matrix {reason}",check=False)
 
 
+def lifecycle_terminal(status: str, run_status: str) -> bool:
+    """Return True only when the whole same-card lifecycle is terminal.
+
+    Review is deliberately non-terminal: Nerve hands authority to Hermes with
+    kanban_request_review and the matrix must keep dispatching until the reviewer
+    makes the final COMPLETE / CHANGES / BLOCK decision.
+    """
+    if status in {"done", "completed", "blocked", "archived"}:
+        return True
+    return run_status in {"blocked", "crashed", "timed_out", "gave_up", "rate_limited"}
+
+
 def classification(status,run_status,tests_rc,hidden_rc,git_clean,external,nerve_kill,orch_review=0):
     if external: return "HARNESS_KILL"
     if tests_rc or hidden_rc: return "VERIFICATION_FAIL"
@@ -174,11 +186,29 @@ def run_arm(pair: int, backend: str, args, out: Path) -> dict[str, Any]:
         else: time.sleep(3)
     if run_id is None: raise RuntimeError(f"worker did not spawn for {backend}")
     CURRENT["pid"]=pid; print(f"WORKER_STARTED pair={pair} arm={backend} run={run_id} pid={pid}",flush=True)
+    implementation_run_id=run_id
+    current_run_id=run_id
     start=time.time(); external=0; status=run_status=outcome="-"
     while time.time()-start < args.max_runtime:
         d=card(board,task); t=d.get("task",{}); runs=d.get("runs",[]); rr=max(runs,key=lambda x:x["id"]) if runs else {}
         status=str(t.get("status") or "missing"); run_status=str(rr.get("status") or "-"); outcome=str(rr.get("outcome") or "-")
-        if status in {"done","completed","review","blocked","archived"} or run_status in {"done","completed","review","blocked","crashed","timed_out","gave_up","rate_limited"}: break
+        latest_run_id=int(rr.get("id") or 0)
+        if latest_run_id and latest_run_id != current_run_id:
+            current_run_id=latest_run_id
+            pid=int(rr.get("worker_pid") or 0)
+            CURRENT["pid"]=pid
+            print(f"FOLLOWUP_WORKER_STARTED pair={pair} arm={backend} run={current_run_id} pid={pid} task_status={status}",flush=True)
+
+        if lifecycle_terminal(status,run_status):
+            break
+
+        # kanban_request_review ends the implementation run and moves the card
+        # to review. Keep dispatching through reviewer/orchestrator resolution.
+        if status in {"review","ready"} and run_status not in {"running","in_progress"}:
+            hermes("kanban","--board",board,"dispatch","--max","1","--json",check=False)
+            time.sleep(2)
+            continue
+
         calls,inp,outp,primary,cache=parse_usage(Path.home()/".hermes/profiles"/profile/"logs/agent.log")
         if primary >= args.emergency_primary_cap:
             external=1; print(f"EXTERNAL_EMERGENCY_STOP pair={pair} arm={backend} primary={primary} cap={args.emergency_primary_cap}",flush=True)
@@ -187,7 +217,10 @@ def run_arm(pair: int, backend: str, args, out: Path) -> dict[str, Any]:
             hermes("kanban","--board",board,"block",task,f"dev17 benchmark emergency primary-token cap {args.emergency_primary_cap} exceeded",check=False); break
         if pid:
             try: os.kill(pid,0)
-            except ProcessLookupError: break
+            except ProcessLookupError:
+                hermes("kanban","--board",board,"dispatch","--max","1","--json",check=False)
+                time.sleep(2)
+                continue
             except PermissionError: pass
         time.sleep(5)
     else:
@@ -207,7 +240,7 @@ def run_arm(pair: int, backend: str, args, out: Path) -> dict[str, Any]:
     tests=subprocess.run([sys.executable,"-m","pytest","tests/","-q"],cwd=repo,stdout=(out/f"pair{pair}-{backend}-tests.txt").open("w"),stderr=subprocess.STDOUT).returncode
     hidden=subprocess.run([sys.executable,str(HIDDEN),str(repo)],stdout=(out/f"pair{pair}-{backend}-hidden.txt").open("w"),stderr=subprocess.STDOUT).returncode
     git_clean=not bool(run(["git","status","--short"],cwd=repo).strip())
-    calls,inp,outp,primary,cache=parse_usage(Path.home()/".hermes/profiles"/profile/"logs/agent.log"); m=metrics(profile,task,run_id); combined=primary+m["supervisor"]
+    calls,inp,outp,primary,cache=parse_usage(Path.home()/".hermes/profiles"/profile/"logs/agent.log"); m=metrics(profile,task,implementation_run_id); combined=primary+m["supervisor"]
     cls=classification(status,run_status,tests,hidden,git_clean,external,m["kill"],m["orch_review"])
     valid=int(cls=="SUCCESS"); reasons=[]
     if status not in {"done","completed"}: reasons.append("task_"+status)
