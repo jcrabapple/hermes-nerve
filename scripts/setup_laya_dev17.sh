@@ -26,14 +26,10 @@ ensure_uv() {
   for candidate in "$HOME/.local/bin/uv" "$(command -v uv 2>/dev/null || true)"; do
     if [ -n "$candidate" ] && [ -x "$candidate" ]; then UV="$candidate"; return 0; fi
   done
-  command -v curl >/dev/null 2>&1 || {
-    echo "ERROR: python venv is unavailable and curl is missing, so uv cannot be bootstrapped." >&2
-    exit 20
-  }
-  echo "Python venv support is unavailable; bootstrapping uv in user space..."
-  curl -LsSf https://astral.sh/uv/install.sh | sh
-  UV="$HOME/.local/bin/uv"
-  [ -x "$UV" ] || { echo "ERROR: uv installation did not create $UV" >&2; exit 21; }
+  echo "ERROR: Python venv support is unavailable and uv was not found." >&2
+  echo "Install uv using your platform/package-manager workflow, or set UV_BIN to a trusted uv executable." >&2
+  echo "Refusing to download and execute a remote installer automatically." >&2
+  exit 20
 }
 
 rm -rf -- "$VENV"
