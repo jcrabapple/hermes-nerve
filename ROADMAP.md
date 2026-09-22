@@ -5,7 +5,7 @@
 Implemented:
 
 - asynchronous OFF/WATCH/ON turn admission
-- structured event bus and explicit `jev_nervous_event`
+- structured event bus and explicit `nerve_nervous_event`
 - local adaptive semantic router (no fixed-N polling primary trigger)
 - decision-state hysteresis / lease reuse
 - in-flight event batching
@@ -13,14 +13,14 @@ Implemented:
 - shadow / correct-next / precommit authority modes
 - direct TypeSafe + OpenRouter transports, plus paid OpenCode Zen on the v0.2.2 development line
 - local outcome dataset and historical relevance calibration seam
-- nervous-system decision-quality telemetry in `jev_stats`
+- nervous-system decision-quality telemetry in `nerve_stats`
 - existing v0.1.x tools, selective gate, evidence ledger, rehydration, and ContextEngine compatibility
 - repeated-failure fingerprints and local third-strike REPLAN loop breaker
 - enforceable decision/control leases at the composed pre-tool seam
 - stable decision-id attribution from decision -> delivery -> next action -> outcome
 - repeat-failure provider-call deduplication and semantic lease reuse
 - correlated gate-hook observations even when the legacy gate is disabled
-- bounded/sectioned `jev_stats` output with recent telemetry opt-in
+- bounded/sectioned `nerve_stats` output with recent telemetry opt-in
 
 External/live follow-up:
 
