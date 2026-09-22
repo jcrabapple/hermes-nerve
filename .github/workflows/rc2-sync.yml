@@ -29,7 +29,7 @@ jobs:
         run: |
           set -euo pipefail
           cat .rc2-carrier/chunk-* > /tmp/rc2.b64
-          base64 --ignore-garbage -d /tmp/rc2.b64 > /tmp/rc2-core.tar.xz
+          base64 -d /tmp/rc2.b64 > /tmp/rc2-core.tar.xz
           echo "9aad6e357aa4eccbc52221463432e4c34fe44f7049627b72693fabd2758ad8f2  /tmp/rc2-core.tar.xz" | sha256sum -c -
           mkdir -p /tmp/rc2
           tar -xJf /tmp/rc2-core.tar.xz -C /tmp/rc2
