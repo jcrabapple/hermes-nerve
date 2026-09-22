@@ -33,7 +33,7 @@ def receipt_path() -> Path:
     explicit = os.getenv("HERMES_NERVE_RECEIPTS")
     if explicit:
         return Path(explicit).expanduser()
-    return hermes_home() / "jev" / "receipts.jsonl"
+    return hermes_home() / "nerve" / "receipts.jsonl"
 
 
 def write_receipt(*, contract: str, state: Any, result: dict[str, Any], model: str, latency_ms: float) -> dict[str, Any]:

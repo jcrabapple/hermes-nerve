@@ -697,7 +697,7 @@ def normalize_mode(mode: str) -> str:
 
 def default_store_path() -> Path:
     explicit = str(os.getenv("HERMES_NERVE_SUPERVISION_DB") or "").strip()
-    return Path(explicit).expanduser() if explicit else hermes_home() / "jev" / "work-supervision.sqlite3"
+    return Path(explicit).expanduser() if explicit else hermes_home() / "nerve" / "work-supervision.sqlite3"
 
 
 def normalize_checkpoints(values: list[float] | tuple[float, ...]) -> tuple[float, ...]:

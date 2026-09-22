@@ -279,7 +279,7 @@ class NervousSystem:
 
     def _log_path(self) -> Path:
         explicit = os.getenv("HERMES_NERVE_NERVOUS_EVENTS", "").strip()
-        return Path(explicit).expanduser() if explicit else hermes_home() / "jev" / "nervous-events.jsonl"
+        return Path(explicit).expanduser() if explicit else hermes_home() / "nerve" / "nervous-events.jsonl"
 
     def _log(self, kind: str, payload: dict[str, Any]) -> None:
         record = {"schema": "hermes-nerve-nervous/v2", "timestamp": self._now(), "kind": kind, **redact(payload)}
@@ -504,12 +504,12 @@ class NervousSystem:
         clean.setdefault("origin_event_type", clean["type"])
         clean.setdefault("origin_event_id", clean["event_id"])
         origin_tool = str(clean.get("origin_tool") or "").strip().lower()
-        if origin_tool.startswith("jev_"):
+        if origin_tool.startswith(("nerve_", "jev_")):
             clean["suppress_remote"] = True
-            clean["suppress_reason"] = "jev-internal"
+            clean["suppress_reason"] = "nerve-internal"
             with self._lock:
-                self._metrics["jev_internal_seen"] += 1
-                self._metrics["jev_internal_suppressed"] += 1
+                self._metrics["nerve_internal_seen"] += 1
+                self._metrics["nerve_internal_suppressed"] += 1
         if clean["type"] in {"OUTCOME", "CHALLENGE_OUTCOME"}:
             self._outcomes.append({"record_type": "outcome", **clean})
             self._metrics["outcomes_recorded"] += 1
@@ -630,11 +630,11 @@ class NervousSystem:
         tool_name = str(kwargs.get("tool_name") or "")
         status = str(kwargs.get("status") or "")
         args = kwargs.get("args") if isinstance(kwargs.get("args"), dict) else {}
-        if tool_name.strip().lower().startswith("jev_"):
+        if tool_name.strip().lower().startswith(("nerve_", "jev_")):
             event_id = str(kwargs.get("tool_call_id") or uuid.uuid4().hex)
             with self._lock:
-                self._metrics["jev_internal_seen"] += 1
-                self._metrics["jev_internal_suppressed"] += 1
+                self._metrics["nerve_internal_seen"] += 1
+                self._metrics["nerve_internal_suppressed"] += 1
             self._log("jev_internal_tool_observation", {
                 "event_id": event_id,
                 "turn_id": kwargs.get("turn_id"),
@@ -642,12 +642,12 @@ class NervousSystem:
                 "origin_tool": tool_name,
                 "origin_event_type": "FAILURE" if status.lower() in {"error", "failed", "blocked", "failure"} else "TOOL_RESULT",
                 "status": status,
-                "reason": "jev-internal",
+                "reason": "nerve-internal",
             })
             return {
                 "accepted": True,
                 "forwarded": False,
-                "reason": "jev-internal",
+                "reason": "nerve-internal",
                 "origin_tool": tool_name,
                 "origin_event_id": event_id,
             }
@@ -739,7 +739,7 @@ class NervousSystem:
         if not self._config.enabled or self._config.mode == "shadow":
             return None
         tool_name = str(kwargs.get("tool_name") or "")
-        if tool_name.startswith("jev_"):
+        if tool_name.startswith(("nerve_", "jev_")):
             return None
         args = kwargs.get("args") if isinstance(kwargs.get("args"), dict) else {}
         state = self._resolve_turn(turn_id=str(kwargs.get("turn_id") or ""), session_id=str(kwargs.get("session_id") or ""))
@@ -1210,8 +1210,8 @@ class NervousSystem:
             "events_suppressed": suppressed,
             "events_batched": int(m.get("events_batched", 0)),
             "events_forwarded_to_jev": int(m.get("events_forwarded", 0)),
-            "jev_internal_events_seen": int(m.get("jev_internal_seen", 0)),
-            "jev_internal_events_suppressed": int(m.get("jev_internal_suppressed", 0)),
+            "jev_internal_events_seen": int(m.get("nerve_internal_seen", 0)),
+            "nerve_internal_events_suppressed": int(m.get("nerve_internal_suppressed", 0)),
             "provider_calls_by_origin": {
                 key.removeprefix("provider_calls_origin_"): value
                 for key, value in sorted(m.items()) if key.startswith("provider_calls_origin_")

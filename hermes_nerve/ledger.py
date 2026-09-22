@@ -45,7 +45,7 @@ def ledger_path() -> Path:
     explicit = os.getenv("HERMES_NERVE_CONTEXT_LEDGER")
     if explicit:
         return Path(explicit).expanduser()
-    return hermes_home() / "jev" / "context-ledger.jsonl"
+    return hermes_home() / "nerve" / "context-ledger.jsonl"
 
 
 def _write(record: dict[str, Any]) -> dict[str, Any]:
@@ -176,7 +176,7 @@ def tool_is_recoverable(tool_name: str, args: dict[str, Any] | None = None) -> b
 
 def observe_tool_call(*, tool_name: str, args: dict[str, Any], result: str, task_id: str = "", duration_ms: int = 0, **kwargs: Any) -> None:
     """Best-effort post_tool_call observer. It never calls Jev and never changes tool output."""
-    if not enabled() or str(tool_name).startswith("jev_"):
+    if not enabled() or str(tool_name).startswith(("nerve_", "jev_")):
         return None
     payload = str(result or "")
     if not payload:

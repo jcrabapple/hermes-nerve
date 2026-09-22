@@ -20,7 +20,7 @@ from .paths import hermes_home
 from .jsonl import append_jsonl, read_jsonl
 from .privacy import redact
 
-_SKIP_PREFIXES = ("jev_",)
+_SKIP_PREFIXES = ("nerve_", "jev_")
 _DEFAULT_READ_ONLY_TOOLS = frozenset({
     "read_file",
     "search_files",
@@ -94,7 +94,7 @@ def minimum_confidence() -> float:
 
 def gate_event_path() -> Path:
     explicit = str(os.getenv("HERMES_NERVE_GATE_EVENTS") or "").strip()
-    return Path(explicit).expanduser() if explicit else hermes_home() / "jev" / "gate-events.jsonl"
+    return Path(explicit).expanduser() if explicit else hermes_home() / "nerve" / "gate-events.jsonl"
 
 
 def _record_gate_event(
@@ -177,7 +177,7 @@ def _read_only_terminal(command: str) -> bool:
 def bypass_reason(tool_name: str, args: dict[str, Any]) -> str | None:
     """Return a deterministic bypass reason, or None when Jev should evaluate."""
     if tool_name.startswith(_SKIP_PREFIXES):
-        return "jev-internal"
+        return "nerve-internal"
     if gate_scope() == "all":
         return None
     if tool_name in _DEFAULT_READ_ONLY_TOOLS:
@@ -249,7 +249,7 @@ def pre_tool_call(tool_name: str, args: dict, task_id: str | None = None, **kwar
             return {
                 "action": "approve",
                 "message": "Nerve could not obtain a decision; human approval is required (fail-to-human).",
-                "rule_key": "jev:provider-unavailable",
+                "rule_key": "nerve:provider-unavailable",
             }
         return None
     if result is None:
@@ -273,7 +273,7 @@ def pre_tool_call(tool_name: str, args: dict, task_id: str | None = None, **kwar
         return {
             "action": "approve",
             "message": f"Nerve confidence {result.confidence:.3f} is below {min_conf:.3f}; human approval required.",
-            "rule_key": "jev:low-confidence",
+            "rule_key": "nerve:low-confidence",
         }
     if result.value == "BLOCK":
         return {
@@ -284,7 +284,7 @@ def pre_tool_call(tool_name: str, args: dict, task_id: str | None = None, **kwar
         return {
             "action": "approve",
             "message": f"Nerve requests human approval ({result.confidence:.3f} confidence).",
-            "rule_key": f"jev:{tool_name}",
+            "rule_key": f"nerve:{tool_name}",
         }
     return None
 
