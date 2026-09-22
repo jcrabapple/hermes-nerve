@@ -128,7 +128,7 @@ def main() -> int:
             "ok": True,
             "cases": outputs,
             "total_cost": None if missing_cost_cases else round(sum(reported_costs), 8),
-            "provider_reported_cost": round(sum(reported_costs), 8),
+            "provider_reported_cost": round(sum(reported_costs), 8) if reported_costs else None,
             "provider_cost_reported_cases": len(reported_costs),
             "provider_cost_missing_cases": missing_cost_cases,
             "total_latency_ms": round(sum(latencies), 3),
