@@ -7,9 +7,9 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from hermes_jev.work import hooks, runtime
-from hermes_jev.work.models import CompletionVerdict, RunIdentity
-from hermes_jev.work.supervisor import CardSupervisor
+from hermes_nerve.work import hooks, runtime
+from hermes_nerve.work.models import CompletionVerdict, RunIdentity
+from hermes_nerve.work.supervisor import CardSupervisor
 
 
 class Accept:
@@ -49,7 +49,7 @@ class Dev15ControllerCompletionTests(unittest.TestCase):
             "HERMES_KANBAN_RUN_ID": "1",
             "HERMES_KANBAN_CLAIM_LOCK": "claim",
             "HERMES_KANBAN_WORKER_ID": "worker",
-            "HERMES_JEV_DOD_HASH": self.ident.contract_hash,
+            "HERMES_NERVE_DOD_HASH": self.ident.contract_hash,
         }
 
     def tearDown(self):

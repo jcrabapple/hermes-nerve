@@ -2,14 +2,14 @@
 
 The files under `planning/bug-handoff-*` are preserved discovery snapshots with their original checksums and original observed-status labels. Do not interpret those labels as the current repository state.
 
-Current status as of Hermes-Jev v0.2.2.dev4:
+Current status as of Nerve v0.2.2.dev4:
 
 | Historical item | Current status | Resolution |
 |---|---|---|
 | JEV-001 repeated failure loop | Fixed | Stable failure fingerprints, provider deduplication, local third-strike REPLAN, and pre-tool control enforcement. |
 | JEV-002 outcome attribution / metric scope | Fixed | Stable decision IDs, control lifecycle rows, next-action attribution, explicit scope labels, documented correction denominator. |
 | JEV-003 gate telemetry ambiguity | Fixed in plugin telemetry | Gate-hook observations are recorded even with `gate_mode=off`; correlations/scopes are explicit. dev4 also serializes gate JSONL writes. |
-| JEV-004 oversized `jev_stats` | Fixed | Compact/sectioned output by default, recent data opt-in and bounded. |
+| JEV-004 oversized `nerve_stats` | Fixed | Compact/sectioned output by default, recent data opt-in and bounded. |
 | JEV-005 zero rehydration observation | Clarified + regression covered | Rehydration is demand-driven; zero without a recovery request is not itself a failure. Anchored evidence rehydration is covered. |
 | JEV-006 failure-call amplification | Fixed | Repeated equivalent failures stay local after the initial provider evaluation unless state/evidence materially changes. |
 | JEV-007 decision-lease churn | Fixed | Semantic fingerprints exclude monotonic counters; reuse and invalidation reasons are tracked. |

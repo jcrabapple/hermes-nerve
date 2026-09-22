@@ -1,5 +1,5 @@
 name: Bug report
-description: Report a reproducible Hermes-Jev defect
+description: Report a reproducible Nerve defect
 title: "[Bug] "
 labels: []
 body:
@@ -10,7 +10,7 @@ body:
   - type: input
     id: version
     attributes:
-      label: Hermes-Jev version / commit
+      label: Nerve version / commit
       placeholder: "e.g. 0.2.x / full 40-character SHA"
     validations:
       required: true

@@ -2,9 +2,9 @@
 
 ## Product baseline
 
-Hermes-Jev `0.2.2.dev4`
+Nerve `0.2.2.dev4`
 
-- repository: `keeltrace/hermes-jev`
+- repository: `keeltrace/hermes-nerve`
 - exact commit: `a3aeedc0006797c244ef29d7e085616a5253e627`
 - verified public version at implementation start: `0.2.2.dev4`
 
@@ -28,8 +28,8 @@ Hermes Kanban:
 
 New implementation lives primarily under:
 
-- `hermes_jev/work/`
-- `hermes_jev/remote/`
+- `hermes_nerve/work/`
+- `hermes_nerve/remote/`
 
 The plugin-level tool/hook composition lives in root `__init__.py`.
 
@@ -75,7 +75,7 @@ Dev11 keeps Hermes Kanban as canonical authority but moves the final transition 
 
 ## dev12 live-smoke provenance
 
-`0.2.2.dev12` is derived from the verified local `0.2.2.dev11` package plus the first clean dev11 live lifecycle smoke on 2026-09-21. That run proved the core dev11 authority path: the frozen baseline was 8 failed / 5 passed, Jev first returned REPLAN, then `completion_pre_verify allow=true`, then `completion_native_dispatch ok=true`, and Hermes canonically marked the task/run done/completed with `Hermes-Jev verified completion.` The strict release gate still observed one worker API row after PASS. Hermes source inspection proved `post_api_request` executes before the round-end `pre_verify` gate, so the row was a real subsequent provider call. The cause was Hermes' kanban text-stop guard: hook-owned `kanban_complete` is not represented in conversation messages, so the guard incorrectly emits a synthetic completion nudge. Dev12 suppresses that worker-local guard only after explicit native completion success.
+`0.2.2.dev12` is derived from the verified local `0.2.2.dev11` package plus the first clean dev11 live lifecycle smoke on 2026-09-21. That run proved the core dev11 authority path: the frozen baseline was 8 failed / 5 passed, Jev first returned REPLAN, then `completion_pre_verify allow=true`, then `completion_native_dispatch ok=true`, and Hermes canonically marked the task/run done/completed with `Nerve verified completion.` The strict release gate still observed one worker API row after PASS. Hermes source inspection proved `post_api_request` executes before the round-end `pre_verify` gate, so the row was a real subsequent provider call. The cause was Hermes' kanban text-stop guard: hook-owned `kanban_complete` is not represented in conversation messages, so the guard incorrectly emits a synthetic completion nudge. Dev12 suppresses that worker-local guard only after explicit native completion success.
 
 ## dev13 live-smoke provenance
 

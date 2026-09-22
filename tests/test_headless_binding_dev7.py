@@ -11,8 +11,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from hermes_jev.work import runtime
-from hermes_jev.work.autobind import ensure_kanban_binding
+from hermes_nerve.work import runtime
+from hermes_nerve.work.autobind import ensure_kanban_binding
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -127,7 +127,7 @@ class Dev7HeadlessBindingTests(unittest.TestCase):
                 "hermes_cli.kanban_db_connect": kbc,
             }), patch.dict(os.environ, env, clear=False):
                 spec = importlib.util.spec_from_file_location(
-                    "hermes_jev_plugin_dev7",
+                    "hermes_nerve_plugin_dev7",
                     ROOT / "__init__.py",
                     submodule_search_locations=[str(ROOT)],
                 )
@@ -145,7 +145,7 @@ class Dev7HeadlessBindingTests(unittest.TestCase):
                     self.assertEqual(con.execute("SELECT count(*) FROM run_context").fetchone()[0], 1)
                     kinds = [r[0] for r in con.execute("SELECT kind FROM supervision_diagnostics ORDER BY seq")]
                 self.assertIn("autobind_startup_bound", kinds)
-                self.assertTrue(os.environ.get("HERMES_JEV_DOD_HASH"))
+                self.assertTrue(os.environ.get("HERMES_NERVE_DOD_HASH"))
                 self.assertEqual(ctx.tools, {})
 
     def test_fallback_binding_prefers_dispatcher_env_over_hook_task_id(self):

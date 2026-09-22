@@ -1,4 +1,4 @@
-# Hermes-Jev v0.2.1.2 verification receipt
+# Nerve v0.2.1.2 verification receipt
 
 > **Historical stable-release evidence.** This receipt verifies v0.2.1.2 only; it does not verify the current v0.2.2 development checkout. For development builds, use the exact commit plus its GitHub Actions result.
 
@@ -31,7 +31,7 @@
 
 ## Preserved release invariants
 
-The candidate retains the v0.2.1 repeated-failure loop breaker/control leases, bounded `jev_stats`, explicit rehydration, and the v0.2.1.1 deferred schema, self-observation suppression, receipt-backed provenance, and direct TypeSafe wire-contract coverage.
+The candidate retains the v0.2.1 repeated-failure loop breaker/control leases, bounded `nerve_stats`, explicit rehydration, and the v0.2.1.1 deferred schema, self-observation suppression, receipt-backed provenance, and direct TypeSafe wire-contract coverage.
 
 ## External live evidence
 

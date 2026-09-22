@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from hermes_jev import nervous, router
+from hermes_nerve import nervous, router
 
 
 class FakeDecisionResult:
@@ -89,7 +89,7 @@ class NervousSystemTests(unittest.TestCase):
     def make_system(self, td):
         system = nervous.NervousSystem(engine_factory=ScriptedEngine)
         system.configure(enabled=True, admission_enabled=True, mode="correct_next", challenge_confidence=0.86, call_threshold=0.58)
-        self.env = patch.dict(os.environ, {"HERMES_JEV_NERVOUS_EVENTS": str(Path(td) / "nervous.jsonl")}, clear=False)
+        self.env = patch.dict(os.environ, {"HERMES_NERVE_NERVOUS_EVENTS": str(Path(td) / "nervous.jsonl")}, clear=False)
         self.env.start()
         self.addCleanup(self.env.stop)
         return system
@@ -178,8 +178,8 @@ class NervousSystemTests(unittest.TestCase):
 
     def test_repeated_failure_dedup_and_local_loop_breaker_blocks_fourth_identical_action(self):
         with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {
-            "HERMES_JEV_NERVOUS_EVENTS": str(Path(td) / "nervous.jsonl"),
-            "HERMES_JEV_OUTCOMES": str(Path(td) / "outcomes.jsonl"),
+            "HERMES_NERVE_NERVOUS_EVENTS": str(Path(td) / "nervous.jsonl"),
+            "HERMES_NERVE_OUTCOMES": str(Path(td) / "outcomes.jsonl"),
         }, clear=False):
             ScriptedEngine.reset("CONTINUE")
             system = nervous.NervousSystem(engine_factory=ScriptedEngine)
@@ -211,8 +211,8 @@ class NervousSystemTests(unittest.TestCase):
 
     def test_remote_replan_enforces_next_action_and_attributes_followup(self):
         with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {
-            "HERMES_JEV_NERVOUS_EVENTS": str(Path(td) / "nervous.jsonl"),
-            "HERMES_JEV_OUTCOMES": str(Path(td) / "outcomes.jsonl"),
+            "HERMES_NERVE_NERVOUS_EVENTS": str(Path(td) / "nervous.jsonl"),
+            "HERMES_NERVE_OUTCOMES": str(Path(td) / "outcomes.jsonl"),
         }, clear=False):
             ScriptedEngine.reset("REPLAN")
             system = nervous.NervousSystem(engine_factory=ScriptedEngine)
@@ -249,8 +249,8 @@ class NervousSystemTests(unittest.TestCase):
 
     def test_remote_retry_explicitly_allows_one_identical_retry(self):
         with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {
-            "HERMES_JEV_NERVOUS_EVENTS": str(Path(td) / "nervous.jsonl"),
-            "HERMES_JEV_OUTCOMES": str(Path(td) / "outcomes.jsonl"),
+            "HERMES_NERVE_NERVOUS_EVENTS": str(Path(td) / "nervous.jsonl"),
+            "HERMES_NERVE_OUTCOMES": str(Path(td) / "outcomes.jsonl"),
         }, clear=False):
             ScriptedEngine.reset("RETRY")
             system = nervous.NervousSystem(engine_factory=ScriptedEngine)
@@ -324,7 +324,7 @@ if __name__ == "__main__":
 
 class ProviderCompatibilityTests(unittest.TestCase):
     def test_typesafe_direct_wire_contract_and_request_id(self):
-        from hermes_jev import client
+        from hermes_nerve import client
         captured = {}
         def transport(url, headers, body, timeout):
             captured.update(url=url, headers=headers, body=json.loads(body), timeout=timeout)
@@ -341,7 +341,7 @@ class ProviderCompatibilityTests(unittest.TestCase):
         self.assertEqual(r.request_id, "ts-req-1")
 
     def test_selected_provider_only_requires_selected_key(self):
-        from hermes_jev import client
+        from hermes_nerve import client
         with patch.dict(os.environ, {"OPENROUTER_API_KEY": "or"}, clear=True):
             self.assertEqual(client.JevClient(provider="openrouter").api_key, "or")
             with self.assertRaisesRegex(client.JevError, "TYPESAFE_API_KEY"):
@@ -356,7 +356,7 @@ class AsyncInvariantTests(unittest.TestCase):
             def decide(self, **kwargs):
                 time.sleep(0.25)
                 return FakeDecisionResult("OFF", 0.99)
-        with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {"HERMES_JEV_NERVOUS_EVENTS": str(Path(td) / "n.jsonl")}, clear=False):
+        with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {"HERMES_NERVE_NERVOUS_EVENTS": str(Path(td) / "n.jsonl")}, clear=False):
             system = nervous.NervousSystem(engine_factory=SlowEngine)
             system.configure(enabled=True, admission_enabled=True)
             started = time.monotonic()
@@ -367,7 +367,7 @@ class AsyncInvariantTests(unittest.TestCase):
             self.assertEqual(system.status(turn_id="t")["admission"], "OFF")
 
     def test_material_events_batch_behind_inflight_assessment(self):
-        with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {"HERMES_JEV_NERVOUS_EVENTS": str(Path(td) / "n.jsonl")}, clear=False):
+        with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {"HERMES_NERVE_NERVOUS_EVENTS": str(Path(td) / "n.jsonl")}, clear=False):
             system = nervous.NervousSystem(engine_factory=ScriptedEngine)
             system.configure(enabled=True, admission_enabled=False)
             system.start_turn(user_message="do work", session_id="s", turn_id="t")
@@ -382,7 +382,7 @@ class AsyncInvariantTests(unittest.TestCase):
 
 class OutcomeLearningTests(unittest.TestCase):
     def test_outcome_report_tracks_false_pass_and_useful_disagreement(self):
-        from hermes_jev.outcomes import OutcomeStore
+        from hermes_nerve.outcomes import OutcomeStore
         with tempfile.TemporaryDirectory() as td:
             store = OutcomeStore(Path(td) / "outcomes.jsonl")
             store.append({
@@ -402,7 +402,7 @@ class OutcomeLearningTests(unittest.TestCase):
             self.assertGreater(report["average_latency_ms"], 0)
 
     def test_local_decisions_do_not_make_provider_cost_unknown(self):
-        from hermes_jev.outcomes import OutcomeStore
+        from hermes_nerve.outcomes import OutcomeStore
         with tempfile.TemporaryDirectory() as td:
             store = OutcomeStore(Path(td) / "outcomes.jsonl")
             store.append({
@@ -419,7 +419,7 @@ class OutcomeLearningTests(unittest.TestCase):
             self.assertEqual(report["provider_cost_missing_decisions"], 0)
 
     def test_missing_remote_cost_is_unknown_even_with_local_decisions(self):
-        from hermes_jev.outcomes import OutcomeStore
+        from hermes_nerve.outcomes import OutcomeStore
         with tempfile.TemporaryDirectory() as td:
             store = OutcomeStore(Path(td) / "outcomes.jsonl")
             store.append({"record_type": "decision", "event_id": "local", "source": "local-loop-breaker"})
@@ -432,7 +432,7 @@ class OutcomeLearningTests(unittest.TestCase):
             self.assertEqual(report["provider_cost_missing_decisions"], 1)
 
     def test_historical_model_requires_labeled_sample_floor(self):
-        from hermes_jev.outcomes import HistoricalOutcomeModel, OutcomeStore
+        from hermes_nerve.outcomes import HistoricalOutcomeModel, OutcomeStore
         with tempfile.TemporaryDirectory() as td:
             store = OutcomeStore(Path(td) / "outcomes.jsonl")
             model = HistoricalOutcomeModel(store, min_samples=3)

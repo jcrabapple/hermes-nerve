@@ -1,27 +1,27 @@
-name: hermes-jev
+name: nerve
 version: "0.2.2"
-description: "Hermes-Jev supervisory nervous system with hosted Jev plus open-source Laya/OpenJev Reflex backends, evidence-backed Kanban supervision, token-budget trajectory control, and durable SSH Hermes workers."
+description: "Nerve supervisory nervous system for Hermes Agent with Jev, Laya, and OpenJev Reflex backends, evidence-backed Kanban supervision, token-budget trajectory control, and durable SSH Hermes workers."
 author: "KeelTrace community"
 license: MIT
-homepage: https://github.com/keeltrace/hermes-jev
-tags: [jev, openjev, laya, reflex, system-one, decisions, kanban, definition-of-done, evidence, remote-worker, ssh, distributed, verification]
+homepage: https://github.com/keeltrace/hermes-nerve
+tags: [nerve, jev, openjev, laya, reflex, system-one, decisions, kanban, definition-of-done, evidence, remote-worker, ssh, distributed, verification]
 provides_tools:
-  - jev_decide
-  - jev_rank
-  - jev_verify
-  - jev_assess
-  - jev_context_curate
-  - jev_context_rehydrate
-  - jev_stats
-  - jev_nervous_event
-  - jev_supervise_card
-  - jev_work_event
-  - jev_work_status
-  - jev_remote_delegate_task
-  - jev_remote_worker_status
-  - jev_remote_worker_result
-  - jev_remote_worker_cancel
-  - jev_remote_worker_control
+  - nerve_decide
+  - nerve_rank
+  - nerve_verify
+  - nerve_assess
+  - nerve_context_curate
+  - nerve_context_rehydrate
+  - nerve_stats
+  - nerve_event
+  - nerve_supervise_card
+  - nerve_work_event
+  - nerve_work_status
+  - nerve_remote_delegate_task
+  - nerve_remote_worker_status
+  - nerve_remote_worker_result
+  - nerve_remote_worker_cancel
+  - nerve_remote_worker_control
 provides_hooks: [pre_tool_call, post_tool_call, pre_llm_call, transform_tool_result, pre_verify, post_api_request, api_request_error, post_llm_call, on_session_end]
 requires_env: []
 config_schema:
@@ -88,7 +88,7 @@ config_schema:
   work_control_confidence: {type: float, default: 0.86}
   work_reviewer: {type: str, default: ""}
   work_auto_bind_kanban: {type: bool, default: true}
-  work_headless_workers: {type: bool, default: true, description: "Hide Jev tool schemas from ordinary Kanban workers; supervision runs through hooks."}
+  work_headless_workers: {type: bool, default: true, description: "Hide Nerve tool schemas from ordinary Kanban workers; supervision runs through hooks."}
   work_default_task_budget_tokens: {type: int, default: 70000}
   work_checkpoint_fractions: {type: str, default: "0.40,0.70"}
   work_supervisor_budget_fraction: {type: float, default: 0.03}

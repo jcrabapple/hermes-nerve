@@ -8,11 +8,12 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from hermes_jev.remote import runtime
-from hermes_jev.remote.config import resolve_host
-from hermes_jev.remote.errors import RemoteWorkerError
-from hermes_jev.remote.execution import RemoteManager
-from hermes_jev.remote.protocol import ProtocolState
+from hermes_nerve.remote import runtime
+from hermes_nerve.remote.config import resolve_host
+from hermes_nerve.remote.errors import RemoteWorkerError
+from hermes_nerve.remote.execution import RemoteManager
+from hermes_nerve.remote.protocol import ProtocolState
+
 
 
 class RemoteExecutionTests(unittest.TestCase):
