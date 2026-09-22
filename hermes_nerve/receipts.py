@@ -179,7 +179,7 @@ def report(path: Path | None = None, *, recent_limit: int = 8) -> dict[str, Any]
         "by_contract": dict(sorted(by_contract.items())),
         "by_model": dict(sorted(by_model.items())),
         "total_cost": None if provider_cost_missing_calls else round(reported_cost, 12),
-        "provider_reported_cost": round(reported_cost, 12),
+        "provider_reported_cost": round(reported_cost, 12) if provider_cost_reported_calls else None,
         "provider_cost_reported_calls": provider_cost_reported_calls,
         "provider_cost_missing_calls": provider_cost_missing_calls,
         "input_tokens": input_tokens,
