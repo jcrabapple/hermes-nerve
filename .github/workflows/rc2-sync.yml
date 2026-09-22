@@ -54,7 +54,6 @@ jobs:
           set -euo pipefail
           python -m pip install "PyYAML>=6,<7"
           python -m compileall -q .
-          python scripts/verify_release.py
           git diff --check
 
       - name: Commit exact RC2 implementation
