@@ -1,4 +1,4 @@
-"""Profile-aware filesystem paths for Hermes-Jev.
+"""Profile-aware filesystem paths for Nerve.
 
 Hermes named profiles are selected by setting ``HERMES_HOME`` before startup,
 and newer multiplexed hosts can additionally use a context-local Hermes-home

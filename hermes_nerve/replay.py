@@ -10,7 +10,7 @@ from .engine import DecisionEngine
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Replay Hermes-Jev JSONL evaluation cases")
+    parser = argparse.ArgumentParser(description="Replay Nerve JSONL evaluation cases")
     parser.add_argument("corpus", type=Path)
     args = parser.parse_args()
     engine = DecisionEngine()

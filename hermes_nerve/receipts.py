@@ -25,12 +25,12 @@ def configure(*, detail: Any = None) -> None:
 def receipt_detail() -> str:
     if _configured_detail is not None:
         return _configured_detail
-    value = os.getenv("HERMES_JEV_RECEIPT_DETAIL", "hash").strip().lower()
+    value = os.getenv("HERMES_NERVE_RECEIPT_DETAIL", "hash").strip().lower()
     return value if value in {"hash", "sanitized"} else "hash"
 
 
 def receipt_path() -> Path:
-    explicit = os.getenv("HERMES_JEV_RECEIPTS")
+    explicit = os.getenv("HERMES_NERVE_RECEIPTS")
     if explicit:
         return Path(explicit).expanduser()
     return hermes_home() / "jev" / "receipts.jsonl"
@@ -50,7 +50,7 @@ def write_receipt(*, contract: str, state: Any, result: dict[str, Any], model: s
     result_sha256 = canonical_hash(raw_result)
     execution = raw_result.get("execution") if isinstance(raw_result.get("execution"), dict) else execution_provenance(live_provider_call=True)
     identity = {
-        "schema": "hermes-jev-receipt/v3",
+        "schema": "hermes-nerve-receipt/v3",
         "created_at": created_at,
         "contract": contract,
         "state_sha256": state_sha256,
@@ -84,7 +84,7 @@ def write_receipt(*, contract: str, state: Any, result: dict[str, Any], model: s
         receipt_id=receipt_id,
     )
     record: dict[str, Any] = {
-        "schema": "hermes-jev-receipt/v3",
+        "schema": "hermes-nerve-receipt/v3",
         "receipt_id": receipt_id,
         "timestamp": created_at,
         "contract": contract,

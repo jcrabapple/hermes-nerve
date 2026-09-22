@@ -60,7 +60,7 @@ def _error(exc: Exception) -> str:
     }, sort_keys=True)
 
 
-def jev_decide(args: dict, **kwargs) -> str:
+def nerve_decide(args: dict, **kwargs) -> str:
     try:
         result = _engine().decide(
             state=args.get("state"),
@@ -74,7 +74,7 @@ def jev_decide(args: dict, **kwargs) -> str:
         return _error(exc)
 
 
-def jev_rank(args: dict, **kwargs) -> str:
+def nerve_rank(args: dict, **kwargs) -> str:
     try:
         items = args.get("items")
         if not isinstance(items, dict) or len(items) < 2:
@@ -90,7 +90,7 @@ def jev_rank(args: dict, **kwargs) -> str:
         return _error(exc)
 
 
-def jev_verify(args: dict, **kwargs) -> str:
+def nerve_verify(args: dict, **kwargs) -> str:
     try:
         result = _engine().verify(
             state=args.get("state"),
@@ -105,7 +105,7 @@ def jev_verify(args: dict, **kwargs) -> str:
         return _error(exc)
 
 
-def jev_assess(args: dict, **kwargs) -> str:
+def nerve_assess(args: dict, **kwargs) -> str:
     try:
         questions = args.get("questions")
         if not isinstance(questions, dict):
@@ -120,7 +120,7 @@ def jev_assess(args: dict, **kwargs) -> str:
         return _error(exc)
 
 
-def jev_context_curate(args: dict, **kwargs) -> str:
+def nerve_context_curate(args: dict, **kwargs) -> str:
     try:
         result = curate_context(
             goal=str(args.get("goal") or "").strip(),
@@ -139,7 +139,7 @@ def jev_context_curate(args: dict, **kwargs) -> str:
         return _error(exc)
 
 
-def jev_context_rehydrate(args: dict, **kwargs) -> str:
+def nerve_context_rehydrate(args: dict, **kwargs) -> str:
     try:
         result = ledger.rehydrate(str(args.get("evidence_id") or ""))
         return _ok({
@@ -153,7 +153,7 @@ def jev_context_rehydrate(args: dict, **kwargs) -> str:
 
 
 
-def jev_nervous_event(args: dict, **kwargs) -> str:
+def nerve_nervous_event(args: dict, **kwargs) -> str:
     try:
         event = dict(args or {})
         for key in ("turn_id", "session_id"):
@@ -161,7 +161,7 @@ def jev_nervous_event(args: dict, **kwargs) -> str:
                 event[key] = kwargs.get(key)
         result = nervous.emit_event(event)
         return _ok({
-            "contract": "hermes/jev-nervous-event/v1",
+            "contract": "hermes/nerve-nervous-event/v1",
             "event": result,
             "nervous": nervous.status(str(event.get("turn_id") or ""), str(event.get("session_id") or "")),
             "execution": execution_provenance(live_provider_call=False, transport="local-nervous-router"),
@@ -206,7 +206,7 @@ def _compact_nervous(report: dict) -> dict:
     }
 
 
-def jev_stats(args: dict, **kwargs) -> str:
+def nerve_stats(args: dict, **kwargs) -> str:
     """Bounded local telemetry. Default is deliberately compact (v0.2.1)."""
     try:
         section = str(args.get("section") or "summary").strip().lower()

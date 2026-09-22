@@ -1,4 +1,4 @@
-"""Local adaptive relevance router for the Hermes-Jev nervous system.
+"""Local adaptive relevance router for the Nerve nervous system.
 
 The router never calls a provider. It converts structured Hermes events into a
 small significance assessment so remote Jev is used when a new judgment could

@@ -7,7 +7,7 @@ _ALIAS=re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$")
 _PROFILE=re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$")
 def now_ts()->float:return time.time()
 def data_dir()->Path:
- explicit=str(os.getenv("HERMES_JEV_REMOTE_DATA") or "").strip();return Path(explicit).expanduser() if explicit else hermes_home()/"plugin-data"/"hermes-jev"/"remote"
+ explicit=str(os.getenv("HERMES_NERVE_REMOTE_DATA") or "").strip();return Path(explicit).expanduser() if explicit else hermes_home()/"plugin-data"/"hermes-nerve"/"remote"
 def validate_alias(value:str)->str:
  text=str(value or "").strip()
  if not _ALIAS.fullmatch(text):raise ValueError("host alias must use only letters, digits, '.', '_' or '-'")
