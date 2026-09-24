@@ -13,6 +13,20 @@ _configured_provider=_configured_base_url=_configured_model=_configured_typesafe
 _configured_timeout=None
 class JevError(RuntimeError): pass
 
+def _resolve_secret(name:str)->str:
+ """Read a provider key the way the Hermes host does.
+
+ Hermes resolves credentials through a per-profile secret scope, not ``os.environ``: gateway
+ turns and cron workers never see ``~/.hermes/.env`` values via ``os.getenv``. Under profile
+ multiplexing with no scope bound, ``get_secret`` fails closed; treat that as "no key" so the
+ caller's fail-open path runs instead of borrowing another profile's value. Outside Hermes
+ (tests, standalone scripts) fall back to the process environment.
+ """
+ try: from agent.secret_scope import get_secret
+ except ImportError: return os.getenv(name,"").strip()
+ try: return str(get_secret(name,"") or "").strip()
+ except Exception: return ""
+
 def configure(*,provider:Any=None,base_url:Any=None,model:Any=None,typesafe_model:Any=None,opencode_model:Any=None,timeout:Any=None)->None:
  global _configured_provider,_configured_base_url,_configured_model,_configured_typesafe_model,_configured_opencode_model,_configured_timeout
  p=str(provider or "").strip().lower(); _configured_provider=p if p in SUPPORTED_PROVIDERS else None
@@ -32,13 +46,13 @@ class JevClient:
   if selected not in SUPPORTED_PROVIDERS: raise JevError("jev provider must be 'openrouter', 'typesafe', or 'opencode'")
   self.provider_kind=selected
   if selected=="opencode":
-   self.api_key=api_key or os.getenv("OPENCODE_API_KEY","").strip(); selected_base_url=base_url or _configured_base_url or os.getenv("OPENCODE_BASE_URL") or OPENCODE_BASE_URL; self.model=model or _configured_opencode_model or os.getenv("HERMES_NERVE_OPENCODE_MODEL") or OPENCODE_MODEL
+   self.api_key=api_key or _resolve_secret("OPENCODE_API_KEY"); selected_base_url=base_url or _configured_base_url or os.getenv("OPENCODE_BASE_URL") or OPENCODE_BASE_URL; self.model=model or _configured_opencode_model or os.getenv("HERMES_NERVE_OPENCODE_MODEL") or OPENCODE_MODEL
    if self.model!=OPENCODE_MODEL: raise JevError("OpenCode Nerve access currently supports only paid model 'jev-1.13'")
    self.path=OPENCODE_PATH; self.transport_name="opencode-zen-system-one"
   elif selected=="typesafe":
-   self.api_key=api_key or os.getenv("TYPESAFE_API_KEY","").strip(); selected_base_url=base_url or _configured_base_url or os.getenv("TYPESAFE_BASE_URL") or TYPESAFE_BASE_URL; self.model=model or _configured_typesafe_model or os.getenv("HERMES_NERVE_TYPESAFE_MODEL") or TYPESAFE_MODEL; self.path=TYPESAFE_PATH; self.transport_name="typesafe-system-one"
+   self.api_key=api_key or _resolve_secret("TYPESAFE_API_KEY"); selected_base_url=base_url or _configured_base_url or os.getenv("TYPESAFE_BASE_URL") or TYPESAFE_BASE_URL; self.model=model or _configured_typesafe_model or os.getenv("HERMES_NERVE_TYPESAFE_MODEL") or TYPESAFE_MODEL; self.path=TYPESAFE_PATH; self.transport_name="typesafe-system-one"
   else:
-   self.api_key=api_key or os.getenv("OPENROUTER_API_KEY","").strip(); selected_base_url=base_url or _configured_base_url or os.getenv("OPENROUTER_BASE_URL") or OPENROUTER_BASE_URL; self.model=model or _configured_model or os.getenv("HERMES_NERVE_MODEL") or OPENROUTER_MODEL; self.path=OPENROUTER_PATH; self.transport_name="openrouter-decisions"
+   self.api_key=api_key or _resolve_secret("OPENROUTER_API_KEY"); selected_base_url=base_url or _configured_base_url or os.getenv("OPENROUTER_BASE_URL") or OPENROUTER_BASE_URL; self.model=model or _configured_model or os.getenv("HERMES_NERVE_MODEL") or OPENROUTER_MODEL; self.path=OPENROUTER_PATH; self.transport_name="openrouter-decisions"
   if not self.api_key: raise JevError(f"{PROVIDER_API_KEY_ENV[selected]} is not configured")
   self.base_url=str(selected_base_url).rstrip("/"); raw=timeout if timeout is not None else _configured_timeout
   if raw is None: raw=float(os.getenv("HERMES_NERVE_TIMEOUT",str(DEFAULT_TIMEOUT)))
