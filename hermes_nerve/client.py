@@ -18,14 +18,13 @@ def _resolve_secret(name:str)->str:
 
  Hermes resolves credentials through a per-profile secret scope, not ``os.environ``: gateway
  turns and cron workers never see ``~/.hermes/.env`` values via ``os.getenv``. Under profile
- multiplexing with no scope bound, ``get_secret`` fails closed; treat that as "no key" so the
- caller's fail-open path runs instead of borrowing another profile's value. Outside Hermes
- (tests, standalone scripts) fall back to the process environment.
+ multiplexing with no scope bound, ``get_secret`` fails closed; preserve that exception so a
+ host scoping bug remains distinguishable from a missing provider key. Outside Hermes (tests,
+ standalone scripts) fall back to the process environment.
  """
  try: from agent.secret_scope import get_secret
  except ImportError: return os.getenv(name,"").strip()
- try: return str(get_secret(name,"") or "").strip()
- except Exception: return ""
+ return str(get_secret(name,"") or "").strip()
 
 def configure(*,provider:Any=None,base_url:Any=None,model:Any=None,typesafe_model:Any=None,opencode_model:Any=None,timeout:Any=None)->None:
  global _configured_provider,_configured_base_url,_configured_model,_configured_typesafe_model,_configured_opencode_model,_configured_timeout

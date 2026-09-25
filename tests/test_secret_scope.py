@@ -56,13 +56,29 @@ class SecretScopeTests(unittest.TestCase):
             self.assertEqual(client.JevClient(provider="typesafe").api_key, "b")
             self.assertEqual(client.JevClient(provider="opencode").api_key, "c")
 
-    def test_scope_failing_closed_means_no_key_not_env_fallback(self):
-        # Multiplexed Hermes with no profile bound: get_secret raises. Must not borrow os.environ.
-        scope = _Scope(error=RuntimeError("no secret scope bound"))
-        env = dict(_no_env(), OPENROUTER_API_KEY="sk-other-profile")
+    def test_scoped_miss_does_not_borrow_ambient_env(self):
+        scope = _Scope({})
+        env = dict(_no_env(), OPENROUTER_API_KEY="ambient-other-profile")
         with patch.dict(os.environ, env, clear=True), patch.dict(sys.modules, scope.module()):
-            with self.assertRaises(client.JevError):
+            with self.assertRaisesRegex(client.JevError, "OPENROUTER_API_KEY is not configured"):
                 client.JevClient(provider="openrouter")
+
+    def test_scope_failure_propagates_original_exception(self):
+        error = RuntimeError("no secret scope bound")
+        scope = _Scope(error=error)
+        env = dict(_no_env(), OPENROUTER_API_KEY="ambient-other-profile")
+        with patch.dict(os.environ, env, clear=True), patch.dict(sys.modules, scope.module()):
+            with self.assertRaises(RuntimeError) as caught:
+                client.JevClient(provider="openrouter")
+        self.assertIs(caught.exception, error)
+
+    def test_unexpected_secret_resolver_error_propagates(self):
+        error = ValueError("resolver bug")
+        scope = _Scope(error=error)
+        with patch.dict(os.environ, _no_env(), clear=True), patch.dict(sys.modules, scope.module()):
+            with self.assertRaises(ValueError) as caught:
+                client.JevClient(provider="openrouter")
+        self.assertIs(caught.exception, error)
 
     def test_outside_hermes_falls_back_to_process_env(self):
         with patch.dict(os.environ, dict(_no_env(), OPENROUTER_API_KEY=" sk-env "), clear=True), \
