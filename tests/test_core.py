@@ -606,6 +606,16 @@ class GateTests(unittest.TestCase):
                 gate.evaluate_tool_call = original
             self.assertIsNone(decision)
 
+    def test_min_allow_probability_rejects_non_finite_configuration(self):
+        for raw in ("nan", "inf", "-inf"):
+            gate._configured_min_allow_probability = None
+            with patch.dict(os.environ, {"HERMES_NERVE_MIN_ALLOW_PROBABILITY": raw}, clear=False):
+                self.assertAlmostEqual(gate.minimum_allow_probability(), 0.90)
+
+        for raw in (float("nan"), float("inf"), float("-inf")):
+            gate.configure(mode="enforce", min_confidence=0.80, min_allow_probability=raw, scope="selective")
+            self.assertAlmostEqual(gate.minimum_allow_probability(), 0.90)
+
     def test_enforce_allow_without_distribution_falls_back_to_confidence(self):
         # Providers that return no usable distribution keep the shipped
         # confidence-only semantics rather than failing every allow.
@@ -720,6 +730,35 @@ class RegistrationTests(unittest.TestCase):
         self.assertEqual(ctx.context_engine.name, "jev")
         self.assertAlmostEqual(ctx.context_engine.threshold_percent, 0.68)
         self.assertFalse(ctx.context_engine.fallback_builtin)
+
+    def test_register_uses_min_allow_probability_env_as_config_fallback(self):
+        root = Path(__file__).resolve().parents[1]
+        spec = importlib.util.spec_from_file_location("hermes_nerve_plugin_env", root / "__init__.py", submodule_search_locations=[str(root)])
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = module
+        spec.loader.exec_module(module)
+
+        class Ctx:
+            def __init__(self):
+                self.tools = []
+                self.hooks = []
+                self.context_engine = None
+
+            def get_config(self, key, default=None):
+                return default
+
+            def register_tool(self, **kwargs):
+                self.tools.append(kwargs)
+
+            def register_hook(self, name, callback):
+                self.hooks.append((name, callback))
+
+            def register_context_engine(self, engine_obj):
+                self.context_engine = engine_obj
+
+        with patch.dict(os.environ, {"HERMES_NERVE_MIN_ALLOW_PROBABILITY": "0.75"}, clear=False):
+            module.register(Ctx())
+            self.assertAlmostEqual(module.gate.minimum_allow_probability(), 0.75)
 
     def test_fresh_install_context_defaults_are_shadow(self):
         root = Path(__file__).resolve().parents[1]

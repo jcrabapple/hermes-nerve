@@ -70,6 +70,8 @@ def configure(*, mode: Any = None, min_confidence: Any = None, min_allow_probabi
         allow_floor = float(0.90 if min_allow_probability is None else min_allow_probability)
     except (TypeError, ValueError):
         allow_floor = 0.90
+    if not math.isfinite(allow_floor):
+        allow_floor = 0.90
     _configured_min_allow_probability = min(1.0, max(0.0, allow_floor))
     raw_scope = str(scope if scope is not None else "selective").strip().lower()
     _configured_scope = raw_scope if raw_scope in {"selective", "all"} else "selective"
@@ -105,6 +107,8 @@ def minimum_allow_probability() -> float:
     try:
         value = float(os.getenv("HERMES_NERVE_MIN_ALLOW_PROBABILITY", "0.90"))
     except ValueError:
+        value = 0.90
+    if not math.isfinite(value):
         value = 0.90
     return min(1.0, max(0.0, value))
 
