@@ -521,11 +521,19 @@ class GateTests(unittest.TestCase):
             gate._record_gate_event(tool_name="terminal", action="evaluated", reason="r", provider_call=True,
                                     probabilities=None)
             gate._record_gate_event(tool_name="terminal", action="evaluated", reason="r", provider_call=True,
-                                    probabilities={"ALLOW": "nan?", "BLOCK": 0.4})
+                                    probabilities={
+                                        "ALLOW": "nan?",
+                                        "APPROVAL": float("nan"),
+                                        "BLOCK": 0.4,
+                                        "NEGATIVE": -0.1,
+                                        "TOO_HIGH": 1.1,
+                                        "INFINITE": float("inf"),
+                                    })
             rows = read_jsonl(Path(td) / "gate.jsonl")
             self.assertNotIn("probabilities", rows[0])
             self.assertEqual(rows[1]["probabilities"], {"BLOCK": 0.4})
-            self.assertEqual(rows[1]["margin"], 0.4)
+            self.assertEqual(rows[1]["p_top"], 0.4)
+            self.assertNotIn("margin", rows[1])
 
     def test_enforce_block(self):
         with patch.dict(os.environ, {"HERMES_NERVE_GATE_MODE": "enforce"}, clear=False):

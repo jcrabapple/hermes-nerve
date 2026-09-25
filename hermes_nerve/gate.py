@@ -8,6 +8,7 @@ harmless tool call.
 
 from __future__ import annotations
 
+import math
 import os
 import re
 import shlex
@@ -137,7 +138,8 @@ def _record_gate_event(
         record["probabilities"] = probs
         ranked = sorted(probs.values(), reverse=True)
         record["p_top"] = ranked[0]
-        record["margin"] = round(ranked[0] - (ranked[1] if len(ranked) > 1 else 0.0), 6)
+        if len(ranked) > 1:
+            record["margin"] = round(ranked[0] - ranked[1], 6)
     append_jsonl(gate_event_path(), record)
 
 
@@ -147,9 +149,12 @@ def _clean_probabilities(probabilities: Any) -> dict[str, float]:
     out: dict[str, float] = {}
     for key, value in probabilities.items():
         try:
-            out[str(key)] = round(float(value), 6)
+            number = float(value)
         except (TypeError, ValueError):
             continue
+        if not math.isfinite(number) or not 0.0 <= number <= 1.0:
+            continue
+        out[str(key)] = round(number, 6)
     return out
 
 
