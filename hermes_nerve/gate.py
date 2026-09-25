@@ -8,6 +8,7 @@ harmless tool call.
 
 from __future__ import annotations
 
+import math
 import os
 import re
 import shlex
@@ -106,6 +107,7 @@ def _record_gate_event(
     value: str | None = None,
     confidence: float | None = None,
     latency_ms: float | None = None,
+    probabilities: dict[str, float] | None = None,
     turn_id: str = "",
     session_id: str = "",
     tool_call_id: str = "",
@@ -129,7 +131,31 @@ def _record_gate_event(
         record["confidence"] = round(float(confidence), 6)
     if latency_ms is not None:
         record["latency_ms"] = round(float(latency_ms), 3)
+    # ``confidence`` is Jev's calibration signal, not the probability of the chosen answer. Reviewing
+    # advisory-mode data needs the answer distribution itself (and the argmax probability and margin).
+    probs = _clean_probabilities(probabilities)
+    if probs:
+        record["probabilities"] = probs
+        ranked = sorted(probs.values(), reverse=True)
+        record["p_top"] = ranked[0]
+        if len(ranked) > 1:
+            record["margin"] = round(ranked[0] - ranked[1], 6)
     append_jsonl(gate_event_path(), record)
+
+
+def _clean_probabilities(probabilities: Any) -> dict[str, float]:
+    if not isinstance(probabilities, dict):
+        return {}
+    out: dict[str, float] = {}
+    for key, value in probabilities.items():
+        try:
+            number = float(value)
+        except (TypeError, ValueError):
+            continue
+        if not math.isfinite(number) or not 0.0 <= number <= 1.0:
+            continue
+        out[str(key)] = round(number, 6)
+    return out
 
 
 def _terminal_command(args: dict[str, Any]) -> str:
@@ -263,6 +289,7 @@ def pre_tool_call(tool_name: str, args: dict, task_id: str | None = None, **kwar
         value=result.value,
         confidence=result.confidence,
         latency_ms=result.latency_ms,
+        probabilities=result.probabilities,
         **correlation,
     )
     if mode == "advisory":

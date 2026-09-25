@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 from hermes_nerve import client, context, engine, gate, ledger, lifecycle, paths, privacy, receipts, tools
 from hermes_nerve.context_engine import NerveContextEngine
+from hermes_nerve.jsonl import read_jsonl
 
 
 class FakeProvider:
@@ -494,6 +495,45 @@ class GateTests(unittest.TestCase):
     def test_jev_internal_tools_never_recurse_even_in_all_scope(self):
         with patch.dict(os.environ, {"HERMES_NERVE_GATE_SCOPE": "all"}, clear=False):
             self.assertEqual(gate.bypass_reason("nerve_verify", {}), "nerve-internal")
+
+    def test_evaluated_event_logs_answer_distribution(self):
+        with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {
+            "HERMES_NERVE_GATE_MODE": "advisory",
+            "HERMES_NERVE_GATE_EVENTS": str(Path(td) / "gate.jsonl"),
+        }, clear=False):
+            original = gate.evaluate_tool_call
+            gate.evaluate_tool_call = lambda **kwargs: engine.DecisionResult(
+                "ALLOW", 0.97, {"ALLOW": 0.62, "APPROVAL": 0.3, "BLOCK": 0.08}, "jev-test", 1.0, "x")
+            try:
+                self.assertIsNone(gate.pre_tool_call("terminal", {"command": "make build"}, "t"))
+            finally:
+                gate.evaluate_tool_call = original
+            row = [r for r in read_jsonl(Path(td) / "gate.jsonl") if r["action"] == "evaluated"][-1]
+            self.assertEqual(row["probabilities"], {"ALLOW": 0.62, "APPROVAL": 0.3, "BLOCK": 0.08})
+            self.assertEqual(row["p_top"], 0.62)
+            self.assertEqual(row["margin"], 0.32)
+            self.assertEqual(row["confidence"], 0.97)
+
+    def test_gate_event_tolerates_missing_or_malformed_probabilities(self):
+        with tempfile.TemporaryDirectory() as td, patch.dict(os.environ, {
+            "HERMES_NERVE_GATE_EVENTS": str(Path(td) / "gate.jsonl"),
+        }, clear=False):
+            gate._record_gate_event(tool_name="terminal", action="evaluated", reason="r", provider_call=True,
+                                    probabilities=None)
+            gate._record_gate_event(tool_name="terminal", action="evaluated", reason="r", provider_call=True,
+                                    probabilities={
+                                        "ALLOW": "nan?",
+                                        "APPROVAL": float("nan"),
+                                        "BLOCK": 0.4,
+                                        "NEGATIVE": -0.1,
+                                        "TOO_HIGH": 1.1,
+                                        "INFINITE": float("inf"),
+                                    })
+            rows = read_jsonl(Path(td) / "gate.jsonl")
+            self.assertNotIn("probabilities", rows[0])
+            self.assertEqual(rows[1]["probabilities"], {"BLOCK": 0.4})
+            self.assertEqual(rows[1]["p_top"], 0.4)
+            self.assertNotIn("margin", rows[1])
 
     def test_enforce_block(self):
         with patch.dict(os.environ, {"HERMES_NERVE_GATE_MODE": "enforce"}, clear=False):
